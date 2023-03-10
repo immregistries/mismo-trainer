@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.pm.model">
+  <class name="Patient" table="patient">
+    <id name="patientId" column="patient_id">
+      <generator class="assigned"/>
+    </id>
+    <property name="nameLast" column="name_last" type="string"/>
+    <property name="nameFirst" column="name_first" type="string"/>
+    <property name="nameMiddle" column="name_middle" type="string"/>
+    <property name="nameSuffix" column="name_suffix" type="string"/>
+    <property name="birthDate" column="birth_date" type="string"/>
+    <property name="guardianNameFirst" column="grd_name_first" type="string"/>
+    <property name="guardianNameLast" column="grd_name_last" type="string"/>
+    <property name="motherNameFirst" column="mth_name_first" type="string"/>
+    <property name="motherNameMiddle" column="mth_name_middle" type="string"/>
+    <property name="motherMaidenName" column="mth_name_maiden" type="string"/>
+    <property name="phone" column="phone" type="string"/>
+    <property name="race" column="race" type="string"/>
+    <property name="ethnicity" column="ethnicity" type="string"/>
+    <property name="addressStreet1" column="adr_street1" type="string"/>
+    <property name="addressStreet2" column="adr_street2" type="string"/>
+    <property name="addressCity" column="adr_city" type="string"/>
+    <property name="addressState" column="adr_state" type="string"/>
+    <property name="addressZip" column="adr_zip" type="string"/>
+    <property name="gender" column="gender" type="string"/>
+    <property name="birthType" column="birth_type" type="string"/>
+    <property name="birthOrder" column="birth_order" type="string"/>
+    <property name="mrns" column="mrns" type="string"/>
+    <property name="ssn" column="ssn" type="string"/>
+    <property name="medicaid" column="medicaid" type="string"/>
+    <property name="shotHistory" column="shot_history" type="string"/>
+  </class>
+</hibernate-mapping>

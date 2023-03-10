@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.pm.model">
+  <class name="MatchItem" table="match_item">
+    <id name="matchItemId" column="match_item_id">
+      <generator class="native"/>
+    </id>
+    <many-to-one name="matchSet" column="match_set_id" class="MatchSet"/>
+    <property name="label" column="label" type="string"/>
+    <property name="description" column="description" type="string"/>
+    <property name="patientDataA" column="patient_data_a" type="string"/>
+    <property name="patientDataB" column="patient_data_b" type="string"/>
+    <property name="expectStatus" column="expect_status" type="string"/>
+    <many-to-one name="user" column="user_id" class="User"/>
+    <property name="updateDate" column="update_date" type="timestamp"/>
+    <property name="dataSource" column="data_source" type="string"/>
+  </class>
+</hibernate-mapping>

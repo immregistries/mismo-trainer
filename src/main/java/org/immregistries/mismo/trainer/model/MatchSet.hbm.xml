@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.pm.model">
+  <class name="MatchSet" table="match_set">
+    <id name="matchSetId" column="match_set_id">
+      <generator class="native"/>
+    </id>
+    <property name="label" column="label" type="string"/>
+    <property name="updateDate" column="update_date" type="timestamp"/>
+  </class>
+</hibernate-mapping>
