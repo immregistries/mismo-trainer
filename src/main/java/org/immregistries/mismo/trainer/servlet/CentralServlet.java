@@ -142,7 +142,7 @@ public class CentralServlet extends HomeServlet
     List<MatchItem> matchTestCaseList;
     {
       BufferedReader in = null;
-      in = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("MIIS-E3.txt")));
+      in = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("/MIIS-E3.txt")));
       matchTestCaseList = Island.readSourceFile(in);
     }
     return matchTestCaseList;

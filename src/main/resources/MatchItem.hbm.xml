@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
-<hibernate-mapping package="org.immregistries.pm.model">
+<hibernate-mapping package="org.immregistries.mismo.match.model">
   <class name="MatchItem" table="match_item">
     <id name="matchItemId" column="match_item_id">
       <generator class="native"/>

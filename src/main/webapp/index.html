@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Mismo Match</title>
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css" />
+</head>
+<body>
+    <header class="w3-container w3-light-grey">
+        <div class="w3-barw3-light-grey">
+            <a href="home" class="w3-bar-item w3-button w3-green">Mismo Match</a>
+        </div>
+    </header>
+    <div class="w3-container w3-half w3-margin-top">
+        <h2>Patient Record Matching</h2>
+        <ul class="w3-ul w3-hoverable">
+            <li><a href="TestSetServlet">Test Set</a>: Allows for entry and
+                management of test sets.</li>
+            <li><a href="MatchPatientServlet">Match Patient</a>: Shows how a
+                single patient is matched using the weighting system.</li>
+            <li><a href="TestMatchingServlet">Test Matching</a>: Shows the
+                results of how well a particular matching set works.</li>
+            <li><a href="ConvertDataServlet">Convert Data to Match
+                    Format</a></li>
+            <li><a href="DownloadHl7Servlet">Download HL7</a></li>
+            <li><a href="CentralServlet">Central</a>: Shows the status of
+                the central server that is responsible for listening to remote
+                Island processes and reporting on the progress of these
+                optimizations.</li>
+            <li><a href="GenerateWeightsServlet">Generate Weights</a>:
+                Starts evolutionary algorithm that hunts for best weights. Do not
+                click unless you are ready for generator start.</li>
+            <li><a href="RandomServlet">Random</a>: Supports creating a set
+                of three random patients, the second matching with the first and the
+                third having similar characteristics but not being a match.</li>
+            <li><a href="RandomScriptServlet">Random Script</a>: Creates
+                script with lots of example data.</li>
+            <li><a href="RandomForCDCServlet">Random for CDC Servlet</a>:
+                Creates data in a spreadsheet that was requested by the CDC
+                deduplication project.</li>
+        </ul>
+    </div>
+</body>
+</html>

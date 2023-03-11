@@ -14,10 +14,10 @@
     <property name="hibernate.c3p0.max_size">30</property>
     <property name="hibernate.c3p0.min_size">5</property>
     <property name="hibernate.c3p0.max_statements">10</property>
-    <mapping resource="org/immregistries/mismo/trainer/model/MatchItem.hbm.xml"/>
-    <mapping resource="org/immregistries/mismo/trainer/model/MatchSet.hbm.xml"/>
-    <mapping resource="org/immregistries/mismo/trainer/model/Patient.hbm.xml"/>
-    <mapping resource="org/immregistries/mismo/trainer/model/User.hbm.xml"/>
+    <mapping resource="MatchItem.hbm.xml"/>
+    <mapping resource="MatchSet.hbm.xml"/>
+    <mapping resource="Patient.hbm.xml"/>
+    <mapping resource="User.hbm.xml"/>
 
   </session-factory>
 </hibernate-configuration>

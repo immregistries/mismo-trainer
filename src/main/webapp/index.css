@@ -1,0 +1,27 @@
+body {font-family: Tahoma, Geneva, sans-serif; background:#D5E1DD}
+p {width:650px; color:#2B3E42;}
+.menu {width:1020px; padding:5px; background-color:#F7F3E8; margin: 0px; border-color: #2B3E42; border-width: 1px; border-style: solid}
+a:link.menuLink {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #F7F3E8; border-width: 1px; padding-left: 5px; padding-right: 5px; }
+a:visited.menuLink {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #F7F3E8; border-width: 1px; padding-left: 5px; padding-right: 5px; }
+a:hover.menuLink {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #77BED2; padding-left: 5px; padding-right: 5px; }
+a:active.menuLink {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #F7F3E8; border-width: 1px; padding-left: 2px; padding-right: 5px; }
+a:link.menuLinkSelected {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #D5E1DD; padding-left: 5px; padding-right: 5px; }
+a:visited.menuLinkSelected {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #D5E1DD; padding-left: 5px; padding-right: 5px; }
+a:hover.menuLinkSelected {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #77BED2; padding-left: 5px; padding-right: 5px; }
+a:active.menuLinkSelected {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #D5E1DD; padding-left: 5px; padding-right: 5px; }
+.submenu {padding:5px; background-color:#F7F3E8; margin: 0px; border-color: #2B3E42; border-width: 1px; border-style: solid}
+input {border-color: #747E80; background-color: #F7F3E8}
+textarea {border-color: #747E80; background-color: #F7F3E8}
+select {border-color: #747E80; background-color: #F7F3E8}
+td {padding-left:5px; padding-right:5px; empty-cells:show;}
+pre {background:#F7F3E8; padding:4px; margin: 2px; }
+.scrollbox {width: 700px; height:300px; overflow:auto; font-size:10px;}
+.pass {background:#77BED2;}
+.fail {background:#F2583E;}
+.help {width:700px; padding: 10px;}
+
+.navMenu {padding:5px; margin-bottom: 5px;}
+a:link.navMenuLink {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #77BED2; padding-left: 2px; padding-right: 2px; }
+a:visited.navMenuLink {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #77BED2; padding-left: 2px; padding-right: 2px; }
+a:hover.navMenuLink {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #D5E1DD; padding-left: 2px; padding-right: 2px; }
+a:active.navMenuLink {color:#2B3E42; text-decoration:none; border-style: solid; border-color: #000; border-width: 1px; background-color: #77BED2; padding-left: 2px; padding-right: 2px; }

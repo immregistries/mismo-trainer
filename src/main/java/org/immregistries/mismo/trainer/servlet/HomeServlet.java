@@ -75,7 +75,7 @@ public class HomeServlet extends HttpServlet {
       }
 
       doHeader(out, user, message);
-      out.println("  <h1>Patient Match Toolset</h1>");
+      out.println("  <h1>Mismo Match Toolset</h1>");
       if (user == null) {
         out.println("    <div class=\"w3-container w3-half w3-margin-top\">");
         out.println("    <div class=\"w3-container w3-card-4\">");
@@ -196,7 +196,7 @@ public class HomeServlet extends HttpServlet {
             + " \"http://www.w3.org/TR/html4/loose.dtd\"> ");
     out.println("<html>");
     out.println("  <head>");
-    out.println("    <title>Patient Match</title>");
+    out.println("    <title>Mismo Match</title>");
     out.println("    <link rel=\"stylesheet\" href=\"https://www.w3schools.com/w3css/4/w3.css\"/>");
     out.println("  </head>");
     out.println("  <body>");
@@ -219,7 +219,7 @@ public class HomeServlet extends HttpServlet {
     SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
     out.println("  <div class=\"w3-container w3-green\">");
     out.println(
-        "    <p>Patient Match v"
+        "    <p>Mismo Match v"
             + SoftwareVersion.VERSION
             + " - Current Time "
             + sdf.format(System.currentTimeMillis())
@@ -252,7 +252,7 @@ public class HomeServlet extends HttpServlet {
     out.println("    <header class=\"w3-container w3-light-grey\">");
     out.println("      <div class=\"w3-bar w3-light-grey\">");
     out.println(
-        "        <a href=\"HomeServlet\" class=\"w3-bar-item w3-button w3-green\">Patient"
+        "        <a href=\"HomeServlet\" class=\"w3-bar-item w3-button w3-green\">Mismo"
             + " Match</a>");
     if (user == null) {
       out.println("        <a href=\"\" class=\"w3-bar-item w3-button\">Login</a>");
