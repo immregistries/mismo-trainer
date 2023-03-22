@@ -21,6 +21,7 @@ import org.immregistries.mismo.match.model.Patient;
 import org.immregistries.mismo.match.model.User;
 import org.immregistries.mismo.trainer.random.Transformer;
 import org.immregistries.mismo.trainer.random.Typest;
+import org.immregistries.mismo.trainer.random.Typest.PatientDataQuality;
 
 /**
  * Support generating two pairs of random records. One pair represents the same
@@ -78,17 +79,17 @@ public class RandomServlet extends HomeServlet
       String typeAString = request.getParameter("typeA");
       String typeBString = request.getParameter("typeB");
       String typeCString = request.getParameter("typeC");
-      Typest.Type typeA = Typest.Type.IDEAL;
-      Typest.Type typeB = Typest.Type.IDEAL;
-      Typest.Type typeC = Typest.Type.IDEAL;
+      PatientDataQuality patientDataQualityA = PatientDataQuality.IDEAL;
+      PatientDataQuality patientDataQualityB = PatientDataQuality.IDEAL;
+      PatientDataQuality patientDataQualityC = PatientDataQuality.IDEAL;
       if (typeAString != null) {
-        typeA = Typest.Type.valueOf(typeAString);
+        patientDataQualityA = PatientDataQuality.valueOf(typeAString);
       }
       if (typeBString != null) {
-        typeB = Typest.Type.valueOf(typeBString);
+        patientDataQualityB = PatientDataQuality.valueOf(typeBString);
       }
       if (typeCString != null) {
-        typeC = Typest.Type.valueOf(typeCString);
+        patientDataQualityC = PatientDataQuality.valueOf(typeCString);
       }
 
       String conditionAString = request.getParameter("conditionA");
@@ -141,11 +142,11 @@ public class RandomServlet extends HomeServlet
       closeMatch.setGuardianNameFirst(closeMatch.getMotherNameFirst());
       closeMatch.setGuardianNameLast(closeMatch.getMotherNameLast());
       Typest typest = new Typest(transformer);
-      patientA = typest.type(patient, closeMatch, typeA, conditionA);
-      patientB = typest.type(patient, closeMatch, typeB, conditionB);
-      patientC = typest.type(closeMatch, patient, typeC, conditionC);
+      patientA = typest.makePatientVariation(patient, closeMatch, patientDataQualityA, conditionA);
+      patientB = typest.makePatientVariation(patient, closeMatch, patientDataQualityB, conditionB);
+      patientC = typest.makePatientVariation(closeMatch, patient, patientDataQualityC, conditionC);
       out.println("    <form action=\"RandomServlet\"> ");
-      out.println("    <input type=\"hidden\" name=\"showScores\" value=\"" + showScores + "\"/>");
+      out.println("    <input patientDataQuality=\"hidden\" name=\"showScores\" value=\"" + showScores + "\"/>");
       out.println("    <table border=\"1\" cellspacing=\"0\">");
       Set<String> fieldNameSet = new HashSet<String>();
       fieldNameSet.addAll(patientA.getValueMap().keySet());
@@ -155,14 +156,16 @@ public class RandomServlet extends HomeServlet
       Collections.sort(fieldNameList);
 
       String expectedResultB = "Match";
-      if (typeA == Typest.Type.BAD || typeB == Typest.Type.BAD) {
+      if (patientDataQualityA == PatientDataQuality.BAD || patientDataQualityB
+          == PatientDataQuality.BAD) {
         expectedResultB = "Not a Match";
-      } else if (typeA == Typest.Type.POOR && typeB == Typest.Type.POOR) {
+      } else if (patientDataQualityA == PatientDataQuality.POOR && patientDataQualityB
+          == PatientDataQuality.POOR) {
         expectedResultB = "Not a Match";
-      } else if (typeA == Typest.Type.POOR || typeB == Typest.Type.POOR) {
+      } else if (patientDataQualityA == PatientDataQuality.POOR || patientDataQualityB
+          == PatientDataQuality.POOR) {
         expectedResultB = "Possible Match";
-      } else if ((typeA == Typest.Type.GOODA || typeA == Typest.Type.GOODB)
-          && (typeB == Typest.Type.GOODA || typeB == Typest.Type.GOODB)) {
+      } else if (patientDataQualityA  == PatientDataQuality.GOODB && patientDataQualityB == PatientDataQuality.GOODB) {
         expectedResultB = "Possible Match";
       }
       String expectedResultC = "Not a Match";
@@ -177,36 +180,42 @@ public class RandomServlet extends HomeServlet
       out.println("        <td>Type</td>");
       out.println("        <td>");
       out.println("          <select name=\"typeA\">");
-      for (int i = 0; i < Typest.Type.values().length; i++) {
-        Typest.Type type = Typest.Type.values()[i];
-        if (type == typeA) {
-          out.println("            <option value=\"" + type + "\" selected=\"true\">" + type + "</option>");
+      for (int i = 0; i < PatientDataQuality.values().length; i++) {
+        PatientDataQuality patientDataQuality = PatientDataQuality.values()[i];
+        if (patientDataQuality == patientDataQualityA) {
+          out.println("            <option value=\"" + patientDataQuality + "\" selected=\"true\">" + patientDataQuality
+              + "</option>");
         } else {
-          out.println("            <option value=\"" + type + "\">" + type + "</option>");
+          out.println("            <option value=\"" + patientDataQuality
+              + "\">" + patientDataQuality + "</option>");
         }
       }
       out.println("          </select>");
       out.println("        </td>");
       out.println("        <td>");
       out.println("          <select name=\"typeB\">");
-      for (int i = 0; i < Typest.Type.values().length; i++) {
-        Typest.Type type = Typest.Type.values()[i];
-        if (type == typeB) {
-          out.println("            <option value=\"" + type + "\" selected=\"true\">" + type + "</option>");
+      for (int i = 0; i < PatientDataQuality.values().length; i++) {
+        PatientDataQuality patientDataQuality = PatientDataQuality.values()[i];
+        if (patientDataQuality == patientDataQualityB) {
+          out.println("            <option value=\"" + patientDataQuality + "\" selected=\"true\">" + patientDataQuality
+              + "</option>");
         } else {
-          out.println("            <option value=\"" + type + "\">" + type + "</option>");
+          out.println("            <option value=\"" + patientDataQuality
+              + "\">" + patientDataQuality + "</option>");
         }
       }
       out.println("          </select>");
       out.println("        </td>");
       out.println("        <td>");
       out.println("          <select name=\"typeC\">");
-      for (int i = 0; i < Typest.Type.values().length; i++) {
-        Typest.Type type = Typest.Type.values()[i];
-        if (type == typeC) {
-          out.println("            <option value=\"" + type + "\" selected=\"true\">" + type + "</option>");
+      for (int i = 0; i < PatientDataQuality.values().length; i++) {
+        PatientDataQuality patientDataQuality = PatientDataQuality.values()[i];
+        if (patientDataQuality == patientDataQualityC) {
+          out.println("            <option value=\"" + patientDataQuality + "\" selected=\"true\">" + patientDataQuality
+              + "</option>");
         } else {
-          out.println("            <option value=\"" + type + "\">" + type + "</option>");
+          out.println("            <option value=\"" + patientDataQuality
+              + "\">" + patientDataQuality + "</option>");
         }
       }
       out.println("          </select>");

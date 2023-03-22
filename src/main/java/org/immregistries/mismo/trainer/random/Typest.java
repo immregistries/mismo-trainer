@@ -3,6 +3,8 @@ package org.immregistries.mismo.trainer.random;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -21,9 +23,11 @@ import org.immregistries.mismo.match.model.Patient;
  */
 public class Typest {
 
-	public enum Type {
-		IDEAL, GREATA, GOODA, GOODB, POOR, BAD
-	};
+	public enum PatientDataQuality {
+		IDEAL(0), GOODB(1), POOR(2), BAD(3);
+		public final int badness;
+		PatientDataQuality(int badness) {this.badness = badness;}
+	}
 
 	public enum ChallengeCategory {
 		RECORDING_AND_TYPOS, MISSING_DATA, VALUE_CHANGE, COMMON_VALUES, SPECIAL_CHARS, EXTRA_DATA, NON_STANDARD_DATA, TIMELINESS
@@ -34,12 +38,7 @@ public class Typest {
 		ADDRESS_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Address"), 
 		ADDRESS_STREET_SUBSTITUTION(ChallengeCategory.COMMON_VALUES, "Patient Address Street"), 
 		ADDRESS_STREET_MISSING(ChallengeCategory.MISSING_DATA, "Patient Address Street"), 
-//		ALIAS_MISSING(ChallengeCategory.MISSING_DATA, "Patient Alias"),
-//		BIRTH_MULTIPLE_MISSING(ChallengeCategory.MISSING_DATA, "Patient Multiple Birth Designation"),
-//		BIRTH_MULITPLE_MISSING_FOR_TWIN(ChallengeCategory.MISSING_DATA, "Patient Multiple Birth Designation"),
-//		BIRTH_ORDER_MISSING(ChallengeCategory.MISSING_DATA, "Patient Birth Order"),
-//		BIRTH_ORDER_MISSING_FOR_TWIN(ChallengeCategory.MISSING_DATA, "Patient Birder Order"),
-		DOB_VALUE_SWAPPED(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Date of Birth"), 
+		DOB_VALUE_SWAPPED(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Date of Birth"),
 		DOB_OFF_BY_1(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Date of Birth"), 
 		FIRST_NAME_CHANGED(ChallengeCategory.VALUE_CHANGE, "Patient First Name"), 
 		FIRST_NAME_MATCHES_MIDDLE(ChallengeCategory.NON_STANDARD_DATA, "Patient First and Middle Name"), 
@@ -47,29 +46,13 @@ public class Typest {
 		FIRST_NAME_TYPO_EXTRANEOUS_DATA(ChallengeCategory.EXTRA_DATA, "Patient First Name"), 
 		FIRST_NAME_TYPO_SPECIAL_CHARACTERS(ChallengeCategory.RECORDING_AND_TYPOS, "Patient First Name"), 
 		FIRST_NAME_TYPO_WRONG_VALUE(ChallengeCategory.RECORDING_AND_TYPOS, "Patient First Name"), 
-//		GUARDIAN_FIRST_MISSING(ChallengeCategory.MISSING_DATA, "Guardian First Name"),
-//		GUARDIAN_LAST_MISSING(ChallengeCategory.MISSING_DATA, "Guardian Last Name"),
-		LAST_NAME_HYPHENATED(ChallengeCategory.SPECIAL_CHARS, "Patient Last Name"), 
+		LAST_NAME_HYPHENATED(ChallengeCategory.SPECIAL_CHARS, "Patient Last Name"),
 		LAST_NAME_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Last Name"), 
-//		MEDICAID_NUM_MISSING(ChallengeCategory.MISSING_DATA, "Patient Medicaid Number"),
-//		MEDICAID_NUM_SHARED(ChallengeCategory.VALUE_CHANGE, "Patient Medicaid Number"),
-//		MEDICAID_NUM_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Medicaid Number"),
-		MIDDLE_NAME_INITIAL(ChallengeCategory.MISSING_DATA, "Patient Middle Name"), 
+		MIDDLE_NAME_INITIAL(ChallengeCategory.MISSING_DATA, "Patient Middle Name"),
 		MIDDLE_NAME_MISSING(ChallengeCategory.MISSING_DATA, "Patient Middle Name"), 
 		MIDDLE_NAME_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Middle Name"), 
-//		MOTHERS_MAIDEN_NAME_CHANGED(ChallengeCategory.VALUE_CHANGE, "Mothers Maiden Name"),
-//		MOTHERS_MAIDEN_NAME_MISSING(ChallengeCategory.MISSING_DATA, "Mothers Maiden Name"),
-//		MOTHERS_MAIDEN_NAME_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Mothers Maiden Name"),
-//		MRN_NOT_DEDUPLICATED(ChallengeCategory.VALUE_CHANGE, "Patient MRN"),
-//		MRN_SHARED_MRN(ChallengeCategory.VALUE_CHANGE, "Patient MRN"),
-		PHONE_AREA_CODE_CHANGE(ChallengeCategory.VALUE_CHANGE, "Patient Phone"), 
+		PHONE_AREA_CODE_CHANGE(ChallengeCategory.VALUE_CHANGE, "Patient Phone"),
 		PHONE_CHANGED(ChallengeCategory.VALUE_CHANGE, "Patient Phone");
-//		SHOT_HISTORY_INCOMPLETE(ChallengeCategory.MISSING_DATA, "Shot History"),
-//		SHOT_HISTORY_MISSING(ChallengeCategory.MISSING_DATA, "Shot History"),
-//		SSN_MISSING(ChallengeCategory.MISSING_DATA, "Patient SSN"),
-//		SSN_SHARED(ChallengeCategory.VALUE_CHANGE, "Patient SSN"),
-//		SSN_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient SSN"),
-//		SUFFIX_MISSING(ChallengeCategory.MISSING_DATA, "Patient Suffix");
 
 		private ChallengeCategory type;
 		public ChallengeCategory getType() {
@@ -105,109 +88,50 @@ public class Typest {
 
 	private static boolean everyOther = false;
 
-	public Patient type(Patient copy, Patient closeMatch, Type type,
+	public Patient makePatientVariation(Patient copy, Patient closeMatch, PatientDataQuality patientDataQuality,
 			Condition[] conditions) throws IOException {
 		Patient patient = new Patient();
-		if (type == Type.IDEAL) {
-			patient.setNameFirst(copy.getNameFirst());
-			patient.setNameAlias(copy.getNameAlias());
-			patient.setNameMiddle(copy.getNameMiddle());
-			patient.setNameLast(copy.getNameLast());
-			patient.setNameLastHyph(copy.getNameLastHyph());
-			patient.setNameSuffix(copy.getNameSuffix());
-			patient.setBirthDate(copy.getBirthDate());
-			patient.setGuardianNameFirst(copy.getGuardianNameFirst());
-			patient.setGuardianNameLast(copy.getGuardianNameLast());
-			patient.setMotherMaidenName(copy.getMotherMaidenName());
-			patient.setPhone(copy.getPhone());
-			patient.setAddressStreet1(copy.getAddressStreet1());
-			patient.setAddressStreet1Alt(copy.getAddressStreet1Alt());
-			patient.setAddressStreet2(copy.getAddressStreet2());
-			patient.setAddressCity(copy.getAddressCity());
-			patient.setAddressState(copy.getAddressState());
-			patient.setAddressZip(copy.getAddressZip());
-			patient.setGender(copy.getGender());
-			patient.setBirthStatus(copy.getBirthStatus());
-			patient.setBirthType(copy.getBirthType());
-			patient.setBirthOrder(copy.getBirthOrder());
-			patient.setShotHistory(copy.getShotHistory());
-			patient.setMrns(copy.getMrns());
-			patient.setSsn(copy.getSsn());
-			patient.setMedicaid(copy.getMedicaid());
-		} else if (type == Type.GREATA) {
-			patient.setNameFirst(copy.getNameFirst());
-			patient.setNameAlias(copy.getNameAlias());
-			patient.setNameMiddle(copy.getNameMiddle());
-			patient.setNameLast(copy.getNameLast());
-			patient.setNameLastHyph(copy.getNameLastHyph());
-			patient.setNameSuffix(copy.getNameSuffix());
-			patient.setBirthDate(copy.getBirthDate());
-			patient.setGuardianNameFirst(copy.getGuardianNameFirst());
-			patient.setGuardianNameLast(copy.getGuardianNameLast());
-			patient.setPhone(copy.getPhone());
-			patient.setAddressStreet1(copy.getAddressStreet1());
-			patient.setAddressStreet1Alt(copy.getAddressStreet1Alt());
-			patient.setAddressCity(copy.getAddressCity());
-			patient.setAddressState(copy.getAddressState());
-			patient.setAddressZip(copy.getAddressZip());
-			patient.setGender(copy.getGender());
-			patient.setShotHistory(copy.getShotHistory());
-			patient.setMrns(copy.getMrns());
-			patient.setSsn(copy.getSsn());
-		} else if (type == Type.GOODA) {
-			patient.setNameFirst(copy.getNameFirst());
-			patient.setNameMiddle(copy.getNameMiddle());
-			patient.setNameLast(copy.getNameLast());
-			patient.setNameLastHyph(copy.getNameLastHyph());
-			patient.setBirthDate(copy.getBirthDate());
-			patient.setGuardianNameFirst(copy.getGuardianNameFirst());
-			patient.setGuardianNameLast(copy.getGuardianNameLast());
-			patient.setAddressStreet1(copy.getAddressStreet1());
-			patient.setAddressStreet1Alt(copy.getAddressStreet1Alt());
-			patient.setAddressCity(copy.getAddressCity());
-			patient.setAddressState(copy.getAddressState());
-			patient.setAddressZip(copy.getAddressZip());
-			patient.setGender(copy.getGender());
-			patient.setShotHistory(copy.getShotHistory());
-			patient.setMrns(copy.getMrns());
-		} else if (type == Type.GOODB) {
-			patient.setNameFirst(copy.getNameFirst());
-			patient.setNameMiddle(copy.getNameMiddle());
-			patient.setNameLast(copy.getNameLast());
-			patient.setNameLastHyph(copy.getNameLastHyph());
-			patient.setBirthDate(copy.getBirthDate());
-			patient.setGuardianNameFirst(copy.getGuardianNameFirst());
-			patient.setMotherMaidenName(copy.getMotherMaidenName());
-			patient.setAddressStreet1(copy.getAddressStreet1());
-			patient.setAddressStreet1Alt(copy.getAddressStreet1Alt());
-			patient.setAddressCity(copy.getAddressCity());
-			patient.setAddressState(copy.getAddressState());
-			patient.setAddressZip(copy.getAddressZip());
-			patient.setGender(copy.getGender());
-			patient.setShotHistory(copy.getShotHistory());
-			patient.setMrns(copy.getMrns());
-		} else if (type == Type.POOR) {
-			patient.setNameFirst(copy.getNameFirst());
-			patient.setNameLast(copy.getNameLast());
-			patient.setNameLastHyph(copy.getNameLastHyph());
-			patient.setBirthDate(copy.getBirthDate());
-			patient.setAddressStreet1(copy.getAddressStreet1());
-			patient.setAddressStreet1Alt(copy.getAddressStreet1Alt());
-			patient.setAddressCity(copy.getAddressCity());
-			patient.setAddressState(copy.getAddressState());
-			patient.setAddressZip(copy.getAddressZip());
-			patient.setGender(copy.getGender());
-			patient.setShotHistory(copy.getShotHistory());
-			patient.setMrns(copy.getMrns());
-		} else if (type == Type.BAD) {
-			patient.setNameFirst(copy.getNameFirst());
-			patient.setNameLast(copy.getNameLast());
-			patient.setNameLastHyph(copy.getNameLastHyph());
-			patient.setBirthDate(copy.getBirthDate());
-			patient.setGender(copy.getGender());
-			patient.setMrns(copy.getMrns());
+		patient.setNameFirst(copy.getNameFirst());
+		patient.setNameMiddle(copy.getNameMiddle());//variation
+		patient.setNameLast(copy.getNameLast());
+		patient.setBirthDate(copy.getBirthDate());
+		patient.setPhone(copy.getPhone());//variation
+		patient.setAddressStreet1(copy.getAddressStreet1());//variation
+		patient.setAddressStreet2(copy.getAddressStreet2());
+		patient.setAddressCity(copy.getAddressCity());
+		patient.setAddressState(copy.getAddressState());
+		patient.setAddressZip(copy.getAddressZip());
+
+		ArrayList<Removable> removableList = new ArrayList<>(Arrays.asList(Removable.values()));
+		for (int x = 0; x<= patientDataQuality.badness; x++ ) {
+			removeRandomElements(patient, removableList.remove(new Random().nextInt(removableList.size())));
 		}
 
+		return applyConditions(conditions, patient);
+	}
+
+
+	enum Removable {
+		MIDDLE, PHONE, ADDRESS
+	}
+	private void removeRandomElements(Patient patient, Removable removeThis) {
+		switch (removeThis) {
+			case MIDDLE:
+				patient.setNameMiddle("");//variation
+				break;
+			case PHONE:
+				patient.setPhone("");//variation
+				break;
+			case ADDRESS:
+				patient.setAddressStreet1("");//variation
+				patient.setAddressStreet2("");
+				patient.setAddressCity("");
+				patient.setAddressState("");
+				patient.setAddressZip("");
+		}
+	}
+
+	private Patient applyConditions(Condition[] conditions, Patient patient) throws IOException {
 		if (conditions == null) {
 			return patient;
 		}
@@ -219,7 +143,6 @@ public class Typest {
 			patient.setAddressStreet1(makeTypo(patient.getAddressStreet1()));
 			patient.setAddressStreet2(makeTypo(patient.getAddressStreet2()));
 			patient.setAddressZip(makeTypo(patient.getAddressZip()));
-
 		} else if (condition == Condition.ADDRESS_STREET_MISSING) {
 			patient.setAddressCity("");
 			patient.setAddressState("");
@@ -330,7 +253,7 @@ public class Typest {
 		return patient;
 	}
 
-	
+
 	/**
 	 * This method takes a patient and a close match and creates a new patient
 	 * so that it has the conditions indicated in the parameters.
@@ -339,16 +262,16 @@ public class Typest {
 	 *            the patient object that needs to be typed
 	 * @param closeMatch
 	 *            the closely matched patient this will be compared to
-	 * @param type
+	 * @param patientDataQuality
 	 *            the amount of information that may be copied over
 	 * @param condition
 	 *            an error condition that the typest is supposed to replicate
 	 * @return a new patient object with the issues and problems indicated
 	 * @throws IOException
 	 */
-	public Patient type(Patient copy, Patient closeMatch, Type type,
+	public Patient makePatientVariation(Patient copy, Patient closeMatch, PatientDataQuality patientDataQuality,
 			Condition condition) throws IOException {
-		return type(copy, closeMatch, type, new Condition[] {condition});
+		return makePatientVariation(copy, closeMatch, patientDataQuality, new Condition[] {condition});
 	}
 
 	// This is a table of common letters that are near other ones on the

@@ -12,6 +12,7 @@ import org.immregistries.mismo.match.model.Patient;
 import org.immregistries.mismo.match.model.User;
 import org.immregistries.mismo.trainer.random.Transformer;
 import org.immregistries.mismo.trainer.random.Typest;
+import org.immregistries.mismo.trainer.random.Typest.PatientDataQuality;
 
 /**
  * Creates a list of patient records, some that match and some that don't, and
@@ -76,13 +77,13 @@ public class RandomScriptServlet extends HomeServlet {
       PrintWriter scriptOut = new PrintWriter(stringWriter);
       int count = 0;
       for (Typest.Condition condition : Typest.Condition.values()) {
-        for (Typest.Type typeSelected1 : Typest.Type.values()) {
-          for (Typest.Type typeSelected2 : Typest.Type.values()) {
+        for (PatientDataQuality patientDataQualitySelected1 : PatientDataQuality.values()) {
+          for (PatientDataQuality patientDataQualitySelected2 : PatientDataQuality.values()) {
             count++;
 
-            Typest.Type typeA = typeSelected1;
-            Typest.Type typeB = typeSelected2;
-            Typest.Type typeC = typeSelected2;
+            PatientDataQuality patientDataQualityA = patientDataQualitySelected1;
+            PatientDataQuality patientDataQualityB = patientDataQualitySelected2;
+            PatientDataQuality patientDataQualityC = patientDataQualitySelected2;
             Typest.Condition conditionA = condition;
             Typest.Condition conditionB = null;
             Typest.Condition conditionC = null;
@@ -102,24 +103,20 @@ public class RandomScriptServlet extends HomeServlet {
             closeMatch.setGuardianNameFirst(closeMatch.getMotherNameFirst());
             closeMatch.setGuardianNameLast(closeMatch.getMotherNameLast());
             Typest typest = new Typest(transformer);
-            patientA = typest.type(patient, closeMatch, typeA, conditionA);
-            patientB = typest.type(patient, closeMatch, typeB, conditionB);
+            patientA = typest.makePatientVariation(patient, closeMatch, patientDataQualityA, conditionA);
+            patientB = typest.makePatientVariation(patient, closeMatch, patientDataQualityB, conditionB);
             transformer.changeMrn(patientB);
-            patientC = typest.type(closeMatch, patient, typeC, conditionC);
+            patientC = typest.makePatientVariation(closeMatch, patient, patientDataQualityC, conditionC);
 
             String expectedResultB = "Match";
 
             int score = 0;
-            score += typeA == Typest.Type.IDEAL ? 10 : 0;
-            score += typeA == Typest.Type.GREATA ? 9 : 0;
-            score += typeA == Typest.Type.GOODA ? 7 : 0;
-            score += typeA == Typest.Type.GOODB ? 7 : 0;
-            score += typeA == Typest.Type.POOR ? 2 : 0;
-            score += typeB == Typest.Type.IDEAL ? 10 : 0;
-            score += typeB == Typest.Type.GREATA ? 9 : 0;
-            score += typeB == Typest.Type.GOODA ? 7 : 0;
-            score += typeB == Typest.Type.GOODB ? 7 : 0;
-            score += typeB == Typest.Type.POOR ? 2 : 0;
+            score += patientDataQualityA == PatientDataQuality.IDEAL ? 10 : 0;
+            score += patientDataQualityA == PatientDataQuality.GOODB ? 7 : 0;
+            score += patientDataQualityA == PatientDataQuality.POOR ? 2 : 0;
+            score += patientDataQualityB == PatientDataQuality.IDEAL ? 10 : 0;
+            score += patientDataQualityB == PatientDataQuality.GOODB ? 7 : 0;
+            score += patientDataQualityB == PatientDataQuality.POOR ? 2 : 0;
 
             // Assume low
             int highScore = 14;
@@ -165,7 +162,7 @@ public class RandomScriptServlet extends HomeServlet {
             out.println("      <tr>");
             out.println("        <td>" + count + "</td>");
             out.println("        <td>" + condition + "</td>");
-            out.println("        <td>" + typeSelected1 + "</td>");
+            out.println("        <td>" + patientDataQualitySelected1 + "</td>");
             String resultB = patientCompareB.getResult();
             if (resultB.equals(expectedResultB)) {
               out.println("        <td class=\"pass\">" + expectedResultB + "</td>");
@@ -185,12 +182,14 @@ public class RandomScriptServlet extends HomeServlet {
             out.println("      </tr>");
             out.flush();
             scriptOut.println(
-                "TEST: S-" + count + ":" + condition + ":" + typeSelected1 + "-" + typeSelected2);
+                "TEST: S-" + count + ":" + condition + ":" + patientDataQualitySelected1
+                    + "-" + patientDataQualitySelected2);
             scriptOut.println("EXPECT: " + expectedResultB);
             scriptOut.println("PATIENT A: " + patientA.getValues());
             scriptOut.println("PATIENT B: " + patientB.getValues());
             scriptOut.println(
-                "TEST: D-" + count + ":" + condition + ":" + typeSelected1 + "-" + typeSelected2);
+                "TEST: D-" + count + ":" + condition + ":" + patientDataQualitySelected1
+                    + "-" + patientDataQualitySelected2);
             scriptOut.println("EXPECT: " + expectedResultC);
             scriptOut.println("PATIENT A: " + patientA.getValues());
             scriptOut.println("PATIENT B: " + patientC.getValues());
