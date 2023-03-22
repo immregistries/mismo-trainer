@@ -79,6 +79,10 @@ public class RandomScriptServlet extends HomeServlet {
       for (Typest.Condition condition : Typest.Condition.values()) {
         for (PatientDataQuality patientDataQualitySelected1 : PatientDataQuality.values()) {
           for (PatientDataQuality patientDataQualitySelected2 : PatientDataQuality.values()) {
+            if(patientDataQualitySelected1.equals(Typest.PatientDataQuality.GOODB) ||
+               patientDataQualitySelected2.equals(Typest.PatientDataQuality.GOODB)){
+                continue;
+            }
             count++;
 
             PatientDataQuality patientDataQualityA = patientDataQualitySelected1;
