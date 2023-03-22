@@ -76,17 +76,6 @@ public class RandomScriptServlet extends HomeServlet {
       PrintWriter scriptOut = new PrintWriter(stringWriter);
       int count = 0;
       for (Typest.Condition condition : Typest.Condition.values()) {
-        if (condition == Typest.Condition.BIRTH_MULTIPLE_MISSING
-            || condition == Typest.Condition.BIRTH_ORDER_MISSING
-            || condition == Typest.Condition.SSN_MISSING || condition == Typest.Condition.SSN_SHARED
-            || condition == Typest.Condition.SSN_TYPO
-            || condition == Typest.Condition.MEDICAID_NUM_MISSING
-            || condition == Typest.Condition.MEDICAID_NUM_SHARED
-            || condition == Typest.Condition.MEDICAID_NUM_TYPO
-            || condition == Typest.Condition.SHOT_HISTORY_INCOMPLETE
-            || condition == Typest.Condition.SHOT_HISTORY_MISSING) {
-          continue;
-        }
         for (Typest.Type typeSelected1 : Typest.Type.values()) {
           for (Typest.Type typeSelected2 : Typest.Type.values()) {
             count++;
@@ -102,17 +91,6 @@ public class RandomScriptServlet extends HomeServlet {
             Patient patientB = null;
             Patient patientC = null;
             Patient patient = transformer.createPatient(Transformer.MACAW);
-            if (condition == Typest.Condition.ALIAS_MISSING) {
-              transformer.addAlias(patient);
-            } else if (condition == Typest.Condition.SUFFIX_MISSING) {
-              transformer.addSuffix(patient);
-            } else if (condition == Typest.Condition.BIRTH_MULITPLE_MISSING_FOR_TWIN
-                || condition == Typest.Condition.BIRTH_ORDER_MISSING_FOR_TWIN) {
-              // Force Twin
-              patient.setBirthOrder("2");
-              patient.setBirthStatus("Y");
-              patient.setBirthType("2");
-            }
             Patient closeMatch = null;
             if (!patient.getBirthOrder().equals("") && !patient.getBirthOrder().equals("1")) {
               closeMatch = transformer.makeTwin(patient);
@@ -134,13 +112,11 @@ public class RandomScriptServlet extends HomeServlet {
             int score = 0;
             score += typeA == Typest.Type.IDEAL ? 10 : 0;
             score += typeA == Typest.Type.GREATA ? 9 : 0;
-            score += typeA == Typest.Type.GREATB ? 9 : 0;
             score += typeA == Typest.Type.GOODA ? 7 : 0;
             score += typeA == Typest.Type.GOODB ? 7 : 0;
             score += typeA == Typest.Type.POOR ? 2 : 0;
             score += typeB == Typest.Type.IDEAL ? 10 : 0;
             score += typeB == Typest.Type.GREATA ? 9 : 0;
-            score += typeB == Typest.Type.GREATB ? 9 : 0;
             score += typeB == Typest.Type.GOODA ? 7 : 0;
             score += typeB == Typest.Type.GOODB ? 7 : 0;
             score += typeB == Typest.Type.POOR ? 2 : 0;
@@ -153,20 +129,13 @@ public class RandomScriptServlet extends HomeServlet {
                 || condition == Typest.Condition.ADDRESS_TYPO
                 || condition == Typest.Condition.ADDRESS_STREET_MISSING
                 || condition == Typest.Condition.FIRST_NAME_CHANGED
-                || condition == Typest.Condition.PHONE_CHANGED
-                || condition == Typest.Condition.SSN_TYPO) {
+                || condition == Typest.Condition.PHONE_CHANGED) {
               highScore = 15;
               lowScore = 10;
             }
             // High
             if (condition == Typest.Condition.DOB_VALUE_SWAPPED
-                || condition == Typest.Condition.DOB_OFF_BY_1
-                || condition == Typest.Condition.MEDICAID_NUM_SHARED
-                || condition == Typest.Condition.MOTHERS_MAIDEN_NAME_CHANGED
-                || condition == Typest.Condition.MRN_SHARED_MRN
-                || condition == Typest.Condition.SSN_SHARED
-                || condition == Typest.Condition.BIRTH_MULITPLE_MISSING_FOR_TWIN
-                || condition == Typest.Condition.BIRTH_ORDER_MISSING_FOR_TWIN) {
+                || condition == Typest.Condition.DOB_OFF_BY_1) {
               highScore = 18;
               lowScore = 10;
             }
