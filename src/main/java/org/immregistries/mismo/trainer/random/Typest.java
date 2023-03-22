@@ -102,9 +102,11 @@ public class Typest {
 		patient.setAddressState(copy.getAddressState());
 		patient.setAddressZip(copy.getAddressZip());
 
-		ArrayList<Removable> removableList = new ArrayList<>(Arrays.asList(Removable.values()));
-		for (int x = 0; x<= patientDataQuality.badness; x++ ) {
-			removeRandomElements(patient, removableList.remove(new Random().nextInt(removableList.size())));
+		if (patientDataQuality.badness > 0) {
+			ArrayList<Removable> removableList = new ArrayList<>(Arrays.asList(Removable.values()));
+			for (int x = 0; x < patientDataQuality.badness; x++) {
+				removeRandomElements(patient, removableList.remove(new Random().nextInt(removableList.size())));
+			}
 		}
 
 		return applyConditions(conditions, patient);
@@ -128,6 +130,7 @@ public class Typest {
 				patient.setAddressCity("");
 				patient.setAddressState("");
 				patient.setAddressZip("");
+				break;
 		}
 	}
 

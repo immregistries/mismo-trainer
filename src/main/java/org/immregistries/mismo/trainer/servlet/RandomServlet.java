@@ -42,7 +42,7 @@ public class RandomServlet extends HomeServlet
 //  private static String[] displayFields = { "nameFirst", "nameMiddle", "nameLast", "nameSuffix", "birthDate", "gender",
 //      "guardianNameFirst", "guardianNameLast", "motherMaidenName", "ssn", "medicaid", "phone", "addressStreet1",
 //      "addressStreet2", "addressCity", "addressState", "addressZip", "birthType", "birthStatus", "birthOrder" };
-  private static String[] displayFields = { "nameFirst", "nameMiddle", "nameLast", "birthDate", "addressStreet1", "addressZip"};
+  private static String[] displayFields = { "nameFirst", "nameMiddle", "nameLast", "birthDate", "addressStreet1", "addressZip", "phone"};
 
   private static Map<String, String> displayFieldLabels = new HashMap<String, String>();
 
