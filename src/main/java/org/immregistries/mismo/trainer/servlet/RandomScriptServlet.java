@@ -101,7 +101,7 @@ public class RandomScriptServlet extends HomeServlet {
             Patient patientA = null;
             Patient patientB = null;
             Patient patientC = null;
-            Patient patient = transformer.createPatient(Transformer.COMPLETE);
+            Patient patient = transformer.createPatient(Transformer.MACAW);
             if (condition == Typest.Condition.ALIAS_MISSING) {
               transformer.addAlias(patient);
             } else if (condition == Typest.Condition.SUFFIX_MISSING) {

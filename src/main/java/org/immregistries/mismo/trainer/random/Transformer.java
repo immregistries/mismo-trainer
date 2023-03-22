@@ -3,6 +3,7 @@ package org.immregistries.mismo.trainer.random;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -46,6 +47,8 @@ public class Transformer
 
   public static final String[] COMPLETE = { BOY_OR_GIRL, MOTHER, FATHER, DOB, ADDRESS, PHONE, RACE, ETHNICITY,
       MEDICAID, SSN, MRN, TWIN_POSSIBLE };
+
+  public static final String[] MACAW = { BOY_OR_GIRL, DOB, ADDRESS, PHONE };
 
   private static Map<String, List<String[]>> conceptMap = null;
   private static Random random = new Random();
@@ -241,7 +244,7 @@ public class Transformer
    */
   protected void init() throws IOException {
     conceptMap = new HashMap<String, List<String[]>>();
-    BufferedReader in = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("transform.txt")));
+    BufferedReader in = new BufferedReader(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("transform.txt")));
     String line;
     while ((line = in.readLine()) != null) {
       int equals = line.indexOf("=");
@@ -610,7 +613,7 @@ public class Transformer
     if (specificityType == SpecificityType.FIRST_NAME_SAME_DOB_DIFFERENT_MOM_DIFFERENT) {
       boolean same = true;
       while (same) {
-        patient = createPatient(Transformer.COMPLETE);
+        patient = createPatient(Transformer.MACAW);
         if (!patient.getBirthDate().equals(closeMatch.getBirthDate())) {
           patient.setMotherNameFirst(getValue(GIRL));
           patient.setMotherNameLast(getValue(LAST_NAME));
@@ -622,11 +625,11 @@ public class Transformer
       }
       patient.setNameFirst(closeMatch.getNameFirst());
     } else if (specificityType == SpecificityType.FIRST_NAME_SAME_DOB_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameFirst(closeMatch.getNameFirst());
       patient.setBirthDate(closeMatch.getBirthDate());
     } else if (specificityType == SpecificityType.FIRST_NAME_SAME_DOB_SAME_MOM_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameFirst(closeMatch.getNameFirst());
       patient.setBirthDate(closeMatch.getBirthDate());
       patient.setMotherNameFirst(closeMatch.getMotherNameFirst());
@@ -634,7 +637,7 @@ public class Transformer
     } else if (specificityType == SpecificityType.LAST_NAME_DIFFERENT_FIRST_NAME_SAME_DOB_SAME) {
       boolean same = true;
       while (same) {
-        patient = createPatient(Transformer.COMPLETE);
+        patient = createPatient(Transformer.MACAW);
         if (!patient.getNameLast().equals(closeMatch.getNameLast())) {
           same = false;
         }
@@ -644,7 +647,7 @@ public class Transformer
     } else if (specificityType == SpecificityType.LAST_NAME_DIFFERENT_FIRST_NAME_SAME_MIDDLE_NAME_SAME_DOB_SAME) {
       boolean same = true;
       while (same) {
-        patient = createPatient(Transformer.COMPLETE);
+        patient = createPatient(Transformer.MACAW);
         if (!patient.getNameLast().equals(closeMatch.getNameLast())) {
           same = false;
         }
@@ -653,18 +656,18 @@ public class Transformer
       patient.setNameMiddle(closeMatch.getNameMiddle());
       patient.setBirthDate(closeMatch.getBirthDate());
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_DOB_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       patient.setNameFirst(closeMatch.getNameFirst());
       patient.setBirthDate(closeMatch.getBirthDate());
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_DOB_SIMILAR) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       patient.setBirthDate(changeDate(closeMatch.getBirthDate()));
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_MATCHES_MIDDLE_DOB_DIFFERENT) {
       boolean same = true;
       while (same) {
-        patient = createPatient(Transformer.COMPLETE);
+        patient = createPatient(Transformer.MACAW);
         if (!patient.getBirthDate().equals(closeMatch.getBirthDate())) {
           same = false;
         }
@@ -674,7 +677,7 @@ public class Transformer
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_NAME_SAME_DOB_DIFFERENT) {
       boolean same = true;
       while (same) {
-        patient = createPatient(Transformer.COMPLETE);
+        patient = createPatient(Transformer.MACAW);
         if (!patient.getBirthDate().equals(closeMatch.getBirthDate())) {
           same = false;
         }
@@ -682,17 +685,17 @@ public class Transformer
       patient.setNameLast(closeMatch.getNameLast());
       patient.setNameFirst(closeMatch.getNameFirst());
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_NAME_SAME_DOB_SAME_SEX_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       patient.setNameFirst(closeMatch.getNameFirst());
       patient.setBirthDate(closeMatch.getNameLast());
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_NAME_SAME_DOB_SIMILAR) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       patient.setNameFirst(closeMatch.getNameFirst());
       patient.setBirthDate(changeDate(closeMatch.getBirthDate()));
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_NAME_SIMILAR_DOB_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       if (patient.getGender().equals("M"))
       {
@@ -704,7 +707,7 @@ public class Transformer
       }
       patient.setBirthDate(changeDate(closeMatch.getBirthDate()));
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_NAME_SIMILAR_DOB_SIMILAR) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       if (patient.getGender().equals("M"))
       {
@@ -716,7 +719,7 @@ public class Transformer
       }
       patient.setBirthDate(changeDate(closeMatch.getBirthDate()));
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_NAME_SIMILAR_SEX_DIFFERENT) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       if (patient.getGender().equals("M"))
       {
@@ -728,7 +731,7 @@ public class Transformer
       }
       patient.setGender(closeMatch.getGender().equals("M") ? "F" : "M");
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_NAMES_ARE_TEMPORARY_BABY_NAMES_DOB_SAME_SEX_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       patient.setBirthDate(closeMatch.getBirthDate());
       patient.setGender(closeMatch.getGender());
@@ -745,16 +748,16 @@ public class Transformer
       closeMatch.setNameFirst(name);
       
     } else if (specificityType == SpecificityType.LAST_NAME_SAME_FIRST_SAME_DOB_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(closeMatch.getNameLast());
       patient.setBirthDate(closeMatch.getBirthDate());
       patient.setGender(closeMatch.getGender());
     } else if (specificityType == SpecificityType.LAST_NAME_SIMILAR_DOB_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(getValueClose(LAST_NAME, closeMatch.getNameLast(), 0, 0));
       patient.setBirthDate(closeMatch.getBirthDate());
     } else if (specificityType == SpecificityType.LAST_NAME_SIMILAR_FIRST_NAME_SIMILAR_DOB_SAME) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(getValueClose(LAST_NAME, closeMatch.getNameLast(), 0, 0));
       if (patient.getGender().equals("M"))
       {
@@ -766,7 +769,7 @@ public class Transformer
       }
       patient.setBirthDate(closeMatch.getBirthDate());
     } else if (specificityType == SpecificityType.LAST_NAME_SIMILAR_FIRST_NAME_SIMILAR_DOB_SIMILAR) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setNameLast(getValueClose(LAST_NAME, closeMatch.getNameLast(), 0, 0));
       if (patient.getGender().equals("M"))
       {
@@ -778,10 +781,10 @@ public class Transformer
       }
       patient.setBirthDate(changeDate(closeMatch.getBirthDate()));
     } else if (specificityType == SpecificityType.MOMS_ARE_SISTERS) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setMotherMaidenName(closeMatch.getMotherMaidenName());
     } else if (specificityType == SpecificityType.SIBLINGS_SAME_SEX) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setAddressCity(closeMatch.getAddressCity());
       patient.setAddressState(closeMatch.getAddressState());
       patient.setAddressStreet1(closeMatch.getAddressStreet1());
@@ -801,7 +804,7 @@ public class Transformer
       patient.setPhone(closeMatch.getPhone());
       patient.setRace(closeMatch.getRace());
     } else if (specificityType == SpecificityType.TWIN_DIFFERENT_SEX) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setAddressCity(closeMatch.getAddressCity());
       patient.setAddressState(closeMatch.getAddressState());
       patient.setAddressStreet1(closeMatch.getAddressStreet1());
@@ -827,7 +830,7 @@ public class Transformer
       patient.setPhone(closeMatch.getPhone());
       patient.setRace(closeMatch.getRace());
     } else if (specificityType == SpecificityType.TWIN_SAME_SEX) {
-      patient = createPatient(Transformer.COMPLETE);
+      patient = createPatient(Transformer.MACAW);
       patient.setAddressCity(closeMatch.getAddressCity());
       patient.setAddressState(closeMatch.getAddressState());
       patient.setAddressStreet1(closeMatch.getAddressStreet1());

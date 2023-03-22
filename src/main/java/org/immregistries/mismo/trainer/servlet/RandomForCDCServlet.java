@@ -156,7 +156,7 @@ public class RandomForCDCServlet extends HomeServlet
           Patient patientA = null;
           Patient patientB = null;
           Patient patientC = null;
-          Patient patient = transformer.createPatient(Transformer.COMPLETE);
+          Patient patient = transformer.createPatient(Transformer.MACAW);
           if (condition1 == Typest.Condition.ALIAS_MISSING) {
             transformer.addAlias(patient);
           } else if (condition1 == Typest.Condition.SUFFIX_MISSING) {
@@ -397,7 +397,7 @@ public class RandomForCDCServlet extends HomeServlet
           Transformer transformer = new Transformer();
           Patient patientA = null;
           Patient patientB = null;
-          Patient patient = transformer.createPatient(Transformer.COMPLETE);
+          Patient patient = transformer.createPatient(Transformer.MACAW);
           Patient closeMatch = null;
           if (!patient.getBirthOrder().equals("") && !patient.getBirthOrder().equals("1")) {
             closeMatch = transformer.makeTwin(patient);

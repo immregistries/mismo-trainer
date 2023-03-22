@@ -38,9 +38,10 @@ public class RandomServlet extends HomeServlet
     doPost(req, resp);
   }
 
-  private static String[] displayFields = { "nameFirst", "nameMiddle", "nameLast", "nameSuffix", "birthDate", "gender",
-      "guardianNameFirst", "guardianNameLast", "motherMaidenName", "ssn", "medicaid", "phone", "addressStreet1",
-      "addressStreet2", "addressCity", "addressState", "addressZip", "birthType", "birthStatus", "birthOrder" };
+//  private static String[] displayFields = { "nameFirst", "nameMiddle", "nameLast", "nameSuffix", "birthDate", "gender",
+//      "guardianNameFirst", "guardianNameLast", "motherMaidenName", "ssn", "medicaid", "phone", "addressStreet1",
+//      "addressStreet2", "addressCity", "addressState", "addressZip", "birthType", "birthStatus", "birthOrder" };
+  private static String[] displayFields = { "nameFirst", "nameMiddle", "nameLast", "birthDate", "addressStreet1", "addressZip"};
 
   private static Map<String, String> displayFieldLabels = new HashMap<String, String>();
 
@@ -57,7 +58,7 @@ public class RandomServlet extends HomeServlet
     displayFieldLabels.put("ssn", "SSN");
     displayFieldLabels.put("medicaid", "Medicaid Id");
     displayFieldLabels.put("phone", "Phone");
-    displayFieldLabels.put("addressStreet1", "Adddress 1");
+    displayFieldLabels.put("addressStreet1", "Address 1");
     displayFieldLabels.put("addressStreet2", "Address 2");
     displayFieldLabels.put("addressCity", "City");
     displayFieldLabels.put("addressState", "State");
@@ -133,7 +134,7 @@ public class RandomServlet extends HomeServlet
       Patient patientA = null;
       Patient patientB = null;
       Patient patientC = null;
-      Patient patient = transformer.createPatient(Transformer.COMPLETE);
+      Patient patient = transformer.createPatient(Transformer.MACAW);
       Patient closeMatch = transformer.makeCloseMatch(patient);
       patient.setGuardianNameFirst(patient.getMotherNameFirst());
       patient.setGuardianNameLast(patient.getMotherNameLast());
