@@ -22,7 +22,7 @@ import org.immregistries.mismo.match.model.Patient;
 public class Typest {
 
 	public enum Type {
-		IDEAL, GREATA, GREATB, GOODA, GOODB, POOR, BAD
+		IDEAL, GREATA, GOODA, GOODB, POOR, BAD
 	};
 
 	public enum ChallengeCategory {
@@ -34,11 +34,11 @@ public class Typest {
 		ADDRESS_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Address"), 
 		ADDRESS_STREET_SUBSTITUTION(ChallengeCategory.COMMON_VALUES, "Patient Address Street"), 
 		ADDRESS_STREET_MISSING(ChallengeCategory.MISSING_DATA, "Patient Address Street"), 
-		ALIAS_MISSING(ChallengeCategory.MISSING_DATA, "Patient Alias"), 
-		BIRTH_MULTIPLE_MISSING(ChallengeCategory.MISSING_DATA, "Patient Multiple Birth Designation"), 
-		BIRTH_MULITPLE_MISSING_FOR_TWIN(ChallengeCategory.MISSING_DATA, "Patient Multiple Birth Designation"), 
-		BIRTH_ORDER_MISSING(ChallengeCategory.MISSING_DATA, "Patient Birth Order"), 
-		BIRTH_ORDER_MISSING_FOR_TWIN(ChallengeCategory.MISSING_DATA, "Patient Birder Order"), 
+//		ALIAS_MISSING(ChallengeCategory.MISSING_DATA, "Patient Alias"),
+//		BIRTH_MULTIPLE_MISSING(ChallengeCategory.MISSING_DATA, "Patient Multiple Birth Designation"),
+//		BIRTH_MULITPLE_MISSING_FOR_TWIN(ChallengeCategory.MISSING_DATA, "Patient Multiple Birth Designation"),
+//		BIRTH_ORDER_MISSING(ChallengeCategory.MISSING_DATA, "Patient Birth Order"),
+//		BIRTH_ORDER_MISSING_FOR_TWIN(ChallengeCategory.MISSING_DATA, "Patient Birder Order"),
 		DOB_VALUE_SWAPPED(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Date of Birth"), 
 		DOB_OFF_BY_1(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Date of Birth"), 
 		FIRST_NAME_CHANGED(ChallengeCategory.VALUE_CHANGE, "Patient First Name"), 
@@ -47,29 +47,30 @@ public class Typest {
 		FIRST_NAME_TYPO_EXTRANEOUS_DATA(ChallengeCategory.EXTRA_DATA, "Patient First Name"), 
 		FIRST_NAME_TYPO_SPECIAL_CHARACTERS(ChallengeCategory.RECORDING_AND_TYPOS, "Patient First Name"), 
 		FIRST_NAME_TYPO_WRONG_VALUE(ChallengeCategory.RECORDING_AND_TYPOS, "Patient First Name"), 
-		GUARDIAN_FIRST_MISSING(ChallengeCategory.MISSING_DATA, "Guardian First Name"), 
-		GUARDIAN_LAST_MISSING(ChallengeCategory.MISSING_DATA, "Guardian Last Name"), 
+//		GUARDIAN_FIRST_MISSING(ChallengeCategory.MISSING_DATA, "Guardian First Name"),
+//		GUARDIAN_LAST_MISSING(ChallengeCategory.MISSING_DATA, "Guardian Last Name"),
 		LAST_NAME_HYPHENATED(ChallengeCategory.SPECIAL_CHARS, "Patient Last Name"), 
 		LAST_NAME_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Last Name"), 
-		MEDICAID_NUM_MISSING(ChallengeCategory.MISSING_DATA, "Patient Medicaid Number"), 
-		MEDICAID_NUM_SHARED(ChallengeCategory.VALUE_CHANGE, "Patient Medicaid Number"), 
-		MEDICAID_NUM_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Medicaid Number"), 
+//		MEDICAID_NUM_MISSING(ChallengeCategory.MISSING_DATA, "Patient Medicaid Number"),
+//		MEDICAID_NUM_SHARED(ChallengeCategory.VALUE_CHANGE, "Patient Medicaid Number"),
+//		MEDICAID_NUM_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Medicaid Number"),
 		MIDDLE_NAME_INITIAL(ChallengeCategory.MISSING_DATA, "Patient Middle Name"), 
 		MIDDLE_NAME_MISSING(ChallengeCategory.MISSING_DATA, "Patient Middle Name"), 
 		MIDDLE_NAME_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient Middle Name"), 
-		MOTHERS_MAIDEN_NAME_CHANGED(ChallengeCategory.VALUE_CHANGE, "Mothers Maiden Name"), 
-		MOTHERS_MAIDEN_NAME_MISSING(ChallengeCategory.MISSING_DATA, "Mothers Maiden Name"), 
-		MOTHERS_MAIDEN_NAME_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Mothers Maiden Name"), 
-		MRN_NOT_DEDUPLICATED(ChallengeCategory.VALUE_CHANGE, "Patient MRN"), 
-		MRN_SHARED_MRN(ChallengeCategory.VALUE_CHANGE, "Patient MRN"), 
+//		MOTHERS_MAIDEN_NAME_CHANGED(ChallengeCategory.VALUE_CHANGE, "Mothers Maiden Name"),
+//		MOTHERS_MAIDEN_NAME_MISSING(ChallengeCategory.MISSING_DATA, "Mothers Maiden Name"),
+//		MOTHERS_MAIDEN_NAME_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Mothers Maiden Name"),
+//		MRN_NOT_DEDUPLICATED(ChallengeCategory.VALUE_CHANGE, "Patient MRN"),
+//		MRN_SHARED_MRN(ChallengeCategory.VALUE_CHANGE, "Patient MRN"),
 		PHONE_AREA_CODE_CHANGE(ChallengeCategory.VALUE_CHANGE, "Patient Phone"), 
-		PHONE_CHANGED(ChallengeCategory.VALUE_CHANGE, "Patient Phone"), 
-		SHOT_HISTORY_INCOMPLETE(ChallengeCategory.MISSING_DATA, "Shot History"), 
-		SHOT_HISTORY_MISSING(ChallengeCategory.MISSING_DATA, "Shot History"), 
-		SSN_MISSING(ChallengeCategory.MISSING_DATA, "Patient SSN"), 
-		SSN_SHARED(ChallengeCategory.VALUE_CHANGE, "Patient SSN"), 
-		SSN_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient SSN"), 
-		SUFFIX_MISSING(ChallengeCategory.MISSING_DATA, "Patient Suffix");
+		PHONE_CHANGED(ChallengeCategory.VALUE_CHANGE, "Patient Phone");
+//		SHOT_HISTORY_INCOMPLETE(ChallengeCategory.MISSING_DATA, "Shot History"),
+//		SHOT_HISTORY_MISSING(ChallengeCategory.MISSING_DATA, "Shot History"),
+//		SSN_MISSING(ChallengeCategory.MISSING_DATA, "Patient SSN"),
+//		SSN_SHARED(ChallengeCategory.VALUE_CHANGE, "Patient SSN"),
+//		SSN_TYPO(ChallengeCategory.RECORDING_AND_TYPOS, "Patient SSN"),
+//		SUFFIX_MISSING(ChallengeCategory.MISSING_DATA, "Patient Suffix");
+
 		private ChallengeCategory type;
 		public ChallengeCategory getType() {
 			return type;
@@ -153,26 +154,6 @@ public class Typest {
 			patient.setShotHistory(copy.getShotHistory());
 			patient.setMrns(copy.getMrns());
 			patient.setSsn(copy.getSsn());
-		} else if (type == Type.GREATB) {
-			patient.setNameFirst(copy.getNameFirst());
-			patient.setNameAlias(copy.getNameAlias());
-			patient.setNameMiddle(copy.getNameMiddle());
-			patient.setNameLast(copy.getNameLast());
-			patient.setNameLastHyph(copy.getNameLastHyph());
-			patient.setNameSuffix(copy.getNameSuffix());
-			patient.setBirthDate(copy.getBirthDate());
-			patient.setGuardianNameFirst(copy.getGuardianNameFirst());
-			patient.setMotherMaidenName(copy.getMotherMaidenName());
-			patient.setPhone(copy.getPhone());
-			patient.setAddressStreet1(copy.getAddressStreet1());
-			patient.setAddressStreet1Alt(copy.getAddressStreet1Alt());
-			patient.setAddressCity(copy.getAddressCity());
-			patient.setAddressState(copy.getAddressState());
-			patient.setAddressZip(copy.getAddressZip());
-			patient.setGender(copy.getGender());
-			patient.setShotHistory(copy.getShotHistory());
-			patient.setMrns(copy.getMrns());
-			patient.setMedicaid(copy.getMedicaid());
 		} else if (type == Type.GOODA) {
 			patient.setNameFirst(copy.getNameFirst());
 			patient.setNameMiddle(copy.getNameMiddle());
@@ -247,16 +228,6 @@ public class Typest {
 			patient.setAddressZip("");
 		} else if (condition == Condition.ADDRESS_STREET_SUBSTITUTION) {
 			patient.setAddressStreet1(patient.getAddressStreet1Alt());
-		} else if (condition == Condition.ALIAS_MISSING) {
-			patient.setNameAlias("");
-		} else if (condition == Condition.BIRTH_MULTIPLE_MISSING) {
-			patient.setBirthType("");
-		} else if (condition == Condition.BIRTH_MULITPLE_MISSING_FOR_TWIN) {
-			patient.setBirthType("");
-		} else if (condition == Condition.BIRTH_ORDER_MISSING) {
-			patient.setBirthOrder("");
-		} else if (condition == Condition.BIRTH_ORDER_MISSING_FOR_TWIN) {
-			patient.setBirthOrder("");
 		} else if (condition == Condition.DOB_VALUE_SWAPPED) {
 			if (!patient.getBirthDate().equals("")) {
 				SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
@@ -323,14 +294,8 @@ public class Typest {
 			} else {
 				patient.setNameFirst(patient.getGuardianNameFirst());
 			}
-		} else if (condition == Condition.FIRST_NAME_TYPO) {
-			patient.setNameFirst(makeTypo(patient.getNameFirst()));
 		} else if (condition == Condition.LAST_NAME_TYPO) {
 			patient.setNameLast(makeTypo(patient.getNameLast()));
-		} else if (condition == Condition.GUARDIAN_FIRST_MISSING) {
-			patient.setGuardianNameFirst("");
-		} else if (condition == Condition.GUARDIAN_LAST_MISSING) {
-			patient.setGuardianNameLast("");
 		} else if (condition == Condition.LAST_NAME_HYPHENATED) {
 			if (patient.getNameLast().equals(patient.getNameLastHyph())) {
 				patient.setNameLast(patient.getNameLast() + "-"
@@ -345,12 +310,6 @@ public class Typest {
 				}
 				everyOther = !everyOther;
 			}
-		} else if (condition == Condition.MEDICAID_NUM_MISSING) {
-			patient.setMedicaid("");
-		} else if (condition == Condition.MEDICAID_NUM_SHARED) {
-			patient.setMedicaid(closeMatch.getMedicaid());
-		} else if (condition == Condition.MEDICAID_NUM_TYPO) {
-			patient.setMedicaid(makeTypo(patient.getMedicaid()));
 		} else if (condition == Condition.MIDDLE_NAME_INITIAL) {
 			String middleName = patient.getNameMiddle();
 			if (middleName.length() > 1) {
@@ -361,44 +320,11 @@ public class Typest {
 			patient.setNameMiddle("");
 		} else if (condition == Condition.MIDDLE_NAME_TYPO) {
 			patient.setNameMiddle(makeTypo(patient.getNameMiddle()));
-		} else if (condition == Condition.MOTHERS_MAIDEN_NAME_CHANGED) {
-			transformer.changeMotherMaidenName(patient);
-		} else if (condition == Condition.MOTHERS_MAIDEN_NAME_MISSING) {
-			patient.setMotherMaidenName("");
-		} else if (condition == Condition.MOTHERS_MAIDEN_NAME_TYPO) {
-			patient.setMotherMaidenName(makeTypo(patient.getMotherMaidenName()));
-		} else if (condition == Condition.MRN_NOT_DEDUPLICATED) {
-			transformer.changeMrn(patient);
-		} else if (condition == Condition.MRN_SHARED_MRN) {
-			patient.setMrns(closeMatch.getMrns());
 		} else if (condition == Condition.PHONE_AREA_CODE_CHANGE) {
 			transformer.changePhoneAreaCode(patient);
 		} else if (condition == Condition.PHONE_CHANGED) {
 			transformer.changePhone(patient);
-		} else if (condition == Condition.SHOT_HISTORY_INCOMPLETE) {
-			// TODO
-		} else if (condition == Condition.SHOT_HISTORY_MISSING) {
-			patient.setShotHistory("");
-		} else if (condition == Condition.SSN_MISSING) {
-			patient.setSsn("");
-		} else if (condition == Condition.SSN_SHARED) {
-			patient.setSsn(closeMatch.getSsn());
-		} else if (condition == Condition.SSN_TYPO) {
-			String ssn = patient.getSsn();
-			if (ssn.length() > 1) {
-				int pos = random.nextInt(ssn.length() - 1);
-				char v1 = ssn.charAt(pos);
-				char v2 = ssn.charAt(pos + 1);
-				while (v1 == v2) {
-					v1 = (char) (((int) '0') + random.nextInt(10));
-				}
-				char c = v1;
-				v1 = v2;
-				v2 = c;
-			}
-			patient.setSsn(ssn);
-		} else if (condition == Condition.SUFFIX_MISSING) {
-			patient.setNameSuffix("");
+
 		}
 		}
 		return patient;
