@@ -142,7 +142,8 @@ public class ConvertDataServlet extends HomeServlet
         out.println("</pre>");
       }
 
-      out.println("<p>Convert Data Form</p>");
+      out.println("<p>Paste data from an Excel spreadsheet without the header row. "
+          + "All the data will be converted into a format that can be used for testing and verifying test cases. </p>");
       out.println("    <form action=\"ConvertDataServlet\" method=\"POST\">");
       out.println("    <table border=\"0\">");
       printColumnSelection(out, 0, "Patient Id", PATIENT_ID_COL);

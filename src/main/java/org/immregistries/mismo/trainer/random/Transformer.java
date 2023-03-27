@@ -241,7 +241,7 @@ public class Transformer
    */
   protected void init() throws IOException {
     conceptMap = new HashMap<String, List<String[]>>();
-    BufferedReader in = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("transform.txt")));
+    BufferedReader in = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/transform.txt")));
     String line;
     while ((line = in.readLine()) != null) {
       int equals = line.indexOf("=");
