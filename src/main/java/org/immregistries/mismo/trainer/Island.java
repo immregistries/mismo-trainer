@@ -2,15 +2,20 @@ package org.immregistries.mismo.trainer;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.trainer.model.Creature;
 import org.immregistries.mismo.trainer.model.Scorer;
 import org.immregistries.mismo.trainer.model.World;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 /**
  * This is the command line entry point for running the optimization process.
@@ -37,96 +42,68 @@ public class Island
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    if (args.length < 2) {
-      System.err
-          .println("usage: java org.immregistries.pm.Island [central url] [test case filename] [world size] [weights]");
-      // java -classpath
-      // "classes;C:/Documents and Settings/nathan/.m2/repository/com/wcohen/ss/20060615/ss-20060615.jar"
-      // org.immregistries.pm.Island
-      // http://localhost:8286/CentralServlet MIIS-C.txt
-      //
-      // java -classpath
-      // "classes;C:/Users/Nathan Bunker/.m2/repository/com/wcohen/ss/20060615/ss-20060615.jar"
-      // org.immregistries.pm.Island
-      // http://localhost:8286/CentralServlet MIIS-E2.txt
-      //
-      // java -classpath
-      // "classes;C:/Users/Nathan Bunker/.m2/repository/com/wcohen/ss/20060615/ss-20060615.jar"
-      // org.immregistries.pm.Island
-      // http://localhost:8286/CentralServlet MIIS-E2.txt 400
-      // 20,0,-5,-20,10,0,-40,-10,10
-    }
-    String centralUrlString = args[0];
-    String testCasesFilename = args[1];
-    String worldSizeString = null;
-    String weightsString = null;
-    if (args.length > 2) {
-      worldSizeString = args[2];
-      if (args.length > 3) {
-        weightsString = args[3];
+    String centralUrlString;
+    String testCasesFilename;
+    int worldSize;
+    int[][] w = Scorer.getWeights();
+    String islandName;
+    String worldName;
+    {
+      String configFileName = "island.yml";
+      if (args.length > 0) {
+        configFileName = args[0];
+      }
+      Yaml yaml = new Yaml(new Constructor(Map.class));
+      try {
+          FileInputStream inputStream = new FileInputStream(configFileName);
+          Map<String, Object> data = yaml.load(inputStream);
+          centralUrlString = (String) data.get("centralURL");
+          testCasesFilename = (String) data.get("testCaseFileName");
+          worldName = (String) data.get("worldName");
+          islandName = (String) data.get("worldName");
+          worldSize = (Integer) data.get("populationSize");
+          Map<String, Integer> scoringWeights = (Map<String, Integer>) data.get("scoringWeights");
+          System.out.println(scoringWeights.size() + " scoring weights");
+          w[0][0] = scoringWeights.get("shouldMatch_Matches");
+          w[0][1] = scoringWeights.get("shouldMatch_Possible");
+          w[0][2] = scoringWeights.get("shouldMatch_NoMatch");
+          w[1][0] = scoringWeights.get("shouldPossible_Matches");
+          w[1][1] = scoringWeights.get("shouldPossible_Possible");
+          w[1][2] = scoringWeights.get("shouldPossible_NoMatch");
+          w[2][0] = scoringWeights.get("shouldNoMatch_Matches");
+          w[2][1] = scoringWeights.get("shouldNoMatch_Possible");
+          w[2][2] = scoringWeights.get("shouldNoMatch_NoMatch");
+      } catch (FileNotFoundException e) {
+          System.err.println("Configuration file not found: " + configFileName);
+          return;
       }
     }
 
+    
+    
     BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(testCasesFilename)));
     List<MatchItem> matchItemList = readSourceFile(in);
-
+    
     System.out.println("Starting patient match optimization island.");
     System.out.println("Central repository location: " + centralUrlString);
     System.out.println("Test Case Filename: " + testCasesFilename);
     System.out.println("  + test case count: " + matchItemList.size());
-    String worldName = readInput("World Name");
     if (worldName == null || worldName.equals("")) {
       System.out.println("Not starting world name.");
       System.exit(0);
     }
-    String islandName = readInput("Island Name");
     if (islandName == null || islandName.equals("")) {
       System.out.println("Not starting world without island name.");
       System.exit(0);
     }
-    if (worldSizeString == null) {
-      worldSizeString = readInput("World Size");
-    }
-    if (worldSizeString == null || worldSizeString.equals("") || worldSizeString.equals("0")) {
-      System.out.println("Not starting world without world size");
-      System.exit(0);
-    }
 
-    int worldSize = 0;
-    try {
-      worldSize = Integer.parseInt(worldSizeString);
-    } catch (NumberFormatException nfe) {
-      System.out.println("Invalid world size, must be number");
-    }
-    if (worldSize <= 10) {
-      System.out.println("World size too small");
-      System.exit(0);
-    }
-
-    if (weightsString != null) {
-      String[] ws = weightsString.split("\\,");
-      int i = 0;
-      int j = 0;
-      int p = 0;
-      int[][] w = Scorer.getWeights();
-      while (p < ws.length && i < 3) {
-        w[i][j] = Integer.parseInt(ws[p]);
-        j++;
-        if (j == 3) {
-          i++;
-          j = 0;
-        }
-        p++;
-      }
-      System.out.println();
-      System.out.println("  +--------------+-------+-------+-------+");
-      System.out.println("  | Weights      | Match | Poss  | Not M |");
-      System.out.println("  +--------------+-------+-------+-------+");
-      System.out.println("  | Should Match |" + pad(w[0][0]) + " |" + pad(w[0][1]) + " |" + pad(w[0][2]) + " |");
-      System.out.println("  | Should Poss  |" + pad(w[1][0]) + " |" + pad(w[1][1]) + " |" + pad(w[1][2]) + " |");
-      System.out.println("  | Should Not M |" + pad(w[2][0]) + " |" + pad(w[2][1]) + " |" + pad(w[2][2]) + " |");
-      System.out.println("  +--------------+-------+-------+-------+");
-    }
+    System.out.println("  +--------------+-------+-------+-------+");
+    System.out.println("  | Weights      | Match | Poss  | Not M |");
+    System.out.println("  +--------------+-------+-------+-------+");
+    System.out.println("  | Should Match |" + pad(w[0][0]) + " |" + pad(w[0][1]) + " |" + pad(w[0][2]) + " |");
+    System.out.println("  | Should Poss  |" + pad(w[1][0]) + " |" + pad(w[1][1]) + " |" + pad(w[1][2]) + " |");
+    System.out.println("  | Should Not M |" + pad(w[2][0]) + " |" + pad(w[2][1]) + " |" + pad(w[2][2]) + " |");
+    System.out.println("  +--------------+-------+-------+-------+");
 
     URL centralUrl = new URL(centralUrlString);
 

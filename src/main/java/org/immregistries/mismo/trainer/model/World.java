@@ -198,6 +198,7 @@ public class World extends Thread
       return;
     }
     lastMessage = "Sorting Creatures";
+    // I'm getting an exception on this line: java.lang.ClassNotFondException org.immregistires.mismo.trainer.model.World$1 why?
     Arrays.sort(creatures, new Comparator<Creature>() {
       public int compare(Creature c1, Creature c2) {
         return c1.getScore() > c2.getScore() ? -1 : (c1.getScore() < c2.getScore() ? 1 : 0);

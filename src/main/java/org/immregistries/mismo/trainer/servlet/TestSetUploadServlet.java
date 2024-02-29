@@ -4,14 +4,19 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.servlet.http.Part;
+
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
@@ -19,9 +24,14 @@ import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.match.model.MatchSet;
 import org.immregistries.mismo.match.model.User;
 
+@MultipartConfig
 public class TestSetUploadServlet extends TestSetServlet {
 
   private static String uploadDirString = "/temp";
+
+  public static final String PARAM_MATCH_SET_ID = "matchSetId";
+  public static final String PARAM_DATA_SOURCE = "dataSource";
+  public static final String PARAM_DATA_FILE = "dataFile";
 
   @Override
   public void init() throws ServletException {
@@ -32,68 +42,34 @@ public class TestSetUploadServlet extends TestSetServlet {
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-//    IFileCleaner fileCleaner = new IFileCleaner() {
-//
-//      public void track(File file, Object marker, FileDeleteStrategy deleteStrategy) {
-//        // TODO Auto-generated method stub
-//
-//      }
+    // Need to read a file upload and then proces it. 
+    // Here are the items on the form:
+    //   PARAM_MATCH_SET_ID
+    //   PARAM_DATA_SOURCE
+    //   PARAM_DATA_FILE
+    // Need to save the data file to a temporary directory and capture the matchSetId and the dataSource for later use.
+    // Then need to read the file and process it into a list of MatchItem objects.
+    // Then need to save the MatchItem objects to the database.
+    // Then need to redirect to the TestSetServlet with the matchSetId and a message.
+    // Here is the code to read the file upload and process it into a list of MatchItem objects.
 
-//      public void track(File file, Object marker) {
-//        // TODO Auto-generated method stub
-//
-//      }
-//
-//      public void destroy() {
-//        // TODO Auto-generated method stub
-//
-//      }
-//    };
 
-    // DiskFileItemFactory fileItemFactory = new DiskFileItemFactory(fileCleaner);
-    //    fileItemFactory.setSizeThreshold(100 * 1024 * 1024); // 100 MB
-    //    File uploadDir = new File(uploadDirString);
-    //    if (!uploadDir.exists()) {
-    //      throw new IllegalArgumentException("Upload directory not found, unable to upload");
-    //    }
-    //
+    
+    
     HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute("user");
     Session dataSession = (Session) session.getAttribute("dataSession");
 
-    String dataSource = "";
-    //    fileItemFactory.setRepository(uploadDir);
-    // ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
-    File file = null;
-    MatchSet matchSetSelected = null;
-    try {
-      //      List<FileItem> items = uploadHandler.parseRequest(req);
-      //      for (FileItem item : items) {
-      //        /*
-      //         * Handle Form Fields.
-      //         */
-      //        if (item.isFormField()) {
-      //          if (item.getFieldName().equals(PARAM_DATA_SOURCE)) {
-      //            dataSource = item.getString();
-      //          } else if (item.getFieldName().equals(PARAM_MATCH_SET_ID)) {
-      //            matchSetSelected = (MatchSet) dataSession.get(MatchSet.class, Integer.parseInt(item.getString()));
-      //          }
-      //        } else {
-      //          file = File.createTempFile("upload", ".txt");
-      //          item.write(file);
-      //        }
-      //      }
-    } catch (Exception ex) {
-      throw new ServletException("Unable to upload file", ex);
-    }
-
-    String message;
+    String dataSource = req.getParameter(PARAM_DATA_SOURCE);
+    MatchSet matchSetSelected = (MatchSet) dataSession.get(MatchSet.class, Integer.parseInt(req.getParameter(PARAM_MATCH_SET_ID)));
+    String message = null;
 
     if (dataSource.equals("")) {
       message = "Data source is required";
     } else {
-
-      BufferedReader in = new BufferedReader(new FileReader(file));
+      Part filePart = req.getPart(PARAM_DATA_FILE);
+      InputStream inputStream = filePart.getInputStream();
+      BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
       List<MatchItem> matchItemList = new ArrayList<MatchItem>();
       {
         MatchItem matchItem = null;
@@ -150,9 +126,7 @@ public class TestSetUploadServlet extends TestSetServlet {
       transaction.commit();
       message = matchItemList.size() + " match test cases loaded";
     }
-    if (file != null) {
-      file.delete();
-    }
+
 
     String newUrl = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetSelected.getMatchSetId()
         + "&" + PARAM_MESSAGE + "=" + URLEncoder.encode(message, "UTF-8");

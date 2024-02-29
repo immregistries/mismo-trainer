@@ -76,6 +76,12 @@
 			<version>3.29.2-GA</version>
 		</dependency>
 
+		<dependency>
+    		<groupId>org.yaml</groupId>
+    		<artifactId>snakeyaml</artifactId>
+    		<version>1.29</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -122,6 +128,23 @@
 					<artifactId>maven-project-info-reports-plugin</artifactId>
 					<version>3.0.0</version>
 				</plugin>
+
+
+		        <plugin>
+            		<groupId>org.codehaus.mojo</groupId>
+            		<artifactId>exec-maven-plugin</artifactId>
+		            <version>3.1.0</version>
+        		    <executions>
+		                <execution>
+        		            <goals>
+                		        <goal>java</goal>
+                    		</goals>
+                		</execution>
+            		</executions>
+            		<configuration>
+                		<mainClass>org.immregistries.mismo.trainer.Island</mainClass>
+            		</configuration>
+        		</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>

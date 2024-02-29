@@ -1,0 +1,16 @@
+centralURL: http://localhost:8080/mismo/CentralServlet
+testCaseFileName: src/main/resources/AIRA-A.txt
+worldName: Chicago
+islandName: Gamma
+populationSize: 1000
+scoringWeights:
+  shouldMatch_Matches:  12
+  shouldMatch_Possible: 10
+  shouldMatch_NoMatch:  -10
+  shouldPossible_Matches:  8
+  shouldPossible_Possible: 10
+  shouldPossible_NoMatch:  -8
+  shouldNoMatch_Matches:  -10
+  shouldNoMatch_Possible: -8
+  shouldNoMatch_NoMatch:  10
+
