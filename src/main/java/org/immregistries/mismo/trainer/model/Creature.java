@@ -1,5 +1,7 @@
 package org.immregistries.mismo.trainer.model;
 
+import java.util.Map;
+
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.MatchItem;
 
@@ -69,6 +71,9 @@ public class Creature {
     this.generation = generation;
     this.world = world;
     patientCompare = new PatientCompare();
+    if (world.getNodesEnabled() != null) {
+      patientCompare.disableMatchNodes(world.getNodesEnabled());
+    }
     scorer = new Scorer();
   }
   
@@ -79,6 +84,9 @@ public class Creature {
   public Creature(World world, String script) {
     this.world = world;
     patientCompare = new PatientCompare();
+    if (world.getNodesEnabled() != null) {
+      patientCompare.disableMatchNodes(world.getNodesEnabled());
+    }
     this.generation = patientCompare.readScript(script);
     scorer = new Scorer();
   }
@@ -193,7 +201,7 @@ public class Creature {
   }
 
   public static void main(String[] args) {
-    World world = new World(30, "main", "");
+    World world = new World(30, "main", "", null);
     Creature c1 = new Creature(1, world);
     System.out.println("c1 = " + c1);
     Creature c2 = new Creature(1, world);

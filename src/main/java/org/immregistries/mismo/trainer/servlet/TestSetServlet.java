@@ -51,11 +51,13 @@ public class TestSetServlet extends HomeServlet
   public static final String PARAM_DATA_FILE = "dataFile";
   public static final String PARAM_MESSAGE = "message";
   public static final String PARAM_SIGNATURE = "signature";
+  public static final String PARAM_SIGNATURE_ALL = "signatureAll";
   public static final String PARAM_SUBLIST_NAME = "sublistName";
 
   public static final String ATTRIBUTE_MATCH_SET = "matchSet";
   public static final String ATTRIBUTE_MATCH_ITEM_LIST = "matchItemList";
   public static final String ATTRIBUTE_SIGNATURE_MAP = "signatureMap";
+  public static final String ATTRIBUTE_SIGNATURE_1_MAP = "signature1Map";
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -141,6 +143,7 @@ public class TestSetServlet extends HomeServlet
           List<MatchItem> matchItemList = query.list();
           session.setAttribute(ATTRIBUTE_MATCH_ITEM_LIST, matchItemList);
           session.setAttribute(ATTRIBUTE_SIGNATURE_MAP, new HashMap<String, List<MatchItem>>());
+          session.setAttribute(ATTRIBUTE_SIGNATURE_1_MAP, new HashMap<String, List<MatchItem>>());
         } else if (action.equals(ACTION_DOWNLOAD)) {
           resp.setContentType("text/plain");
           resp.setHeader("Content-Disposition", "attachment; filename=" + matchSetSelected.getLabel() + ".txt;");
@@ -169,8 +172,14 @@ public class TestSetServlet extends HomeServlet
       String signature = req.getParameter(PARAM_SIGNATURE);
       if (signature != null) {
         Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
-            .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_MAP);
+        .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_MAP);
         matchItemList = signatureMap.get(signature);
+      }
+      String signatureAll = req.getParameter(PARAM_SIGNATURE_ALL);
+      if (signatureAll != null) {
+        Map<String, List<MatchItem>> signature1Map = (Map<String, List<MatchItem>>) session
+        .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_1_MAP);
+        matchItemList = signature1Map.get(signature);
       }
       String sublistName = req.getParameter(PARAM_SUBLIST_NAME);
       if (sublistName != null) {
@@ -213,6 +222,9 @@ public class TestSetServlet extends HomeServlet
           String link = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetSelected.getMatchSetId();
           if (signature != null) {
             link += "&" + PARAM_SIGNATURE + "=" + signature;
+          }
+          if (signatureAll != null) {
+            link += "&" + PARAM_SIGNATURE_ALL + "=" + signatureAll;
           }
           if (sublistName != null)
           {
@@ -292,6 +304,9 @@ public class TestSetServlet extends HomeServlet
         if (signature != null) {
           out.println("    <input type=\"hidden\" name=\"" + PARAM_SIGNATURE + "\" value=\"" + signature + "\"/>");
         }
+        if (signatureAll != null) {
+          out.println("    <input type=\"hidden\" name=\"" + PARAM_SIGNATURE_ALL + "\" value=\"" + signatureAll + "\"/>");
+        }
         if (sublistName != null) {
           out.println("    <input type=\"hidden\" name=\"" + PARAM_SUBLIST_NAME + "\" value=\"" + sublistName + "\"/>");
         }
@@ -364,6 +379,9 @@ public class TestSetServlet extends HomeServlet
 
         Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
             .getAttribute(ATTRIBUTE_SIGNATURE_MAP);
+        Map<String, List<MatchItem>> signature1Map = (Map<String, List<MatchItem>>) session
+            .getAttribute(ATTRIBUTE_SIGNATURE_1_MAP);
+            
 
         out.println("<h2>" + matchSetSelected.getLabel() + "</h2>");
         Scorer scorer = null;
@@ -380,6 +398,7 @@ public class TestSetServlet extends HomeServlet
             out.println("        <th>Test Case</th>");
             out.println("        <th>Expected</th>");
             out.println("        <th>Actual</th>");
+            out.println("        <th>Signature</th>");
             out.println("      </tr>");
             int pos = 0;
             for (MatchItem matchItem : matchItemList) {
@@ -394,12 +413,30 @@ public class TestSetServlet extends HomeServlet
                 }
                 updatePassStatus(matchItem, patientCompare);
                 signature = patientCompare.getSignature();
+
                 List<MatchItem> signatureList = signatureMap.get(signature);
                 if (signatureList == null) {
                   signatureList = new ArrayList<MatchItem>();
                   signatureMap.put(signature, signatureList);
                 }
                 signatureList.add(matchItem);
+
+                signatureAll = patientCompare.getScoreListSignature();
+                String signature1 = signatureAll;
+                int posOfColon = signature1.indexOf(":");
+                if (posOfColon > 0) {
+                  posOfColon = signature1.indexOf(":", posOfColon + 1);
+                  if (posOfColon > 0) {
+                    signature1 = signature1.substring(0, posOfColon);
+                  }
+                }
+                List<MatchItem> signature1List = signatureMap.get(signature1);
+                if (signature1List == null) {
+                  signature1List = new ArrayList<MatchItem>();
+                  signature1Map.put(signature1, signature1List);
+                }
+                signature1List.add(matchItem);
+
               }
               if (matchItem.isTested()) {
                 if (scorer == null) {
@@ -413,7 +450,8 @@ public class TestSetServlet extends HomeServlet
                 out.println("        <td class=\"" + style + "\"><a href=\"" + link + "\">" + matchItem.getLabel()
                     + "</a></td>");
                 out.println("        <td class=\"" + style + "\">" + matchItem.getExpectStatus() + "</td>");
-                out.println("        <td class=\"" + style + "\">" + matchItem.getActualStatus() + "</td>");
+                out.println("        <td class=\"" + style + "\">&nbsp;</td>");
+                out.println("        <td class=\"" + style + "\">" + signatureAll + "</td>");
                 out.println("      </tr>");
               } else {
                 out.println("      <tr>");
@@ -423,6 +461,7 @@ public class TestSetServlet extends HomeServlet
                     + "</a></td>");
                 out.println("        <td class=\"" + style + "\">" + matchItem.getExpectStatus() + "</td>");
                 out.println("        <td class=\"" + style + "\">&nbsp;</td>");
+                out.println("        <td class=\"" + style + "\">" + signatureAll + "</td>");
                 out.println("      </tr>");
               }
             }

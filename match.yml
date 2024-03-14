@@ -1,19 +1,42 @@
-centralURL: http://localhost:8080/mismo/CentralServlet
-testCaseFileName: src/main/resources/AIRA-B.txt
-worldName: Sunset
-islandName: Gamma
-populationSize: 10
-scoringWeights:
-  shouldMatch_Matches:  12
-  shouldMatch_Possible: 10
-  shouldMatch_NoMatch:  -10
-  shouldPossible_Matches:  8
-  shouldPossible_Possible: 10
-  shouldPossible_NoMatch:  -8
-  shouldNoMatch_Matches:  -10
-  shouldNoMatch_Possible: -8
-  shouldNoMatch_NoMatch:  10
-nodesEnabled:
+version: "1.0"
+lastModified: "2024-03-13"
+lastModifiedBy: "Nathan Bunker"
+changeLog:
+  - "2024-03-13: Initial version"
+match:
+  enabled: true
+  label: "Match"
+  household:
+    enabled: true
+    label: "Household"
+    last_name:
+      enabled: true
+      label: "Last Name"
+      l-match: 
+        enabled: true
+        label: "L-match"
+        detector: "ExactMatch"
+        minScore: 0.0
+        maxScore: 1.0
+      l-similar: 
+        enabled: true
+        label: "L-similar"
+        detector: "SimilarMatch"
+      l-hyphenated: 
+        enabled: true
+        label: "L-hyphenated"
+        detector: "HyphenMatch"
+    guardian:
+      enabled: false
+      gf-match: false
+      gl-match: false
+      gf-gl-match: false
+      mm-match: false
+      gl-mm-match: false
+    location:
+      enabled: true
+      pn-match: true
+      ad-match: true
   Match: true
   Match.Household: true
   Match.Household.Last Name: true

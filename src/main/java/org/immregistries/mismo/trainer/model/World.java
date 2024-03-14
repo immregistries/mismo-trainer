@@ -3,6 +3,7 @@ package org.immregistries.mismo.trainer.model;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import org.immregistries.mismo.match.model.MatchItem;
 
@@ -59,6 +60,12 @@ public class World extends Thread
   private String islandName = "";
   private Creature seed = null;
   private boolean rescore = false;
+  private Map<String, Boolean> nodesEnabled;
+
+  public Map<String, Boolean> getNodesEnabled()
+  {
+    return nodesEnabled;
+  }
 
   public boolean isRescore() {
     return rescore;
@@ -76,8 +83,8 @@ public class World extends Thread
    * @param islandName
    *          the name of the island within the world for display purposes
    */
-  public World(int size, String worldName, String islandName) {
-    this(size, worldName, islandName, null);
+  public World(int size, String worldName, String islandName, Map<String, Boolean> nodesEnabled) {
+    this(size, worldName, islandName, null, null);
   }
 
   /**
@@ -90,10 +97,11 @@ public class World extends Thread
    * @param baseScript
    *          the initial script that all creatures should be started at
    */
-  public World(int size, String worldName, String islandName, String baseScript) {
+  public World(int size, String worldName, String islandName, String baseScript, Map<String, Boolean> nodesEnabled) {
     this.worldName = worldName;
     this.islandName = islandName;
     this.lowerCut = (int) Math.sqrt(0.5 * size);
+    this.nodesEnabled = nodesEnabled;
     lowerCutStart = size - (lowerCut ^ 2);
     upperCut = (size - lowerCut) * 0.3;
     creatures = new Creature[size];

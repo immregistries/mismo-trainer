@@ -72,7 +72,7 @@ public class CentralServlet extends HomeServlet
         File[] worldDirs = dataStoreDir.listFiles();
         for (File worldDir : worldDirs) {
           if (worldDir.isDirectory()) {
-            World world = new World(0, worldDir.getName(), "");
+            World world = new World(0, worldDir.getName(), "", null);
             world.setMatchItemList(matchItemList);
             out.println("<h2>World " + worldDir.getName() + "</h2>");
             out.println("<table border=\"1\" cellspacing=\"0\">");
@@ -208,7 +208,7 @@ public class CentralServlet extends HomeServlet
         File worldDir = new File(dataStoreDir, worldName);
         Creature maxCreature = null;
         if (worldDir.exists() && worldDir.isDirectory()) {
-          World world = new World(0, worldDir.getName(), "");
+          World world = new World(0, worldDir.getName(), "", null);
           world.setMatchItemList(getMatchItemList());
           for (File islandDir : worldDir.listFiles()) {
             if (islandDir.isDirectory()) {
@@ -239,7 +239,7 @@ public class CentralServlet extends HomeServlet
         List<Creature> creatureList = new ArrayList<Creature>();
         Creature chiefCreature = null;
         if (worldDir.exists() && worldDir.isFile()) {
-          World world = new World(0, worldDir.getName(), "");
+          World world = new World(0, worldDir.getName(), "", null);
           world.setMatchItemList(getMatchItemList());
           for (File islandDir : worldDir.listFiles()) {
             if (islandDir.isDirectory()) {

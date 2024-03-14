@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.immregistries.mismo.match.PatientCompare;
+import org.immregistries.mismo.match.matchers.AggregateMatchNode;
+import org.immregistries.mismo.match.matchers.MatchNode;
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.trainer.model.Creature;
 import org.immregistries.mismo.trainer.model.Scorer;
@@ -48,6 +51,7 @@ public class Island
     int[][] w = Scorer.getWeights();
     String islandName;
     String worldName;
+    Map<String, Boolean> nodesEnabled;
     {
       String configFileName = "island.yml";
       if (args.length > 0) {
@@ -60,10 +64,9 @@ public class Island
           centralUrlString = (String) data.get("centralURL");
           testCasesFilename = (String) data.get("testCaseFileName");
           worldName = (String) data.get("worldName");
-          islandName = (String) data.get("worldName");
+          islandName = (String) data.get("islandName");
           worldSize = (Integer) data.get("populationSize");
           Map<String, Integer> scoringWeights = (Map<String, Integer>) data.get("scoringWeights");
-          System.out.println(scoringWeights.size() + " scoring weights");
           w[0][0] = scoringWeights.get("shouldMatch_Matches");
           w[0][1] = scoringWeights.get("shouldMatch_Possible");
           w[0][2] = scoringWeights.get("shouldMatch_NoMatch");
@@ -73,6 +76,8 @@ public class Island
           w[2][0] = scoringWeights.get("shouldNoMatch_Matches");
           w[2][1] = scoringWeights.get("shouldNoMatch_Possible");
           w[2][2] = scoringWeights.get("shouldNoMatch_NoMatch");
+          nodesEnabled = (Map<String, Boolean>) data.get("nodesEnabled");
+          
       } catch (FileNotFoundException e) {
           System.err.println("Configuration file not found: " + configFileName);
           return;
@@ -117,7 +122,7 @@ public class Island
     }
 
     System.out.println("Creating world");
-    World world = new World(worldSize, worldName, islandName, baseCase);
+    World world = new World(worldSize, worldName, islandName, baseCase, nodesEnabled);
 
     world.setMatchItemList(matchItemList);
 
@@ -150,15 +155,14 @@ public class Island
       Creature[] creatures = world.getCreaturesCopy();
       if (creatures != null) {
         System.out.println();
-        System.out.println("  +-------+-------+");
-        System.out.println("  |  Gen  | Score |");
-        System.out.println("  +-------+-------+");
+        System.out.println("  +-------+-------+----------------------------------------|");
+        System.out.println("  |  Gen  | Score | Signature                              |");
+        System.out.println("  +-------+-------+----------------------------------------|");
         for (int i = 0; i < 10 && i < creatures.length; i++) {
-
           System.out.println("  |" + pad(creatures[i].getGeneration()) + " |"
-              + pad((int) (creatures[i].getScore() * 100.0 + 0.5)) + " |");
+              + pad((int) (creatures[i].getScore() * 100.0 + 0.5)) + " |" + pad(creatures[i].getPatientCompare().getScoreListSignature(), 40) + "|");
         }
-        System.out.println("  +-------+-------+");
+        System.out.println("  +-------+-------+----------------------------------------|");
         if (creatures.length > 0) {
           System.out.println();
           System.out.println("  +--------------+-------+-------+-------+");
@@ -216,7 +220,7 @@ public class Island
   }
 
   // This is a simplistic way to space out the output
-  private static final String PAD = "                    ";
+  private static final String PAD = "                                                  ";
 
   private static String pad(int i) {
     int length = 6;

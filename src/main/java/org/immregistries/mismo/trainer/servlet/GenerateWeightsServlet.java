@@ -129,7 +129,7 @@ public class GenerateWeightsServlet extends HomeServlet {
         if (req.getParameter("worldSize") != null) {
           worldSize = Integer.parseInt(req.getParameter("worldSize"));
         }
-        world = new World(worldSize, "", "");
+        world = new World(worldSize, "", "", null);
         world.setMatchItemList(matchItemList);
         world.start();
         getServletContext().setAttribute("world", world);
