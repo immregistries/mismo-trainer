@@ -32,6 +32,7 @@ public class MatchPatientServlet extends HomeServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
+    setup(req, resp);
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     HttpSession session = req.getSession(true);
@@ -42,15 +43,6 @@ public class MatchPatientServlet extends HomeServlet {
       List<MatchItem> matchTestCaseList = (List<MatchItem>) session
           .getAttribute(TestMatchingServlet.ATTRIBUTE_MATCH_TEST_CASE_LIST);
       PatientCompare patientCompare = (PatientCompare) session.getAttribute("patientCompare");
-      if (patientCompare == null) {
-        patientCompare = new PatientCompare();
-        session.setAttribute("patientCompare", patientCompare);
-      }
-
-      if (session.getAttribute(TestMatchingServlet.ATTRIBUTE_CREATURE_SCRIPT) != null) {
-        patientCompare.readScript(
-            (String) session.getAttribute(TestMatchingServlet.ATTRIBUTE_CREATURE_SCRIPT));
-      }
 
       String testId = req.getParameter("testId");
       if (testId == null) {
@@ -111,7 +103,11 @@ public class MatchPatientServlet extends HomeServlet {
           "      <tr><td colspan=\"2\" align=\"right\"><input type=\"submit\" name=\"submit\" value=\"Submit\"></td></tr>");
       out.println("    </table>");
 
-      Set<String> allFieldsSet = new HashSet<String>();
+      Set<String> patientFieldSet = null;
+      if (patientCompare != null && patientCompare.getConfiguration() != null) {
+        patientFieldSet = patientCompare.getConfiguration().getPatientFieldSet();
+      }
+    Set<String> allFieldsSet = new HashSet<String>();
       allFieldsSet.addAll(patientCompare.getPatientA().getValueMap().keySet());
       allFieldsSet.addAll(patientCompare.getPatientB().getValueMap().keySet());
       List<String> allFieldsList = new ArrayList<String>(allFieldsSet);
@@ -120,6 +116,9 @@ public class MatchPatientServlet extends HomeServlet {
       out.println("    <table border=\"1\" cellspacing=\"0\">");
       out.println("     <tr><th>Field</th><th>Patient A</th><th>Patient B</th></tr>");
       for (String fieldName : allFieldsList) {
+        if (patientFieldSet != null && !patientFieldSet.contains(fieldName)) {
+          continue;
+        }
         String valueA = patientCompare.getPatientA().getValue(fieldName);
         String valueB = patientCompare.getPatientB().getValue(fieldName);
         String style = "";
@@ -192,11 +191,13 @@ public class MatchPatientServlet extends HomeServlet {
         out.println("    </table>");
       }
       out.println("    </form>");
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
     } catch (Exception e) {
       e.printStackTrace(out);
+    } finally {
+      teardown(req, resp);
+      out.close();
     }
-    out.close();
   }
 
   private void setMinMax(HttpServletRequest req, MatchNode node, String name) {

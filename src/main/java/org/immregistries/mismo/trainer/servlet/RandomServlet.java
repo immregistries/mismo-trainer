@@ -68,15 +68,16 @@ public class RandomServlet extends HomeServlet
   }
 
   @Override
-  protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-    response.setContentType("text/html");
-    PrintWriter out = new PrintWriter(response.getOutputStream());
-    HttpSession session = request.getSession(true);
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    setup(req, resp);
+    resp.setContentType("text/html");
+    PrintWriter out = new PrintWriter(resp.getOutputStream());
+    HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute(TestSetServlet.ATTRIBUTE_USER);
     try {
-      String typeAString = request.getParameter("typeA");
-      String typeBString = request.getParameter("typeB");
-      String typeCString = request.getParameter("typeC");
+      String typeAString = req.getParameter("typeA");
+      String typeBString = req.getParameter("typeB");
+      String typeCString = req.getParameter("typeC");
       Typest.Type typeA = Typest.Type.IDEAL;
       Typest.Type typeB = Typest.Type.IDEAL;
       Typest.Type typeC = Typest.Type.IDEAL;
@@ -90,9 +91,9 @@ public class RandomServlet extends HomeServlet
         typeC = Typest.Type.valueOf(typeCString);
       }
 
-      String conditionAString = request.getParameter("conditionA");
-      String conditionBString = request.getParameter("conditionB");
-      String conditionCString = request.getParameter("conditionC");
+      String conditionAString = req.getParameter("conditionA");
+      String conditionBString = req.getParameter("conditionB");
+      String conditionCString = req.getParameter("conditionC");
       Typest.Condition conditionA = null;
       Typest.Condition conditionB = null;
       Typest.Condition conditionC = null;
@@ -107,7 +108,7 @@ public class RandomServlet extends HomeServlet
       }
 
       boolean showScores = true;
-      if (request.getParameter("showScores") != null && request.getParameter("showScores").equals("false")) {
+      if (req.getParameter("showScores") != null && req.getParameter("showScores").equals("false")) {
         showScores = false;
       }
 
@@ -355,14 +356,16 @@ public class RandomServlet extends HomeServlet
       out.println("    </table>");
       out.println("    </form>");
 
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
       out.println("<pre>");
       e.printStackTrace(out);
       out.println("</pre>");
+    } finally {
+      out.close();
+      teardown(req, resp);
     }
-    out.close();
 
   }
 

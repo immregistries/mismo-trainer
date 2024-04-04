@@ -28,10 +28,6 @@
 	<servlet>
 		<servlet-name>TestSetUploadServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.TestSetUploadServlet</servlet-class>
-		<init-param>
-            <param-name>uploadDir</param-name>
-            <param-value>C:\dev\mismo\temp</param-value>
-        </init-param>
 	</servlet>
 	<servlet>
 		<servlet-name>WeightSetServlet</servlet-name>
@@ -48,10 +44,6 @@
 	<servlet>
 		<servlet-name>CentralServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.CentralServlet</servlet-class>
-		<init-param>
-            <param-name>dataStoreDir</param-name>
-            <param-value>C:\dev\mismo\datastore</param-value>
-        </init-param>
 	</servlet>
 	
 	

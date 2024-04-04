@@ -1,5 +1,13 @@
 package org.immregistries.mismo.trainer;
 
+import static org.immregistries.mismo.trainer.servlet.CentralServlet.ACTION_QUERY;
+import static org.immregistries.mismo.trainer.servlet.CentralServlet.ACTION_REQUEST_START_SCRIPT;
+import static org.immregistries.mismo.trainer.servlet.CentralServlet.ACTION_UPDATE;
+import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_ACTION;
+import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_CONFIGURATION_SCRIPT;
+import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_ISLAND_NAME;
+import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_WORLD_NAME;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -7,8 +15,12 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+
+import org.immregistries.mismo.match.StringUtils;
+import org.immregistries.mismo.match.model.Configuration;
 import org.immregistries.mismo.trainer.model.Creature;
 import org.immregistries.mismo.trainer.model.World;
+import org.immregistries.mismo.trainer.servlet.CentralServlet;
 
 /**
  * IslandSync provides the basic communication support for synchronizing the running world, 
@@ -38,7 +50,7 @@ public class IslandSync extends Thread {
 
   @Override
   public void run() {
-    lastMessage = "Island sync started";
+    lastMessage = "Island sync ready";
     while (keepRunning) {
       update();
       if (keepRunning) {
@@ -66,19 +78,14 @@ public class IslandSync extends Thread {
       logLastMessage("Syncing generation " + generation);
       try {
         Creature[] creatures = world.getCreaturesCopy();
-        int block = 10;
-        int j = 0;
-        for (int i = 0; i < creatures.length; i += block) {
-          j = i + block;
-          logLastMessage("Syncing generation " + generation + ", sending creatures " + i + "-" + (j - 1));
-          String response = sendUpdate(generation, creatures, i, j);
-          if (!response.startsWith("OK")) {
-            logLastMessage("Unexpected response from central server: " + response);
-            throw new Exception(lastMessage);
-          }
+        logLastMessage("Syncing generation " + generation + ", sending best creature ");
+        String response = sendUpdate(generation, creatures[0]);
+        if (!response.startsWith("OK")) {
+          logLastMessage("Unexpected response from central server: " + response);
+          throw new Exception(lastMessage);
         }
         lastSyncedGeneration = generation;
-        logLastMessage("Finished Syncing generation " + generation);
+        logLastMessage("Last synced generation " + generation);
       } catch (Exception e) {
         logLastMessage("Exception syncing with central repository: " + e.getMessage());
         e.printStackTrace(System.err);
@@ -129,7 +136,10 @@ public class IslandSync extends Thread {
    * @return response from central server, expecting OK if request was received
    * @throws IOException
    */
-  private String sendUpdate(int generation, Creature[] creatures, int start, int end) throws IOException {
+  private String sendUpdate(int generation, Creature creature) throws IOException {
+    creature.getPatientCompare().getConfiguration().createConfigurationScript(); // Make sure we have the latest script before sending
+    String configurationScript = creature.getPatientCompare().getConfiguration().getConfigurationScript();
+    System.out.println("  + sending this script: " + configurationScript.substring(0,50));
     URLConnection urlConn;
     DataOutputStream printout;
     InputStreamReader input = null;
@@ -140,15 +150,11 @@ public class IslandSync extends Thread {
     urlConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
     printout = new DataOutputStream(urlConn.getOutputStream());
     StringBuilder sb = new StringBuilder();
-    sb.append("action=update&");
-    sb.append("worldName=" + URLEncoder.encode(world.getWorldName(), "UTF-8") + "&");
-    sb.append("islandName=" + URLEncoder.encode(world.getIslandName(), "UTF-8") + "&");
-    sb.append("generation=" + generation + "&");
-    sb.append("creatureScript=");
-    for (int i = start; i < end && i < creatures.length; i++) {
-      Creature creature = creatures[i];
-      sb.append(URLEncoder.encode(creature.makeScript() + "\n", "UTF-8"));
-    }
+    sb.append(PARAM_ACTION + "=" + ACTION_UPDATE + "&");
+    sb.append(PARAM_WORLD_NAME + "=" + URLEncoder.encode(world.getWorldName(), "UTF-8") + "&");
+    sb.append(PARAM_ISLAND_NAME + "=" + URLEncoder.encode(world.getIslandName(), "UTF-8") + "&");
+    sb.append(PARAM_CONFIGURATION_SCRIPT + "=");
+    sb.append(URLEncoder.encode(configurationScript, "UTF-8"));
     printout.writeBytes(sb.toString());
     printout.flush();
     printout.close();
@@ -179,28 +185,26 @@ public class IslandSync extends Thread {
     urlConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
     printout = new DataOutputStream(urlConn.getOutputStream());
     StringBuilder sb = new StringBuilder();
-    sb.append("action=query&");
-    sb.append("worldName=" + URLEncoder.encode(world.getWorldName(), "UTF-8") + "&");
-    sb.append("islandName=" + URLEncoder.encode(world.getIslandName(), "UTF-8"));
+    sb.append(PARAM_ACTION + "=" + ACTION_QUERY + "&");
+    sb.append(PARAM_WORLD_NAME + "=" + URLEncoder.encode(world.getWorldName(), "UTF-8") + "&");
+    sb.append(PARAM_ISLAND_NAME + "=" + URLEncoder.encode(world.getIslandName(), "UTF-8"));
     printout.writeBytes(sb.toString());
     printout.flush();
     printout.close();
     input = new InputStreamReader(urlConn.getInputStream());
     BufferedReader in = new BufferedReader(input);
-    String line;
-    int maxGeneration = -1;
-    Creature[] creatures = world.getCreatures();
-    int creaturePos = 0;
-    while ((line = in.readLine()) != null && creaturePos < creatures.length) {
-      creatures[creaturePos].readScript(line);
-      if (maxGeneration < creatures[creaturePos].getGeneration()) {
-        maxGeneration = creatures[creaturePos].getGeneration();
+    String line = in.readLine();
+    if (line != null && !line.equals(CentralServlet.RESULT_NOT_FOUND)) {
+      StringBuilder configurationScript = new StringBuilder();
+      Creature[] creatures = world.getCreatures();
+      while (line != null ) {
+        configurationScript.append(line + "\n");
+        line = in.readLine();
       }
-      creaturePos++;
+      creatures[0].readScript(line);
+      world.setGeneration(creatures[0].getGeneration());
+      input.close();
     }
-    maxGeneration++;
-    world.setGeneration(maxGeneration);
-    input.close();
   }
 
   /**
@@ -212,7 +216,7 @@ public class IslandSync extends Thread {
    * @return a creature script
    * @throws IOException
    */
-  public static String requestStartScript(String worldName, URL centralUrl) throws IOException {
+  public static String requestStartScript(String worldName, String islandName, URL centralUrl) throws IOException {
     URLConnection urlConn;
     DataOutputStream printout;
     InputStreamReader input = null;
@@ -223,51 +227,26 @@ public class IslandSync extends Thread {
     urlConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
     printout = new DataOutputStream(urlConn.getOutputStream());
     StringBuilder sb = new StringBuilder();
-    sb.append("action=requestStartScript&");
-    sb.append("worldName=" + URLEncoder.encode(worldName, "UTF-8") + "&");
+    sb.append(PARAM_ACTION + "=" + ACTION_REQUEST_START_SCRIPT + "&");
+    sb.append(PARAM_WORLD_NAME + "=" + URLEncoder.encode(worldName, "UTF-8") + "&");
+    sb.append(PARAM_ISLAND_NAME + "=" + URLEncoder.encode(islandName, "UTF-8"));
     printout.writeBytes(sb.toString());
     printout.flush();
     printout.close();
     input = new InputStreamReader(urlConn.getInputStream());
+    StringBuilder configurationScript = new StringBuilder();
     try {
       BufferedReader in = new BufferedReader(input);
-      return in.readLine();
+      String line;
+      while ((line = in.readLine()) != null) {
+        if (StringUtils.isNotEmpty(line)) {
+          configurationScript.append(line + "\n");
+        }
+      }
     } finally {
       input.close();
     }
-  }
-
-  /**
-   * Method for requesting that the local island be seeded with a random creature
-   * from some other island. This method may be used to cross-pollinate this island. 
-   * @throws IOException
-   */
-  public void requestSeed() throws IOException {
-    URLConnection urlConn;
-    DataOutputStream printout;
-    InputStreamReader input = null;
-    urlConn = centralUrl.openConnection();
-    urlConn.setDoInput(true);
-    urlConn.setDoOutput(true);
-    urlConn.setUseCaches(false);
-    urlConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-    printout = new DataOutputStream(urlConn.getOutputStream());
-    StringBuilder sb = new StringBuilder();
-    sb.append("action=seed&");
-    sb.append("worldName=" + URLEncoder.encode(world.getWorldName(), "UTF-8") + "&");
-    sb.append("islandName=" + URLEncoder.encode(world.getIslandName(), "UTF-8"));
-    printout.writeBytes(sb.toString());
-    printout.flush();
-    printout.close();
-    input = new InputStreamReader(urlConn.getInputStream());
-    BufferedReader in = new BufferedReader(input);
-    String line;
-    Creature seed = null;
-    if ((line = in.readLine()) != null) {
-      seed = new Creature(world, line);
-    }
-    world.plantSeed(seed);
-    input.close();
+    return configurationScript.toString();
   }
 
 }

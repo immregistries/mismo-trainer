@@ -1,10 +1,14 @@
 package org.immregistries.mismo.trainer.model;
 
+import java.io.ObjectInputFilter.Config;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import org.immregistries.mismo.match.model.Configuration;
 import org.immregistries.mismo.match.model.MatchItem;
 
 /**
@@ -60,12 +64,6 @@ public class World extends Thread
   private String islandName = "";
   private Creature seed = null;
   private boolean rescore = false;
-  private Map<String, Boolean> nodesEnabled;
-
-  public Map<String, Boolean> getNodesEnabled()
-  {
-    return nodesEnabled;
-  }
 
   public boolean isRescore() {
     return rescore;
@@ -83,8 +81,8 @@ public class World extends Thread
    * @param islandName
    *          the name of the island within the world for display purposes
    */
-  public World(int size, String worldName, String islandName, Map<String, Boolean> nodesEnabled) {
-    this(size, worldName, islandName, null, null);
+  public World(int size, String worldName, String islandName) {
+    this(size, worldName, islandName, null);
   }
 
   /**
@@ -94,22 +92,33 @@ public class World extends Thread
    *          the name of this world for display purposes
    * @param islandName
    *          the name of the island within the world for display purposes
-   * @param baseScript
+   * @param configurationScript
    *          the initial script that all creatures should be started at
    */
-  public World(int size, String worldName, String islandName, String baseScript, Map<String, Boolean> nodesEnabled) {
+  public World(int size, String worldName, String islandName, String configurationScript) {
+    {
+      Configuration configuration = new Configuration();
+      configuration.setConfigurationScript(configurationScript);
+      configuration.setup();
+      configuration.setWorldName(worldName);
+      configuration.setIslandName(islandName);
+      configuration.setGeneration(0);
+      configuration.setGeneratedDate(new Date());
+      configuration.createConfigurationScript();
+      configurationScript = configuration.getConfigurationScript(); 
+    }
+
     this.worldName = worldName;
     this.islandName = islandName;
     this.lowerCut = (int) Math.sqrt(0.5 * size);
-    this.nodesEnabled = nodesEnabled;
     lowerCutStart = size - (lowerCut ^ 2);
     upperCut = (size - lowerCut) * 0.3;
     creatures = new Creature[size];
     for (int i = 0; i < creatures.length; i++) {
-      if (baseScript == null || baseScript.length() == 0) {
+      if (configurationScript == null || configurationScript.length() == 0) {
         creatures[i] = new Creature(generation, this);
       } else {
-        creatures[i] = new Creature(this, baseScript);
+        creatures[i] = new Creature(this, configurationScript);
         creatures[i].setGeneration(0);
       }
       if (i > 0) {
@@ -206,7 +215,6 @@ public class World extends Thread
       return;
     }
     lastMessage = "Sorting Creatures";
-    // I'm getting an exception on this line: java.lang.ClassNotFondException org.immregistires.mismo.trainer.model.World$1 why?
     Arrays.sort(creatures, new Comparator<Creature>() {
       public int compare(Creature c1, Creature c2) {
         return c1.getScore() > c2.getScore() ? -1 : (c1.getScore() < c2.getScore() ? 1 : 0);

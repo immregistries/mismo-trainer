@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -51,16 +53,15 @@ public class TestSetServlet extends HomeServlet
   public static final String PARAM_DATA_FILE = "dataFile";
   public static final String PARAM_MESSAGE = "message";
   public static final String PARAM_SIGNATURE = "signature";
-  public static final String PARAM_SIGNATURE_ALL = "signatureAll";
   public static final String PARAM_SUBLIST_NAME = "sublistName";
 
   public static final String ATTRIBUTE_MATCH_SET = "matchSet";
   public static final String ATTRIBUTE_MATCH_ITEM_LIST = "matchItemList";
   public static final String ATTRIBUTE_SIGNATURE_MAP = "signatureMap";
-  public static final String ATTRIBUTE_SIGNATURE_1_MAP = "signature1Map";
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    setup(req, resp);
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     try {
@@ -81,7 +82,6 @@ public class TestSetServlet extends HomeServlet
           testScript = "";
         }
       }
-      String creatureScript = (String) session.getAttribute(TestMatchingServlet.ATTRIBUTE_CREATURE_SCRIPT);
 
       MatchSet matchSetSelected = null;
       if (req.getParameter(PARAM_MATCH_SET_ID) != null) {
@@ -98,6 +98,7 @@ public class TestSetServlet extends HomeServlet
             Integer.parseInt(req.getParameter(PARAM_MATCH_ITEM_ID)));
       }
 
+      PatientCompare patientCompare = (PatientCompare) session.getAttribute(TestMatchingServlet.ATTRIBUTE_PATIENT_COMPARE);
       String action = req.getParameter(PARAM_ACTION);
       if (action != null) {
         if (action.equals(ACTION_CREATE_NEW_MATCH_SET)) {
@@ -123,9 +124,7 @@ public class TestSetServlet extends HomeServlet
             matchItemSelected.setExpectStatus(MatchItem.NOT_SURE);
           }
 
-          if (creatureScript != null && creatureScript.length() > 0) {
-            PatientCompare patientCompare = new PatientCompare();
-            patientCompare.readScript(creatureScript);
+          if (patientCompare != null ) {
             updatePassStatus(matchItemSelected, patientCompare);
           }
           matchItemSelected.setUser(user);
@@ -143,7 +142,6 @@ public class TestSetServlet extends HomeServlet
           List<MatchItem> matchItemList = query.list();
           session.setAttribute(ATTRIBUTE_MATCH_ITEM_LIST, matchItemList);
           session.setAttribute(ATTRIBUTE_SIGNATURE_MAP, new HashMap<String, List<MatchItem>>());
-          session.setAttribute(ATTRIBUTE_SIGNATURE_1_MAP, new HashMap<String, List<MatchItem>>());
         } else if (action.equals(ACTION_DOWNLOAD)) {
           resp.setContentType("text/plain");
           resp.setHeader("Content-Disposition", "attachment; filename=" + matchSetSelected.getLabel() + ".txt;");
@@ -174,12 +172,6 @@ public class TestSetServlet extends HomeServlet
         Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
         .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_MAP);
         matchItemList = signatureMap.get(signature);
-      }
-      String signatureAll = req.getParameter(PARAM_SIGNATURE_ALL);
-      if (signatureAll != null) {
-        Map<String, List<MatchItem>> signature1Map = (Map<String, List<MatchItem>>) session
-        .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_1_MAP);
-        matchItemList = signature1Map.get(signature);
       }
       String sublistName = req.getParameter(PARAM_SUBLIST_NAME);
       if (sublistName != null) {
@@ -223,9 +215,6 @@ public class TestSetServlet extends HomeServlet
           if (signature != null) {
             link += "&" + PARAM_SIGNATURE + "=" + signature;
           }
-          if (signatureAll != null) {
-            link += "&" + PARAM_SIGNATURE_ALL + "=" + signatureAll;
-          }
           if (sublistName != null)
           {
             link += "&" + PARAM_SUBLIST_NAME + "=" + sublistName;
@@ -262,35 +251,38 @@ public class TestSetServlet extends HomeServlet
         out.println("        <th>Patient A</th>");
         out.println("        <th>Patient B</th>");
         out.println("      </tr>");
-        printMatchRow(out, matchItemSelected, "Birth Date", Patient.BIRTH_DATE);
-        printMatchRow(out, matchItemSelected, "Name First", Patient.NAME_FIRST);
-        printMatchRow(out, matchItemSelected, "Name Middle", Patient.NAME_MIDDLE);
-        printMatchRow(out, matchItemSelected, "Name Last", Patient.NAME_LAST);
-        printMatchRow(out, matchItemSelected, "Name Suffix", Patient.NAME_SUFFIX);
-        printMatchRow(out, matchItemSelected, "Name Alias", Patient.NAME_ALIAS);
-        printMatchRow(out, matchItemSelected, "Guardian Name Last", Patient.GUARDIAN_NAME_LAST);
-        printMatchRow(out, matchItemSelected, "Guardian Name First", Patient.GUARDIAN_NAME_FIRST);
-        printMatchRow(out, matchItemSelected, "Mother Maiden Name", Patient.MOTHER_MAIDEN_NAME);
-        printMatchRow(out, matchItemSelected, "Address Street 1", Patient.ADDRESS_STREET1);
-        printMatchRow(out, matchItemSelected, "Address Street 2", Patient.ADDRESS_STREET2);
-        printMatchRow(out, matchItemSelected, "Address City", Patient.ADDRESS_CITY);
-        printMatchRow(out, matchItemSelected, "Address State", Patient.ADDRESS_STATE);
-        printMatchRow(out, matchItemSelected, "Address Zip", Patient.ADDRESS_ZIP);
-        printMatchRow(out, matchItemSelected, "2nd Address Street 1", Patient.ADDRESS_2_STREET1);
-        printMatchRow(out, matchItemSelected, "2nd Address Street 2", Patient.ADDRESS_2_STREET2);
-        printMatchRow(out, matchItemSelected, "2nd Address City", Patient.ADDRESS_2_CITY);
-        printMatchRow(out, matchItemSelected, "2nd Address State", Patient.ADDRESS_2_STATE);
-        printMatchRow(out, matchItemSelected, "2nd Address Zip", Patient.ADDRESS_2_ZIP);
-        printMatchRow(out, matchItemSelected, "Phone", Patient.PHONE);
-        printMatchRow(out, matchItemSelected, "Gender", Patient.GENDER);
-        printMatchRow(out, matchItemSelected, "MRNs", Patient.MRNS);
-        printMatchRow(out, matchItemSelected, "Birth Type", Patient.BIRTH_TYPE);
-        printMatchRow(out, matchItemSelected, "Birth Order", Patient.BIRTH_ORDER);
-        printMatchRow(out, matchItemSelected, "Birth Status", Patient.BIRTH_STATUS);
-        printMatchRow(out, matchItemSelected, "Shot History", Patient.SHOT_HISTORY);
-        printMatchRow(out, matchItemSelected, "SSN", Patient.SSN);
-        printMatchRow(out, matchItemSelected, "Medicaid #", Patient.MEDICAID);
-
+        Set<String> patientFieldSet = null;
+        if (patientCompare != null && patientCompare.getConfiguration() != null) {
+          patientFieldSet = patientCompare.getConfiguration().getPatientFieldSet();
+        }
+        printMatchRow(out, matchItemSelected, "Birth Date", Patient.BIRTH_DATE, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Name First", Patient.NAME_FIRST, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Name Middle", Patient.NAME_MIDDLE, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Name Last", Patient.NAME_LAST, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Name Suffix", Patient.NAME_SUFFIX, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Name Alias", Patient.NAME_ALIAS, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Guardian Name Last", Patient.GUARDIAN_NAME_LAST, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Guardian Name First", Patient.GUARDIAN_NAME_FIRST, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Mother Maiden Name", Patient.MOTHER_MAIDEN_NAME, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Address Street 1", Patient.ADDRESS_STREET1, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Address Street 2", Patient.ADDRESS_STREET2, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Address City", Patient.ADDRESS_CITY, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Address State", Patient.ADDRESS_STATE, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Address Zip", Patient.ADDRESS_ZIP, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "2nd Address Street 1", Patient.ADDRESS_2_STREET1, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "2nd Address Street 2", Patient.ADDRESS_2_STREET2, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "2nd Address City", Patient.ADDRESS_2_CITY, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "2nd Address State", Patient.ADDRESS_2_STATE, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "2nd Address Zip", Patient.ADDRESS_2_ZIP, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Phone", Patient.PHONE, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Gender", Patient.GENDER, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "MRNs", Patient.MRNS, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Birth Type", Patient.BIRTH_TYPE, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Birth Order", Patient.BIRTH_ORDER, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Birth Status", Patient.BIRTH_STATUS, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Shot History", Patient.SHOT_HISTORY, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "SSN", Patient.SSN, patientFieldSet);
+        printMatchRow(out, matchItemSelected, "Medicaid #", Patient.MEDICAID, patientFieldSet);
         out.println("    </table>");
         String link = "MatchPatientServlet?" + PARAM_MATCH_ITEM_ID + "=" + matchItemSelected.getMatchItemId();
         out.println("    <p><a href=\"" + link + "\">Matching Diagnostics</a></p>");
@@ -303,9 +295,6 @@ public class TestSetServlet extends HomeServlet
             + matchItemSelected.getMatchItemId() + "\"/>");
         if (signature != null) {
           out.println("    <input type=\"hidden\" name=\"" + PARAM_SIGNATURE + "\" value=\"" + signature + "\"/>");
-        }
-        if (signatureAll != null) {
-          out.println("    <input type=\"hidden\" name=\"" + PARAM_SIGNATURE_ALL + "\" value=\"" + signatureAll + "\"/>");
         }
         if (sublistName != null) {
           out.println("    <input type=\"hidden\" name=\"" + PARAM_SUBLIST_NAME + "\" value=\"" + sublistName + "\"/>");
@@ -379,17 +368,13 @@ public class TestSetServlet extends HomeServlet
 
         Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
             .getAttribute(ATTRIBUTE_SIGNATURE_MAP);
-        Map<String, List<MatchItem>> signature1Map = (Map<String, List<MatchItem>>) session
-            .getAttribute(ATTRIBUTE_SIGNATURE_1_MAP);
-            
 
         out.println("<h2>" + matchSetSelected.getLabel() + "</h2>");
         Scorer scorer = null;
 
         if (matchItemList.size() > 0) {
 
-          if (creatureScript != null && creatureScript.length() > 0) {
-            PatientCompare patientCompare = null;
+          if (patientCompare != null) {
 
             out.println("   <table border=\"1\" cellspacing=\"0\">");
             out.println("      <tr>");
@@ -407,10 +392,6 @@ public class TestSetServlet extends HomeServlet
                   + PARAM_MATCH_ITEM_ID + "=" + matchItem.getMatchItemId();
               String style = "";
               if (matchItem.isExpectedStatusSet() && !matchItem.isTested()) {
-                if (patientCompare == null) {
-                  patientCompare = new PatientCompare();
-                  patientCompare.readScript(creatureScript);
-                }
                 updatePassStatus(matchItem, patientCompare);
                 signature = patientCompare.getSignature();
 
@@ -420,22 +401,6 @@ public class TestSetServlet extends HomeServlet
                   signatureMap.put(signature, signatureList);
                 }
                 signatureList.add(matchItem);
-
-                signatureAll = patientCompare.getScoreListSignature();
-                String signature1 = signatureAll;
-                int posOfColon = signature1.indexOf(":");
-                if (posOfColon > 0) {
-                  posOfColon = signature1.indexOf(":", posOfColon + 1);
-                  if (posOfColon > 0) {
-                    signature1 = signature1.substring(0, posOfColon);
-                  }
-                }
-                List<MatchItem> signature1List = signatureMap.get(signature1);
-                if (signature1List == null) {
-                  signature1List = new ArrayList<MatchItem>();
-                  signature1Map.put(signature1, signature1List);
-                }
-                signature1List.add(matchItem);
 
               }
               if (matchItem.isTested()) {
@@ -451,7 +416,7 @@ public class TestSetServlet extends HomeServlet
                     + "</a></td>");
                 out.println("        <td class=\"" + style + "\">" + matchItem.getExpectStatus() + "</td>");
                 out.println("        <td class=\"" + style + "\">&nbsp;</td>");
-                out.println("        <td class=\"" + style + "\">" + signatureAll + "</td>");
+                out.println("        <td class=\"" + style + "\">" + signature + "</td>");
                 out.println("      </tr>");
               } else {
                 out.println("      <tr>");
@@ -461,7 +426,7 @@ public class TestSetServlet extends HomeServlet
                     + "</a></td>");
                 out.println("        <td class=\"" + style + "\">" + matchItem.getExpectStatus() + "</td>");
                 out.println("        <td class=\"" + style + "\">&nbsp;</td>");
-                out.println("        <td class=\"" + style + "\">" + signatureAll + "</td>");
+                out.println("        <td class=\"" + style + "\">" + signature + "</td>");
                 out.println("      </tr>");
               }
             }
@@ -570,7 +535,7 @@ public class TestSetServlet extends HomeServlet
       out.println("    </table>");
       out.println("    </form>");
 
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
       out.println("<pre>");
@@ -578,6 +543,7 @@ public class TestSetServlet extends HomeServlet
       out.println("</pre>");
     } finally {
       out.close();
+      teardown(req, resp);
     }
   }
 
@@ -593,7 +559,12 @@ public class TestSetServlet extends HomeServlet
     }
   }
 
-  private void printMatchRow(PrintWriter out, MatchItem matchItemSelected, String fieldLabel, String fieldName) {
+  private void printMatchRow(PrintWriter out, MatchItem matchItemSelected, String fieldLabel, String fieldName, Set<String> patientFieldSet) {
+    if (patientFieldSet != null) {
+      if (!patientFieldSet.contains(fieldName)) {
+        return;
+      }
+    }
     Patient patientA = matchItemSelected.getPatientA();
     Patient patientB = matchItemSelected.getPatientB();
     String style = "";

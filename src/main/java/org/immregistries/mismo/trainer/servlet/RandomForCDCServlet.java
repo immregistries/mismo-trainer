@@ -33,12 +33,12 @@ public class RandomForCDCServlet extends HomeServlet
   }
 
   @Override
-  protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
-    response.setContentType("text/html");
-    PrintWriter out = new PrintWriter(response.getOutputStream());
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+      setup(req, resp);
+    resp.setContentType("text/html");
+    PrintWriter out = new PrintWriter(resp.getOutputStream());
     Random random = new Random();
-    HttpSession session = request.getSession(true);
+    HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute(TestSetServlet.ATTRIBUTE_USER);
     try {
       HomeServlet.doHeader(out, user, null);
@@ -488,14 +488,16 @@ public class RandomForCDCServlet extends HomeServlet
 
       out.println("    </table>");
 
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
       out.println("<pre>");
       e.printStackTrace(out);
       out.println("</Fpre>");
+    } finally {
+      out.close();
+      teardown(req, resp);
     }
-    out.close();
 
   }
 

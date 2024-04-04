@@ -14,6 +14,7 @@
     <property name="hibernate.c3p0.max_size">30</property>
     <property name="hibernate.c3p0.min_size">5</property>
     <property name="hibernate.c3p0.max_statements">10</property>
+    <mapping resource="Configuration.hbm.xml"/>
     <mapping resource="MatchItem.hbm.xml"/>
     <mapping resource="MatchSet.hbm.xml"/>
     <mapping resource="Patient.hbm.xml"/>

@@ -1,8 +1,6 @@
 package org.immregistries.mismo.trainer.servlet;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -53,8 +51,8 @@ public class TestSetUploadServlet extends TestSetServlet {
     // Then need to redirect to the TestSetServlet with the matchSetId and a message.
     // Here is the code to read the file upload and process it into a list of MatchItem objects.
 
-
     
+    setup(req, resp);
     
     HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute("user");
@@ -126,6 +124,8 @@ public class TestSetUploadServlet extends TestSetServlet {
       transaction.commit();
       message = matchItemList.size() + " match test cases loaded";
     }
+
+    teardown(req, resp);
 
 
     String newUrl = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetSelected.getMatchSetId()

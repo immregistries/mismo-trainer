@@ -35,6 +35,7 @@ public class ReviewServlet extends HomeServlet
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    setup(req, resp);
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     HttpSession session = req.getSession(true);
@@ -51,8 +52,6 @@ public class ReviewServlet extends HomeServlet
       HomeServlet.doHeader(out, user, null);      out.println("    <h1>Review</h1>");
       Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
           .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_MAP);
-      Map<String, List<MatchItem>> signature1Map = (Map<String, List<MatchItem>>) session
-          .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_1_MAP);
       if (signatureMap == null) {
         out.println("<p>Unable to show review results. Before reviewing please load a Weight Script and select a Test Set</p>");
       } else {
@@ -161,10 +160,10 @@ public class ReviewServlet extends HomeServlet
         out.println("    <h2>Sets of Similar Test Cases with Different Expectations - Version 2</h2>");
 
         pos = 0;
-        for (String signature : signature1Map.keySet()) {
+        for (String signature : signatureMap.keySet()) {
           boolean hasFailed = false;
           boolean hasPassed = false;
-          for (MatchItem matchItem : signature1Map.get(signature)) {
+          for (MatchItem matchItem : signatureMap.get(signature)) {
             if (matchItem.isTested()) {
               if (matchItem.isPass()) {
                 hasPassed = true;
@@ -179,10 +178,10 @@ public class ReviewServlet extends HomeServlet
             out.println("  <p>Signature: " + signature + "</p>");
             out.println("    <table border=\"1\" cellspacing=\"0\">");
             out.println("      <tr><th>Test Case</th><th>Status</th><th>Description</th><th>Expected</th><th>Actual</th></tr>");
-            for (MatchItem matchItem : signature1Map.get(signature)) {
+            for (MatchItem matchItem : signatureMap.get(signature)) {
               String link = "TestSetServlet?" + TestSetServlet.PARAM_MATCH_SET_ID + "="
                   + matchItem.getMatchSet().getMatchSetId() + "&" + TestSetServlet.PARAM_MATCH_ITEM_ID + "="
-                  + matchItem.getMatchItemId() + "&" + TestSetServlet.PARAM_SIGNATURE_ALL + "=" + signature;
+                  + matchItem.getMatchItemId() + "&" + TestSetServlet.PARAM_SIGNATURE + "=" + signature;
               printRow(out, matchItem, link);
             }
             out.println("    </table>");
@@ -195,12 +194,15 @@ public class ReviewServlet extends HomeServlet
       }
 
 
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
       e.printStackTrace(out);
     }
-    out.close();
+    finally {
+      out.close();
+      teardown(req, resp);
+    }
   }
 
   private void printSublist(PrintWriter out, String sublistName, List<MatchItem> sublist) {
