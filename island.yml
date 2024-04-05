@@ -2,5 +2,5 @@ centralURL: http://localhost:8080/mismo/CentralServlet
 testCaseFileName: src/main/resources/AIRA-B.txt
 worldName: Alma
 islandName: Gamma
-populationSize: 1000
+populationSize: 10000
 

@@ -139,7 +139,6 @@ public class IslandSync extends Thread {
   private String sendUpdate(int generation, Creature creature) throws IOException {
     creature.getPatientCompare().getConfiguration().createConfigurationScript(); // Make sure we have the latest script before sending
     String configurationScript = creature.getPatientCompare().getConfiguration().getConfigurationScript();
-    System.out.println("  + sending this script: " + configurationScript.substring(0,50));
     URLConnection urlConn;
     DataOutputStream printout;
     InputStreamReader input = null;
