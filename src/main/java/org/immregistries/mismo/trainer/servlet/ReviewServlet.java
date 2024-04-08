@@ -5,14 +5,18 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.hibernate.Session;
+import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.match.model.MatchSet;
+import org.immregistries.mismo.match.model.Patient;
 import org.immregistries.mismo.match.model.User;
 
 /**
@@ -150,50 +154,53 @@ public class ReviewServlet extends HomeServlet
               printRow(out, matchItem, link);
             }
             out.println("    </table>");
-          }
-        }
-        if (pos == 0)
-        {
-          out.println("<p>None found</p>");
-        }
-        
-        out.println("    <h2>Sets of Similar Test Cases with Different Expectations - Version 2</h2>");
-
-        pos = 0;
-        for (String signature : signatureMap.keySet()) {
-          boolean hasFailed = false;
-          boolean hasPassed = false;
-          for (MatchItem matchItem : signatureMap.get(signature)) {
-            if (matchItem.isTested()) {
-              if (matchItem.isPass()) {
-                hasPassed = true;
-              } else {
-                hasFailed = true;
-              }
-            }
-          }
-          if (true && hasFailed && hasPassed) {
-            pos++;
-            out.println("  <h2>Review Set #" + pos + "</h2>");
-            out.println("  <p>Signature: " + signature + "</p>");
+            out.println("    <br/>");
             out.println("    <table border=\"1\" cellspacing=\"0\">");
-            out.println("      <tr><th>Test Case</th><th>Status</th><th>Description</th><th>Expected</th><th>Actual</th></tr>");
+            out.println("      <tr>");
+            out.println("        <th>Field</th>");
             for (MatchItem matchItem : signatureMap.get(signature)) {
-              String link = "TestSetServlet?" + TestSetServlet.PARAM_MATCH_SET_ID + "="
-                  + matchItem.getMatchSet().getMatchSetId() + "&" + TestSetServlet.PARAM_MATCH_ITEM_ID + "="
-                  + matchItem.getMatchItemId() + "&" + TestSetServlet.PARAM_SIGNATURE + "=" + signature;
-              printRow(out, matchItem, link);
+              String label = matchItem.getLabel();
+              if (label == null ) {
+                label = "";
+              }
+              else {
+                int i = label.indexOf(":");
+                if (i > 0) {
+                  label = label.substring(0, i);
+                }
+              }
+              out.println("        <th>" + label + "</th>");
+              out.println("        <th>" + matchItem.getExpectStatus() + "</th>");
+            }
+            out.println("      </tr>");
+            String[] fields = new String[] {Patient.BIRTH_DATE, Patient.NAME_FIRST, Patient.NAME_LAST, Patient.NAME_MIDDLE, 
+              Patient.ADDRESS_STREET1, Patient.ADDRESS_CITY, Patient.ADDRESS_STATE, Patient.ADDRESS_ZIP, Patient.PHONE};
+            for (String field : fields) {
+              out.println("      <tr>");
+              out.println("        <th>" + field + "</th>");
+              for (MatchItem matchItem : signatureMap.get(signature)) {
+                Patient patientA = matchItem.getPatientA();
+                Patient patientB = matchItem.getPatientB();
+                String style = "";
+                String valueA = patientA.getValue(field);
+                String valueB = patientB.getValue(field);
+                if (!valueA.equals("") && !valueB.equals("")) {
+                  boolean matches = valueA.equalsIgnoreCase(valueB);
+                  style = matches ? "pass" : "fail";
+                }
+                out.println("        <td class=\"" + style + "\">" + valueA + "</td>");
+                out.println("        <td class=\"" + style + "\">" + valueB + "</td>");
+            
+              }
+              out.println("      </tr>");
             }
             out.println("    </table>");
           }
         }
-        if (pos == 0)
-        {
+        if (pos == 0) {
           out.println("<p>None found</p>");
-        }
+        }    
       }
-
-
       HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
