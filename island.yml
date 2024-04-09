@@ -1,4 +1,4 @@
-centralURL: http://localhost:8080/mismo/CentralServlet
+centralURL: http://localhost:8080/mismo-trainer-1.0/CentralServlet
 testCaseFileName: src/main/resources/AIRA-B.txt
 worldName: Alma
 islandName: Gamma

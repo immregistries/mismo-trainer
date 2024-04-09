@@ -146,7 +146,7 @@ public class Island
         System.out.println("  +-------+-------+-------------------------------------------------|");
         for (int i = 0; i < 10 && i < creatures.length; i++) {
           System.out.println("  |" + pad(creatures[i].getGeneration()) + " |"
-              + pad((int) (creatures[i].getScore() * 100.0 + 0.5)) + " |" + pad(creatures[i].getPatientCompare().getSignature(), 40) + "|");
+              + pad((int) (creatures[i].getScore() * 100.0 + 0.5)) + " |" + pad(creatures[i].getPatientCompare().getSignature(), 49) + "|");
         }
         System.out.println("  +-------+-------+-------------------------------------------------|");
         if (creatures.length > 0) {

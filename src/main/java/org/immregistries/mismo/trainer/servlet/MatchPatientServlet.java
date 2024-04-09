@@ -198,10 +198,10 @@ public class MatchPatientServlet extends HomeServlet {
         List<MatchNode> matchNodeList = new ArrayList<MatchNode>();
         Map<MatchNode, Double> scoreMap = new HashMap<MatchNode, Double>(); 
         List<Double> scoreList = patientCompare.getScoreList();
+        patientCompare.populateMatchNodeListAndScoreMap(matchNodeList, scoreMap);
         out.println("    <hp>Match Node List size = " + matchNodeList.size() + "</p2>");
         out.println("    <hp>Score Map size = " + scoreMap.size() + "</p2>");
         out.println("    <hp>Score List size = " + scoreList.size() + "</p2>");
-        patientCompare.populateMatchNodeListAndScoreMap(matchNodeList, scoreMap);
         out.println("    <table border=\"1\" cellspacing=\"0\">");
         out.println("      <tr>");
         out.println("        <th>Detector</th>");
@@ -228,10 +228,10 @@ public class MatchPatientServlet extends HomeServlet {
           out.println("        <td>" + decimalFormat.format(score) + "</td>");
           int hex = (int) (score * 15);
           out.println("        <td>" + hex + "</td>");
+          int b1 = hex / 8 % 2;
+          int b2 = hex / 4 % 2;
+          int b3 = hex / 2 % 2;
           int b4 = hex % 2;
-          int b3 = (b4 / 2) % 2;
-          int b2 = (b3 / 2) % 2;
-          int b1 = (b2 / 2) % 2;
           out.println("        <td>" + b1 + "</td>");
           out.println("        <td>" + b2 + "</td>");
           out.println("        <td>" + b3 + "</td>");
