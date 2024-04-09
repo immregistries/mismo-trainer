@@ -5,8 +5,10 @@ import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -191,6 +193,101 @@ public class MatchPatientServlet extends HomeServlet {
         out.println("    </table>");
       }
       out.println("    </form>");
+      if (patientCompare != null) {
+        out.println("    <h2>Signature</h2>");
+        List<MatchNode> matchNodeList = new ArrayList<MatchNode>();
+        Map<MatchNode, Double> scoreMap = new HashMap<MatchNode, Double>(); 
+        List<Double> scoreList = patientCompare.getScoreList();
+        out.println("    <hp>Match Node List size = " + matchNodeList.size() + "</p2>");
+        out.println("    <hp>Score Map size = " + scoreMap.size() + "</p2>");
+        out.println("    <hp>Score List size = " + scoreList.size() + "</p2>");
+        patientCompare.populateMatchNodeListAndScoreMap(matchNodeList, scoreMap);
+        out.println("    <table border=\"1\" cellspacing=\"0\">");
+        out.println("      <tr>");
+        out.println("        <th>Detector</th>");
+        out.println("        <th>Score</th>");
+        out.println("        <th>0..15</th>");
+        out.println("        <th>B1</th>");
+        out.println("        <th>B2</th>");
+        out.println("        <th>B3</th>");
+        out.println("        <th>B4</th>");
+        out.println("        <th>C1</th>");
+        out.println("        <th>C2</th>");
+        out.println("        <th>C3</th>");
+        out.println("        <th>C4</th>");
+        out.println("      </tr>");
+        String c1 = "";
+        String c2 = "";
+        String c3 = "";
+        String c4 = "";
+        for (MatchNode matchNode : matchNodeList) {
+          out.println("      <tr>");
+          out.println("        <td>" + matchNode.getMatchLabel() + "</td>");
+          double score = scoreMap.get(matchNode);
+          DecimalFormat decimalFormat = new DecimalFormat("0.00");
+          out.println("        <td>" + decimalFormat.format(score) + "</td>");
+          int hex = (int) (score * 15);
+          out.println("        <td>" + hex + "</td>");
+          int b4 = hex % 2;
+          int b3 = (b4 / 2) % 2;
+          int b2 = (b3 / 2) % 2;
+          int b1 = (b2 / 2) % 2;
+          out.println("        <td>" + b1 + "</td>");
+          out.println("        <td>" + b2 + "</td>");
+          out.println("        <td>" + b3 + "</td>");
+          out.println("        <td>" + b4 + "</td>");
+          c1 += b1;
+          c2 += b2;
+          c3 += b3;
+          c4 += b4;
+          if (c1.length() == 6) {
+            out.println("        <td>" + c1 + "</td>");
+            out.println("        <td>" + c2 + "</td>");
+            out.println("        <td>" + c3 + "</td>");
+            out.println("        <td>" + c4 + "</td>");
+            c1 = "";
+            c2 = "";
+            c3 = "";
+            c4 = "";
+          }
+          else {
+            out.println("         <td></td>");
+            out.println("         <td></td>");
+            out.println("         <td></td>");
+            out.println("         <td></td>");
+          }
+          out.println("      </tr>");
+        }
+        while (c1.length() > 0 && c1.length() < 6)
+        {
+          c1 += 0;
+          c2 += 0;
+          c3 += 0;
+          c4 += 0;
+          out.println("      <tr>");
+          out.println("        <td></td>");
+          out.println("        <td></td>");
+          out.println("        <td></td>");
+          out.println("        <td></td>");
+          out.println("        <td></td>");
+          out.println("        <td></td>");
+          out.println("        <td></td>");
+          if (c1.length() == 6) {
+            out.println("        <td>" + c1 + "</td>");
+            out.println("        <td>" + c2 + "</td>");
+            out.println("        <td>" + c3 + "</td>");
+            out.println("        <td>" + c4 + "</td>");
+          } else { 
+            out.println("        <td></td>");
+            out.println("        <td></td>");
+            out.println("        <td></td>");
+            out.println("        <td></td>");
+          }
+          out.println("      </tr>");
+        }
+        out.println("    </table>");
+      }
+      
       HomeServlet.doFooter(out, req);
     } catch (Exception e) {
       e.printStackTrace(out);

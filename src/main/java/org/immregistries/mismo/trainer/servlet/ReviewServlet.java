@@ -53,7 +53,8 @@ public class ReviewServlet extends HomeServlet
       }
       MatchSet matchSetSelected = (MatchSet) session.getAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET);
 
-      HomeServlet.doHeader(out, user, null);      out.println("    <h1>Review</h1>");
+      HomeServlet.doHeader(out, user, null);
+      out.println("    <h1>Review</h1>");
       Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
           .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_MAP);
       if (signatureMap == null) {

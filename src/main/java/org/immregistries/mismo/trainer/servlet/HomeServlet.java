@@ -181,7 +181,9 @@ public class HomeServlet extends HttpServlet {
         out.println(
             "    <li><a href=\"RandomForCDCServlet\">Random for CDC Servlet</a>:  Creates data in a"
                 + " spreadsheet that was requested by the CDC deduplication project.</li>");
-        out.println("  </ul>");
+        out.println(
+            "    <li><a href=\"ExampleServlet\">Example Servlet</a>:  Compares two inputs with JaroWinkler</li>");
+              out.println("  </ul>");
         out.println("    </div>");
 
         out.println(

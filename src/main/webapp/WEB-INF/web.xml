@@ -6,6 +6,10 @@
 	<display-name>mismo</display-name>
 
 	<servlet>
+		<servlet-name>ExampleServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.ExampleServlet</servlet-class>
+	</servlet>
+	<servlet>
 		<servlet-name>HomeServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.HomeServlet</servlet-class>
 	</servlet>
@@ -73,6 +77,10 @@
 	</servlet>
 
 
+	<servlet-mapping>
+		<servlet-name>ExampleServlet</servlet-name>
+		<url-pattern>/ExampleServlet</url-pattern>
+	</servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>HomeServlet</servlet-name>
 		<url-pattern>/HomeServlet</url-pattern>
