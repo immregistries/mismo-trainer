@@ -54,7 +54,6 @@ public class ExampleServlet extends HomeServlet {
           result = jw.score(a, b);
         }
       }
-
       
       out.println(" <h2> JaroWinkler Comparator</h2>");
       out.println("    <form action=\"ExampleServlet\" method=\"GET\">");
@@ -65,9 +64,45 @@ public class ExampleServlet extends HomeServlet {
       out.println("        <input type=\"text\" name=\"BName\" id=\"B\" value=\"" + b + "\" />");
       out.println("        <input type=\"submit\" name=\"submit\" value=\"Submit\"/>");
       out.println("    </form>");
+      if(result != -1.0) {
+        out.println(" <p>Similarity: " + result + "</p>");
+      }
+
+      //table
+      out.println("    <br>");
+      out.println(" <h2> Patient Value Concatenator</h2>");
+
+      out.println("    <form action=\"ExampleServlet\" method=\"GET\">");
+      out.println("    <table border=\"1\" cellspacing=\"0\">");
+      out.println("     <tr><th>Field</th><th>Value</th></tr>");
       
+      String[] patientFieldSet = {"nameFirst","addressZip","nameAlias","motherMaidenName","gender","shotHistory","medicaid","nameSuffix","addressState","nameMiddle","birthDate","nameLastHyph","nameLast","phone","guardianNameFirst","mrns","addressStreet1","addressCity" };
+      String patientValues = ""; 
       
-      out.println(" <p>Similarity: " + result + "</p>");
+      for (int i = 0; i < patientFieldSet.length; i++) {
+        String fieldValue = req.getParameter(patientFieldSet[i]);
+        if (fieldValue == null) {
+          fieldValue = "";
+        }
+        patientValues += patientFieldSet[i] + "=" + fieldValue + ",";
+        
+
+        out.println("      <tr>");
+        out.println("        <td> " + patientFieldSet[i] + "</td>");
+        out.println("      <td>");
+        out.println("<input type=\"text\" name=\"" + patientFieldSet[i] + "\" id=\"" + patientFieldSet[i] + "\" value=\"" + fieldValue + "\" />");
+        out.println("      </td>");
+        out.println("      </tr>");
+      }
+
+      out.println("    </table>");
+      out.println("    <br>");
+      out.println("    <input type=\"submit\" name=\"submit\" value=\"Submit\"/>");
+      out.println("    </form>");
+    
+
+      out.println("    <br>");
+      out.println("        <input type=\"text\" name=\"patientValues\" id=\"patientValues\" value=\"" + patientValues + "\" size=80 />");
       
       HomeServlet.doFooter(out, req);
     }
