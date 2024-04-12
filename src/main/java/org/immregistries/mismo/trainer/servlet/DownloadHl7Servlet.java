@@ -26,6 +26,7 @@ public class DownloadHl7Servlet extends HomeServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
+    setup(req, resp);
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     HttpSession session = req.getSession(true);
@@ -114,13 +115,14 @@ public class DownloadHl7Servlet extends HomeServlet {
 
       dataSession.close();
 
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
     } catch (Exception e) {
       out.print("<pre>");
       e.printStackTrace(out);
       out.print("</pre>");
     } finally {
       out.close();
+      teardown(req, resp);
     }
   }
 

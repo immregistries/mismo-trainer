@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.immregistries.mismo.match.PatientCompare;
+import org.immregistries.mismo.match.PatientMatcher;
 import org.immregistries.mismo.match.matchers.AggregateMatchNode;
 import org.immregistries.mismo.match.matchers.MatchNode;
 import org.immregistries.mismo.match.model.MatchItem;
@@ -48,10 +50,8 @@ public class Island
     String centralUrlString;
     String testCasesFilename;
     int worldSize;
-    int[][] w = Scorer.getWeights();
     String islandName;
     String worldName;
-    Map<String, Boolean> nodesEnabled;
     {
       String configFileName = "island.yml";
       if (args.length > 0) {
@@ -59,40 +59,18 @@ public class Island
       }
       Yaml yaml = new Yaml(new Constructor(Map.class));
       try {
-          FileInputStream inputStream = new FileInputStream(configFileName);
-          Map<String, Object> data = yaml.load(inputStream);
-          centralUrlString = (String) data.get("centralURL");
-          testCasesFilename = (String) data.get("testCaseFileName");
-          worldName = (String) data.get("worldName");
-          islandName = (String) data.get("islandName");
-          worldSize = (Integer) data.get("populationSize");
-          Map<String, Integer> scoringWeights = (Map<String, Integer>) data.get("scoringWeights");
-          w[0][0] = scoringWeights.get("shouldMatch_Matches");
-          w[0][1] = scoringWeights.get("shouldMatch_Possible");
-          w[0][2] = scoringWeights.get("shouldMatch_NoMatch");
-          w[1][0] = scoringWeights.get("shouldPossible_Matches");
-          w[1][1] = scoringWeights.get("shouldPossible_Possible");
-          w[1][2] = scoringWeights.get("shouldPossible_NoMatch");
-          w[2][0] = scoringWeights.get("shouldNoMatch_Matches");
-          w[2][1] = scoringWeights.get("shouldNoMatch_Possible");
-          w[2][2] = scoringWeights.get("shouldNoMatch_NoMatch");
-          nodesEnabled = (Map<String, Boolean>) data.get("nodesEnabled");
-          
+        FileInputStream inputStream = new FileInputStream(configFileName);
+        Map<String, Object> data = yaml.load(inputStream);
+        centralUrlString = (String) data.get("centralURL");
+        testCasesFilename = (String) data.get("testCaseFileName");
+        worldName = (String) data.get("worldName");
+        islandName = (String) data.get("islandName");
+        worldSize = (Integer) data.get("populationSize");
       } catch (FileNotFoundException e) {
-          System.err.println("Configuration file not found: " + configFileName);
-          return;
+        System.err.println("Configuration file not found: " + configFileName);
+        return;
       }
     }
-
-    
-    
-    BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(testCasesFilename)));
-    List<MatchItem> matchItemList = readSourceFile(in);
-    
-    System.out.println("Starting patient match optimization island.");
-    System.out.println("Central repository location: " + centralUrlString);
-    System.out.println("Test Case Filename: " + testCasesFilename);
-    System.out.println("  + test case count: " + matchItemList.size());
     if (worldName == null || worldName.equals("")) {
       System.out.println("Not starting world name.");
       System.exit(0);
@@ -101,7 +79,31 @@ public class Island
       System.out.println("Not starting world without island name.");
       System.exit(0);
     }
-
+    System.out.println("Starting patient match optimization island '" + islandName + "' in world '" + worldName + "' with " + worldSize + " creatures.");
+    System.out.println("Central repository location: " + centralUrlString);
+    
+    
+    URL centralUrl = new URL(centralUrlString);
+    System.out.println("Asking central server for best configuration to start with.");
+    String configurationScript = null;
+    try {
+      configurationScript = IslandSync.requestStartScript(worldName, islandName, centralUrl);
+    } catch (Exception e) {
+      System.out.println("Unable to query central server");
+      e.printStackTrace(System.err);
+    }
+    
+    System.out.println("Creating world");
+    World world = new World(worldSize, worldName, islandName, configurationScript);
+    
+    // Will use score weights from latest configuration that was returned from thes server
+    int[][] w = Scorer.getWeights();
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        w[i][j] = world.getCreatures()[0].getPatientCompare().getConfiguration().getScoringWeights()[i][j];
+      }
+    }
+    System.out.println("Using these weights:");
     System.out.println("  +--------------+-------+-------+-------+");
     System.out.println("  | Weights      | Match | Poss  | Not M |");
     System.out.println("  +--------------+-------+-------+-------+");
@@ -109,38 +111,22 @@ public class Island
     System.out.println("  | Should Poss  |" + pad(w[1][0]) + " |" + pad(w[1][1]) + " |" + pad(w[1][2]) + " |");
     System.out.println("  | Should Not M |" + pad(w[2][0]) + " |" + pad(w[2][1]) + " |" + pad(w[2][2]) + " |");
     System.out.println("  +--------------+-------+-------+-------+");
-
-    URL centralUrl = new URL(centralUrlString);
-
-    System.out.println("Asking central server for base case");
-    String baseCase = null;
-    try {
-      baseCase = IslandSync.requestStartScript(worldName, centralUrl);
-    } catch (Exception e) {
-      System.out.println("Unable to query central server");
-      e.printStackTrace(System.err);
+    
+    List<MatchItem> matchItemList;
+    {
+      System.out.println("Loading test cases from this file: " + testCasesFilename);
+      BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(testCasesFilename)));
+      matchItemList = readSourceFile(in);
+      System.out.println("  + test case count: " + matchItemList.size());
     }
-
-    System.out.println("Creating world");
-    World world = new World(worldSize, worldName, islandName, baseCase, nodesEnabled);
-
     world.setMatchItemList(matchItemList);
-
+    
     System.out.println("Syncing with central server");
     IslandSync islandSync = new IslandSync(world, centralUrl);
-    try {
-      islandSync.sendQuery();
-    } catch (Exception e) {
-      System.out.println("Unable to query central server");
-      e.printStackTrace(System.err);
-    }
-
     islandSync.start();
-    System.out.println("Regular island sync started");
-
+    System.out.println("  + Regular island sync started");
     world.start();
     System.out.println("World started on island.");
-
     while (true) {
       System.out.println();
       System.out.println("  +------------------+------------------+-------+-------+");
@@ -155,14 +141,14 @@ public class Island
       Creature[] creatures = world.getCreaturesCopy();
       if (creatures != null) {
         System.out.println();
-        System.out.println("  +-------+-------+----------------------------------------|");
-        System.out.println("  |  Gen  | Score | Signature                              |");
-        System.out.println("  +-------+-------+----------------------------------------|");
+        System.out.println("  +-------+-------+-------------------------------------------------|");
+        System.out.println("  |  Gen  | Score | Signature                                       |");
+        System.out.println("  +-------+-------+-------------------------------------------------|");
         for (int i = 0; i < 10 && i < creatures.length; i++) {
           System.out.println("  |" + pad(creatures[i].getGeneration()) + " |"
-              + pad((int) (creatures[i].getScore() * 100.0 + 0.5)) + " |" + pad(creatures[i].getPatientCompare().getScoreListSignature(), 40) + "|");
+              + pad((int) (creatures[i].getScore() * 100.0 + 0.5)) + " |" + pad(creatures[i].getPatientCompare().getSignature(), 49) + "|");
         }
-        System.out.println("  +-------+-------+----------------------------------------|");
+        System.out.println("  +-------+-------+-------------------------------------------------|");
         if (creatures.length > 0) {
           System.out.println();
           System.out.println("  +--------------+-------+-------+-------+");
@@ -190,17 +176,16 @@ public class Island
           islandSync.interrupt();
         } else if (command.equalsIgnoreCase("script")) {
           if (creatures != null) {
-            System.out.println(creatures[0].makeScript());
+            System.out.println(creatures[0].getPatientCompare().getConfiguration());
           }
         } else {
           System.out.println("The following commands are available: ");
           System.out.println(" + exit   - Stop processing and exit");
           System.out.println(" + sync   - Synchronize data to central server");
-          System.out.println(" + script - Print out script for all creatures");
+          System.out.println(" + script - Print out script for first creature");
         }
       }
     }
-
   }
 
   private static String readInput(String question) {
@@ -220,7 +205,7 @@ public class Island
   }
 
   // This is a simplistic way to space out the output
-  private static final String PAD = "                                                  ";
+  private static final String PAD = "                                                            ";
 
   private static String pad(int i) {
     int length = 6;
@@ -238,7 +223,7 @@ public class Island
 
   private static String pad(String value, int length) {
     if (value.length() > length) {
-      return value.substring(length);
+      return value.substring(0, length);
     }
     String padding = value + PAD;
     return padding.substring(0, length);

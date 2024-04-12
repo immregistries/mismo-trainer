@@ -26,6 +26,7 @@ public class TestScriptExploreServlet extends HomeServlet
 {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    setup(req, resp);
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     HttpSession session = req.getSession(true);
@@ -120,12 +121,15 @@ public class TestScriptExploreServlet extends HomeServlet
         out.println("PATIENT B: " + matchItem.getPatientDataB());
       }
       out.println("</pre>");
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
       e.printStackTrace(out);
     }
-    out.close();
+    finally {
+      teardown(req, resp);
+      out.close();
+    }
   }
 
   private static String readValue(String s) {

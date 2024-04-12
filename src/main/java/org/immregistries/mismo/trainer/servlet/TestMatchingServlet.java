@@ -19,6 +19,7 @@ import javax.servlet.http.HttpSession;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.immregistries.mismo.match.PatientCompare;
+import org.immregistries.mismo.match.model.Configuration;
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.match.model.MatchSet;
 import org.immregistries.mismo.match.model.User;
@@ -35,16 +36,16 @@ public class TestMatchingServlet extends HomeServlet
 {
   protected static final String[] TEST_SCRIPTS = { "MIIS-B", "MIIS-C", "MIIS-D", "MIIS-E", "MIIS-E2", "MIIS-E3", "MIIS-F1", "MIIS-F2" };
 
-  public static final String ATTRIBUTE_CREATURE_SCRIPT = "creatureScript";
-  public static final String ATTRIBUTE_PATIENT_COMPARE = "patientCompare";
-  public static final String ATTRIBUTE_MATCH_TEST_CASE_LIST = "matchTestCaseList";
 
-  public static final String PARAM_CREATURE_SCRIPT = "creatureScript";
+  public static final String PARAM_CONFIGURATION_SCRIPT = "configurationScript";
+
+  public static final String PARAM_CONFIGURATION_ID = "configurationId";
 
   public static final String PARAM_TEST_SCRIPT = "testScript";
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    setup(req, resp);
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     HttpSession session = req.getSession(true);
@@ -71,19 +72,8 @@ public class TestMatchingServlet extends HomeServlet
           }
         }
       }
-      String creatureScript = req.getParameter(PARAM_CREATURE_SCRIPT);
-      if (creatureScript == null) {
-        creatureScript = (String) session.getAttribute(ATTRIBUTE_CREATURE_SCRIPT);
-      }
       PatientCompare patientCompare = (PatientCompare) session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
-      if (patientCompare == null) {
-        patientCompare = new PatientCompare();
-        session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
-      }
-      if (creatureScript != null && creatureScript.length() > 0) {
-        patientCompare.readScript(creatureScript);
-        session.setAttribute(ATTRIBUTE_CREATURE_SCRIPT, creatureScript);
-      }
+      
       List<MatchItem> matchItemList = new ArrayList<MatchItem>();
       session.setAttribute(ATTRIBUTE_MATCH_TEST_CASE_LIST, matchItemList);
       if (matchSetSelected != null) {
@@ -155,9 +145,6 @@ public class TestMatchingServlet extends HomeServlet
       }
       out.println("        </td>");
       out.println("      </tr>");
-      out.println("      <tr><td valign=\"top\">Weight Script</td><td><textarea name=\"" + PARAM_CREATURE_SCRIPT
-          + "\" cols=\"70\" rows=\"5\" wrap=\"off\">" + (creatureScript == null ? "" : creatureScript)
-          + "</textarea></td></tr>");
       out.println("      <tr><td colspan=\"2\" align=\"right\"><input type=\"submit\" name=\"submit\" value=\"Submit\"></td></tr>");
       out.println("    </table>");
       if (matchItemList.size() > 0) {
@@ -284,7 +271,7 @@ public class TestMatchingServlet extends HomeServlet
           }
         }
       }
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
       e.printStackTrace(out);

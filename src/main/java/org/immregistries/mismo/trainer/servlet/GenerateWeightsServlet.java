@@ -38,6 +38,7 @@ public class GenerateWeightsServlet extends HomeServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
+    setup(req, resp);
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     HttpSession session = req.getSession(true);
@@ -205,12 +206,14 @@ public class GenerateWeightsServlet extends HomeServlet {
         }
       }
       out.println("    </table>");
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
       e.printStackTrace(out);
+    } finally {
+      out.close();
+      teardown(req, resp);
     }
-    out.close();
   }
 
   protected static void printAggregateNode(PrintWriter out, Patient patientA, Patient patientB,

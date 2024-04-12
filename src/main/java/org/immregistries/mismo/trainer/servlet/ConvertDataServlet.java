@@ -59,11 +59,11 @@ public class ConvertDataServlet extends HomeServlet
       "AJ", "AK", "AL", "AM", "AN", "AO", "AP", "AQ", "AR", "AS", "AT", "AU", "AV", "AW", "AX", "AY", "AZ" };
 
   @Override
-  protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
-    response.setContentType("text/html");
-    PrintWriter out = new PrintWriter(response.getOutputStream());
-    HttpSession session = request.getSession(true);
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    setup(req, resp);
+    resp.setContentType("text/html");
+    PrintWriter out = new PrintWriter(resp.getOutputStream());
+    HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute(TestSetServlet.ATTRIBUTE_USER);
     try {
       HomeServlet.doHeader(out, user, null);
@@ -85,7 +85,7 @@ public class ConvertDataServlet extends HomeServlet
       out.println("    </script>");
       out.println("    <h1>Convert Data</h1>");
 
-      String data = request.getParameter("data");
+      String data = req.getParameter("data");
       if (data != null) {
         out.println("<p>Converted Data</p>");
         out.println("<pre>");
@@ -97,7 +97,7 @@ public class ConvertDataServlet extends HomeServlet
         String line;
         while ((line = in.readLine()) != null) {
           String parts[] = line.split("\\t");
-          String type = readPart(PATIENT_AB, parts, request);
+          String type = readPart(PATIENT_AB, parts, req);
           if (type.equals("Patient A")) {
             patientA = new Patient();
             patient = patientA;
@@ -106,31 +106,31 @@ public class ConvertDataServlet extends HomeServlet
             patient = patientB;
           }
           if (type.equals("Patient A") || type.equals("Patient B")) {
-            patient.setPatientId(Integer.parseInt(readPart(PATIENT_ID_COL, parts, request)));
-            patient.setNameFirst(readPart(FIRST_NAME, parts, request));
-            patient.setNameMiddle(readPart(MIDDLE_NAME, parts, request));
-            patient.setNameLast(readPart(LAST_NAME, parts, request));
-            patient.setBirthDate(readPart(DATE_OF_BIRTH, parts, request));
-            patient.setGender(readPart(GENDER, parts, request));
+            patient.setPatientId(Integer.parseInt(readPart(PATIENT_ID_COL, parts, req)));
+            patient.setNameFirst(readPart(FIRST_NAME, parts, req));
+            patient.setNameMiddle(readPart(MIDDLE_NAME, parts, req));
+            patient.setNameLast(readPart(LAST_NAME, parts, req));
+            patient.setBirthDate(readPart(DATE_OF_BIRTH, parts, req));
+            patient.setGender(readPart(GENDER, parts, req));
             // patient.setOr(readPart(ORGANIZATION, parts, request));
-            patient.setMrns(readPart(MRN, parts, request));
-            patient.setAddressStreet1(readPart(ADDRESS_LINE_1, parts, request));
-            patient.setAddressStreet2(readPart(ADDRESS_LINE_2, parts, request));
-            patient.setAddressCity(readPart(CITY, parts, request));
-            patient.setAddressState(readPart(STATE, parts, request));
-            patient.setAddressZip(readPart(ZIP, parts, request));
-            patient.setAddress2Street1(readPart(ADDRESS2_LINE_1, parts, request));
-            patient.setAddress2Street2(readPart(ADDRESS2_LINE_2, parts, request));
-            patient.setAddress2City(readPart(CITY2, parts, request));
-            patient.setAddress2State(readPart(STATE2, parts, request));
-            patient.setAddress2Zip(readPart(ZIP2, parts, request));
-            patient.setPhone(readPart(HOME_PHONE_NUMBER, parts, request));
-            patient.setGuardianNameLast(readPart(CAREGIVER_NAME_LAST, parts, request));
-            patient.setGuardianNameFirst(readPart(CAREGIVER_NAME_FIRST, parts, request));
-            patient.setMotherMaidenName(readPart(CAREGIVER_MAIDEN_NAME, parts, request));
-            patient.setBirthType(readPart(BIRTH_TYPE, parts, request));
-            patient.setBirthOrder(readPart(BIRTH_ORDER, parts, request));
-            patient.setBirthStatus(readPart(BIRTH_STATUS, parts, request));
+            patient.setMrns(readPart(MRN, parts, req));
+            patient.setAddressStreet1(readPart(ADDRESS_LINE_1, parts, req));
+            patient.setAddressStreet2(readPart(ADDRESS_LINE_2, parts, req));
+            patient.setAddressCity(readPart(CITY, parts, req));
+            patient.setAddressState(readPart(STATE, parts, req));
+            patient.setAddressZip(readPart(ZIP, parts, req));
+            patient.setAddress2Street1(readPart(ADDRESS2_LINE_1, parts, req));
+            patient.setAddress2Street2(readPart(ADDRESS2_LINE_2, parts, req));
+            patient.setAddress2City(readPart(CITY2, parts, req));
+            patient.setAddress2State(readPart(STATE2, parts, req));
+            patient.setAddress2Zip(readPart(ZIP2, parts, req));
+            patient.setPhone(readPart(HOME_PHONE_NUMBER, parts, req));
+            patient.setGuardianNameLast(readPart(CAREGIVER_NAME_LAST, parts, req));
+            patient.setGuardianNameFirst(readPart(CAREGIVER_NAME_FIRST, parts, req));
+            patient.setMotherMaidenName(readPart(CAREGIVER_MAIDEN_NAME, parts, req));
+            patient.setBirthType(readPart(BIRTH_TYPE, parts, req));
+            patient.setBirthOrder(readPart(BIRTH_ORDER, parts, req));
+            patient.setBirthStatus(readPart(BIRTH_STATUS, parts, req));
             if (type.equals("Patient B")) {
               out.println("TEST: " + patientA.getPatientId() + "-" + patientB.getPatientId());
               out.println("EXPECT: ");
@@ -178,13 +178,15 @@ public class ConvertDataServlet extends HomeServlet
       out.println("   <input type=\"submit\" name=\"submit\" value=\"Convert\"/>");
       out.println("    </form>");
 
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
     } catch (Exception e) {
       out.println("<pre>");
       e.printStackTrace(out);
       out.println("</pre>");
+    } finally {
+      out.close();
+      teardown(req, resp);
     }
-    out.close();
 
   }
 

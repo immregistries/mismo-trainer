@@ -2,6 +2,7 @@ package org.immregistries.mismo.trainer.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import javax.servlet.ServletException;
@@ -13,6 +14,8 @@ import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.AnnotationConfiguration;
+import org.immregistries.mismo.match.PatientCompare;
+import org.immregistries.mismo.match.model.Configuration;
 import org.immregistries.mismo.match.model.User;
 import org.immregistries.mismo.trainer.SoftwareVersion;
 
@@ -29,10 +32,34 @@ public class HomeServlet extends HttpServlet {
   public static final String PARAM_NAME = "name";
   public static final String PARAM_PASSWORD = "password";
   public static final String PARAM_MESSAGE = "message";
+  public static final String PARAM_CONFIGURATION_ID = "configurationId";
 
   public static final String PARAM_ACTION = "action";
   public static final String ATTRIBUTE_USER = "user";
   public static final String ATTRIUBTE_DATA_SESSION = "dataSession";
+
+  public static final String ATTRIBUTE_PATIENT_COMPARE = "patientCompare";
+  public static final String ATTRIBUTE_MATCH_TEST_CASE_LIST = "matchTestCaseList";
+
+
+  protected void setup(HttpServletRequest req, HttpServletResponse resp)
+  {
+    HttpSession session = req.getSession(true);
+    Session dataSession = (Session) session.getAttribute(ATTRIUBTE_DATA_SESSION);
+    if (dataSession != null) {
+      dataSession.close();
+    }
+    getSessionFactory();
+    dataSession = factory.openSession();
+    session.setAttribute(ATTRIUBTE_DATA_SESSION, dataSession);
+    if (req.getParameter(PARAM_CONFIGURATION_ID) != null) {
+      Configuration configuration = (Configuration) dataSession.get(Configuration.class,
+        Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)));
+      PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript()); // (PatientCompare) session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
+      session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
+    }
+      
+  }
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -40,15 +67,11 @@ public class HomeServlet extends HttpServlet {
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     try {
+      setup(req, resp);
       HttpSession session = req.getSession(true);
       User user = (User) session.getAttribute(ATTRIBUTE_USER);
       Session dataSession = (Session) session.getAttribute(ATTRIUBTE_DATA_SESSION);
       String message = req.getParameter(PARAM_MESSAGE);
-      if (dataSession == null) {
-        getSessionFactory();
-        dataSession = factory.openSession();
-        session.setAttribute(ATTRIUBTE_DATA_SESSION, dataSession);
-      }
 
       String action = req.getParameter(PARAM_ACTION);
       if (action != null) {
@@ -158,7 +181,9 @@ public class HomeServlet extends HttpServlet {
         out.println(
             "    <li><a href=\"RandomForCDCServlet\">Random for CDC Servlet</a>:  Creates data in a"
                 + " spreadsheet that was requested by the CDC deduplication project.</li>");
-        out.println("  </ul>");
+        out.println(
+            "    <li><a href=\"ExampleServlet\">Example Servlet</a>:  Compares two inputs with JaroWinkler</li>");
+              out.println("  </ul>");
         out.println("    </div>");
 
         out.println(
@@ -180,9 +205,12 @@ public class HomeServlet extends HttpServlet {
                 + " 5h10v18H0V14h10v9h12v-9z\"></path></svg></span><span"
                 + " style=\"display:inline-block;padding:2px 3px\">Erol Ahmed</span></a>");
       }
-      doFooter(out, user);
+      doFooter(out, req);
     } catch (Exception e) {
       e.printStackTrace(out);
+    }
+    finally {
+      teardown(req, resp);
     }
     out.close();
   }
@@ -213,8 +241,24 @@ public class HomeServlet extends HttpServlet {
   /**
    * Implements footer html.
    */
-  public static void doFooter(PrintWriter out, User user) {
+  public static void doFooter(PrintWriter out, HttpServletRequest req) {
     out.println("    </div>");
+
+    
+    PatientCompare patientCompare = (PatientCompare) req.getSession().getAttribute(ATTRIBUTE_PATIENT_COMPARE);
+    if (patientCompare != null) {
+      out.println("    <div class=\"w3-container\">");
+      DecimalFormat decimalFormat = new DecimalFormat("#0.0");
+      Configuration c = patientCompare.getConfiguration();
+      out.println("      <h2>Configuration Loaded</h2>");
+      out.println("      <table>");
+      out.println("        <tr><th>World</th><td>" + c.getWorldName() + "</td></tr>");
+      out.println("        <tr><th>Island</th><td>" + c.getIslandName() + "</td></tr>");
+      out.println("        <tr><th>Signature</th><td>" + c.getHashForSignature() + "</td></tr>");
+      out.println("        <tr><th>Score</th><td>" + decimalFormat.format((c.getGenerationScore() * 100.0)) + "</td></tr>");
+      out.println("      <table>");
+      out.println("    </div>");
+    }
     out.println("    <p></p>");
     SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
     out.println("  <div class=\"w3-container w3-green\">");
@@ -229,6 +273,15 @@ public class HomeServlet extends HttpServlet {
     out.println("</html>");
   }
 
+  protected static void teardown(HttpServletRequest req, HttpServletResponse resp) {
+    HttpSession session = req.getSession(true);
+    Session dataSession = (Session) session.getAttribute(ATTRIUBTE_DATA_SESSION);
+    if (dataSession != null) {
+      dataSession.close();
+    }
+    session.removeAttribute(ATTRIUBTE_DATA_SESSION);
+  }
+
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
@@ -236,7 +289,7 @@ public class HomeServlet extends HttpServlet {
     doGet(req, resp);
   }
 
-  private static SessionFactory factory;
+  protected static SessionFactory factory;
 
   /**
    * Session factory singleton.
@@ -259,7 +312,7 @@ public class HomeServlet extends HttpServlet {
     } else {
       out.println("        <a href=\"CentralServlet\" class=\"w3-bar-item w3-button\">Central</a>");
       out.println(
-          "        <a href=\"WeightSetServlet\" class=\"w3-bar-item w3-button\">Weight Script</a>");
+          "        <a href=\"WeightSetServlet\" class=\"w3-bar-item w3-button\">Configuration</a>");
       out.println(
           "        <a href=\"TestSetServlet\" class=\"w3-bar-item w3-button\">Test Set</a>");
       out.println("        <a href=\"ReviewServlet\" class=\"w3-bar-item w3-button\">Review</a>");

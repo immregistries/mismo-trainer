@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.match.model">
+  <class name="Configuration" table="configuration">
+    <id name="configurationId" column="configuration_id">
+      <generator class="native"/>
+    </id>
+    <property name="worldName" column="world_name" type="string"/>
+    <property name="islandName" column="island_name" type="string"/>
+    <property name="generation" column="generation" type="integer"/>
+    <property name="generationScore" column="generation_score" type="double"/>
+    <property name="generatedDate" column="generated_date" type="date"/>
+    <property name="hashForSignature" column="hash_for_signature" type="string"/>
+    <property name="configurationScript" column="configuration_script" type="string"/>
+  </class>
+</hibernate-mapping>
+
+
+

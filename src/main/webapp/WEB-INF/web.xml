@@ -6,6 +6,10 @@
 	<display-name>mismo</display-name>
 
 	<servlet>
+		<servlet-name>ExampleServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.ExampleServlet</servlet-class>
+	</servlet>
+	<servlet>
 		<servlet-name>HomeServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.HomeServlet</servlet-class>
 	</servlet>
@@ -28,10 +32,6 @@
 	<servlet>
 		<servlet-name>TestSetUploadServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.TestSetUploadServlet</servlet-class>
-		<init-param>
-            <param-name>uploadDir</param-name>
-            <param-value>C:\dev\mismo\temp</param-value>
-        </init-param>
 	</servlet>
 	<servlet>
 		<servlet-name>WeightSetServlet</servlet-name>
@@ -48,10 +48,6 @@
 	<servlet>
 		<servlet-name>CentralServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.CentralServlet</servlet-class>
-		<init-param>
-            <param-name>dataStoreDir</param-name>
-            <param-value>C:\dev\mismo\datastore</param-value>
-        </init-param>
 	</servlet>
 	
 	
@@ -81,6 +77,10 @@
 	</servlet>
 
 
+	<servlet-mapping>
+		<servlet-name>ExampleServlet</servlet-name>
+		<url-pattern>/ExampleServlet</url-pattern>
+	</servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>HomeServlet</servlet-name>
 		<url-pattern>/HomeServlet</url-pattern>

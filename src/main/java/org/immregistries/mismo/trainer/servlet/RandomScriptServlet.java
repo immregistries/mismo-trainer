@@ -30,12 +30,12 @@ public class RandomScriptServlet extends HomeServlet {
   }
 
   @Override
-  protected void doPost(HttpServletRequest request, HttpServletResponse response)
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-
-    response.setContentType("text/html");
-    PrintWriter out = new PrintWriter(response.getOutputStream());
-    HttpSession session = request.getSession(true);
+    setup(req, resp);
+    resp.setContentType("text/html");
+    PrintWriter out = new PrintWriter(resp.getOutputStream());
+    HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute(TestSetServlet.ATTRIBUTE_USER);
     try {
       HomeServlet.doHeader(out, user, null);
@@ -235,14 +235,16 @@ public class RandomScriptServlet extends HomeServlet {
       out.println("    <pre>");
       out.print(stringWriter.toString());
       out.println("    </pre>");
-      HomeServlet.doFooter(out, user);
+      HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
       out.println("<pre>");
       e.printStackTrace(out);
       out.println("</Fpre>");
+    } finally {
+      teardown(req, resp);
+      out.close();
     }
-    out.close();
 
   }
 
