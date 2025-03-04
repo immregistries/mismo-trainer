@@ -33,8 +33,7 @@ import org.immregistries.mismo.trainer.model.Scorer;
  * @author Nathan Bunker
  * 
  */
-public class TestSetServlet extends HomeServlet
-{
+public class TestSetServlet extends HomeServlet {
   public static final String ACTION_LOAD_DATA = "Load Data";
   public static final String ACTION_CREATE_NEW_MATCH_SET = "Create New Match Set";
   public static final String ACTION_MATCH = "Match";
@@ -75,13 +74,6 @@ public class TestSetServlet extends HomeServlet
 
       Session dataSession = (Session) session.getAttribute(ATTRIUBTE_DATA_SESSION);
       String message = req.getParameter(PARAM_MESSAGE);
-      String testScript = req.getParameter("testScript");
-      if (testScript == null) {
-        testScript = (String) session.getAttribute("testScript");
-        if (testScript == null) {
-          testScript = "";
-        }
-      }
 
       MatchSet matchSetSelected = null;
       if (req.getParameter(PARAM_MATCH_SET_ID) != null) {
@@ -98,7 +90,8 @@ public class TestSetServlet extends HomeServlet
             Integer.parseInt(req.getParameter(PARAM_MATCH_ITEM_ID)));
       }
 
-      PatientCompare patientCompare = (PatientCompare) session.getAttribute(TestMatchingServlet.ATTRIBUTE_PATIENT_COMPARE);
+      PatientCompare patientCompare = (PatientCompare) session
+          .getAttribute(TestMatchingServlet.ATTRIBUTE_PATIENT_COMPARE);
       String action = req.getParameter(PARAM_ACTION);
       if (action != null) {
         if (action.equals(ACTION_CREATE_NEW_MATCH_SET)) {
@@ -124,7 +117,7 @@ public class TestSetServlet extends HomeServlet
             matchItemSelected.setExpectStatus(MatchItem.NOT_SURE);
           }
 
-          if (patientCompare != null ) {
+          if (patientCompare != null) {
             updatePassStatus(matchItemSelected, patientCompare);
           }
           matchItemSelected.setUser(user);
@@ -158,20 +151,21 @@ public class TestSetServlet extends HomeServlet
         }
       }
 
-      out.println("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\"> ");
+      out.println(
+          "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\"> ");
       HomeServlet.doHeader(out, user, null);
-            out.println("    <h1>Test Set</h1>");
+      out.println("    <h1>Test Set</h1>");
       if (message != null) {
         out.println("<p>" + message + "</p>");
       }
 
       List<MatchItem> matchItemList = (List<MatchItem>) session.getAttribute(ATTRIBUTE_MATCH_ITEM_LIST);
 
-      String signature = req.getParameter(PARAM_SIGNATURE);
-      if (signature != null) {
+      String signatureSelected = req.getParameter(PARAM_SIGNATURE);
+      if (signatureSelected != null) {
         Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
-        .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_MAP);
-        matchItemList = signatureMap.get(signature);
+            .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_MAP);
+        matchItemList = signatureMap.get(signatureSelected);
       }
       String sublistName = req.getParameter(PARAM_SUBLIST_NAME);
       if (sublistName != null) {
@@ -212,11 +206,10 @@ public class TestSetServlet extends HomeServlet
             }
           }
           String link = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetSelected.getMatchSetId();
-          if (signature != null) {
-            link += "&" + PARAM_SIGNATURE + "=" + signature;
+          if (signatureSelected != null) {
+            link += "&" + PARAM_SIGNATURE + "=" + signatureSelected;
           }
-          if (sublistName != null)
-          {
+          if (sublistName != null) {
             link += "&" + PARAM_SUBLIST_NAME + "=" + sublistName;
           }
           link += "&" + PARAM_MATCH_ITEM_ID + "=";
@@ -224,7 +217,7 @@ public class TestSetServlet extends HomeServlet
           if (matchItemIdPrevious > 0) {
             out.println("<a class=\"navMenuLink\" href=\"" + link + matchItemIdPrevious + "\">Previous</a>");
           }
-          if (signature == null) {
+          if (signatureSelected == null) {
             out.println("Test Set " + posCurrent + " of " + matchItemList.size());
           } else if (sublistName == null) {
             out.println("Sub Fail List Set " + posCurrent + " of " + matchItemList.size());
@@ -293,8 +286,9 @@ public class TestSetServlet extends HomeServlet
             + matchSetSelected.getMatchSetId() + "\"/>");
         out.println("    <input type=\"hidden\" name=\"" + PARAM_MATCH_ITEM_ID + "\" value=\""
             + matchItemSelected.getMatchItemId() + "\"/>");
-        if (signature != null) {
-          out.println("    <input type=\"hidden\" name=\"" + PARAM_SIGNATURE + "\" value=\"" + signature + "\"/>");
+        if (signatureSelected != null) {
+          out.println(
+              "    <input type=\"hidden\" name=\"" + PARAM_SIGNATURE + "\" value=\"" + signatureSelected + "\"/>");
         }
         if (sublistName != null) {
           out.println("    <input type=\"hidden\" name=\"" + PARAM_SUBLIST_NAME + "\" value=\"" + sublistName + "\"/>");
@@ -312,7 +306,8 @@ public class TestSetServlet extends HomeServlet
           String style = matchItemSelected.isPass() ? "pass" : "fail";
           out.println("      <tr>");
           out.println("        <th>Pass/Fail</th>");
-          out.println("        <td class=\"" + style + "\">" + (matchItemSelected.isPass() ? "Pass" : "Fail") + "</td>");
+          out.println(
+              "        <td class=\"" + style + "\">" + (matchItemSelected.isPass() ? "Pass" : "Fail") + "</td>");
           out.println("      </tr>");
         } else {
           out.println("      <tr>");
@@ -369,8 +364,14 @@ public class TestSetServlet extends HomeServlet
         Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
             .getAttribute(ATTRIBUTE_SIGNATURE_MAP);
 
+        Scorer scorer;
+        if (patientCompare != null && patientCompare.getConfiguration() != null) {
+          scorer = new Scorer(patientCompare.getConfiguration().getScoringWeights());
+        } else {
+          scorer = new Scorer();
+        }
+
         out.println("<h2>" + matchSetSelected.getLabel() + "</h2>");
-        Scorer scorer = null;
 
         if (matchItemList.size() > 0) {
 
@@ -391,31 +392,27 @@ public class TestSetServlet extends HomeServlet
               String link = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetSelected.getMatchSetId() + "&"
                   + PARAM_MATCH_ITEM_ID + "=" + matchItem.getMatchItemId();
               String style = "";
+              String signature = patientCompare.getSignature();
               if (matchItem.isExpectedStatusSet() && !matchItem.isTested()) {
                 updatePassStatus(matchItem, patientCompare);
-                signature = patientCompare.getSignature();
-
                 List<MatchItem> signatureList = signatureMap.get(signature);
                 if (signatureList == null) {
                   signatureList = new ArrayList<MatchItem>();
                   signatureMap.put(signature, signatureList);
                 }
                 signatureList.add(matchItem);
-
               }
               if (matchItem.isTested()) {
-                if (scorer == null) {
-                  scorer = new Scorer();
-                }
                 scorer.registerMatch(matchItem);
                 style = matchItem.isPass() ? "pass" : "fail";
                 out.println("      <tr>");
                 out.println("        <td class=\"" + style + "\">" + pos + "</td>");
-                out.println("        <td class=\"" + style + "\">" + (matchItem.isPass() ? "Passed" : "Fail") + "</td>");
+                out.println(
+                    "        <td class=\"" + style + "\">" + (matchItem.isPass() ? "Passed" : "Fail") + "</td>");
                 out.println("        <td class=\"" + style + "\"><a href=\"" + link + "\">" + matchItem.getLabel()
                     + "</a></td>");
                 out.println("        <td class=\"" + style + "\">" + matchItem.getExpectStatus() + "</td>");
-                out.println("        <td class=\"" + style + "\">&nbsp;</td>");
+                out.println("        <td class=\"" + style + "\">" + matchItem.getActualStatus() + "</td>");
                 out.println("        <td class=\"" + style + "\">" + signature + "</td>");
                 out.println("      </tr>");
               } else {
@@ -478,7 +475,8 @@ public class TestSetServlet extends HomeServlet
         out.println("    <table>");
         out.println("      <tr>");
         out.println("        <td>Data Source</td>");
-        out.println("        <td><input type=\"text\" size=\"20\" name=\"" + PARAM_DATA_SOURCE + "\" value=\"\"/></td>");
+        out.println(
+            "        <td><input type=\"text\" size=\"20\" name=\"" + PARAM_DATA_SOURCE + "\" value=\"\"/></td>");
         out.println("      </tr>");
         out.println("      <tr>");
         out.println("        <td>Data</td>");
@@ -559,7 +557,8 @@ public class TestSetServlet extends HomeServlet
     }
   }
 
-  private void printMatchRow(PrintWriter out, MatchItem matchItemSelected, String fieldLabel, String fieldName, Set<String> patientFieldSet) {
+  private void printMatchRow(PrintWriter out, MatchItem matchItemSelected, String fieldLabel, String fieldName,
+      Set<String> patientFieldSet) {
     if (patientFieldSet != null) {
       if (!patientFieldSet.contains(fieldName)) {
         return;

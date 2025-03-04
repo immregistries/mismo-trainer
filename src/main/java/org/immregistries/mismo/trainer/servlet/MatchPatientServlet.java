@@ -109,7 +109,7 @@ public class MatchPatientServlet extends HomeServlet {
       if (patientCompare != null && patientCompare.getConfiguration() != null) {
         patientFieldSet = patientCompare.getConfiguration().getPatientFieldSet();
       }
-    Set<String> allFieldsSet = new HashSet<String>();
+      Set<String> allFieldsSet = new HashSet<String>();
       allFieldsSet.addAll(patientCompare.getPatientA().getValueMap().keySet());
       allFieldsSet.addAll(patientCompare.getPatientB().getValueMap().keySet());
       List<String> allFieldsList = new ArrayList<String>(allFieldsSet);
@@ -196,7 +196,7 @@ public class MatchPatientServlet extends HomeServlet {
       if (patientCompare != null) {
         out.println("    <h2>Signature</h2>");
         List<MatchNode> matchNodeList = new ArrayList<MatchNode>();
-        Map<MatchNode, Double> scoreMap = new HashMap<MatchNode, Double>(); 
+        Map<MatchNode, Double> scoreMap = new HashMap<MatchNode, Double>();
         List<Double> scoreList = patientCompare.getScoreList();
         patientCompare.populateMatchNodeListAndScoreMap(matchNodeList, scoreMap);
         out.println("    <hp>Match Node List size = " + matchNodeList.size() + "</p2>");
@@ -249,8 +249,7 @@ public class MatchPatientServlet extends HomeServlet {
             c2 = "";
             c3 = "";
             c4 = "";
-          }
-          else {
+          } else {
             out.println("         <td></td>");
             out.println("         <td></td>");
             out.println("         <td></td>");
@@ -258,8 +257,7 @@ public class MatchPatientServlet extends HomeServlet {
           }
           out.println("      </tr>");
         }
-        while (c1.length() > 0 && c1.length() < 6)
-        {
+        while (c1.length() > 0 && c1.length() < 6) {
           c1 += 0;
           c2 += 0;
           c3 += 0;
@@ -277,7 +275,7 @@ public class MatchPatientServlet extends HomeServlet {
             out.println("        <td>" + c2 + "</td>");
             out.println("        <td>" + c3 + "</td>");
             out.println("        <td>" + c4 + "</td>");
-          } else { 
+          } else {
             out.println("        <td></td>");
             out.println("        <td></td>");
             out.println("        <td></td>");
@@ -287,7 +285,7 @@ public class MatchPatientServlet extends HomeServlet {
         }
         out.println("    </table>");
       }
-      
+
       HomeServlet.doFooter(out, req);
     } catch (Exception e) {
       e.printStackTrace(out);
@@ -335,9 +333,9 @@ public class MatchPatientServlet extends HomeServlet {
           out.println("<td valign=\"top\">" + df.format(childNode.weightScore(patientA, patientB))
               + "</td>");
           out.println("<td valign=\"top\"><input type=\"text\" name=\"min_" + childName
-              + "\" size=\"3\" value=\"" + childNode.getMinScore() + "\"</td>");
+              + "\" size=\"5\" value=\"" + childNode.getMinScore() + "\"</td>");
           out.println("<td valign=\"top\"><input type=\"text\" name=\"max_" + childName
-              + "\" size=\"3\" value=\"" + childNode.getMaxScore() + "\"</td>");
+              + "\" size=\"5\" value=\"" + childNode.getMaxScore() + "\"</td>");
           out.println("" + printScore(childNode.score(patientA, patientB)) + "</td>");
           printAggregateNode(out, patientA, patientB, childNode, childName);
         } else {

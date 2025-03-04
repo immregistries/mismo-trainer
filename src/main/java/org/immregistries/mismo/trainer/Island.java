@@ -28,8 +28,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
  * @author Nathan Bunker
  * 
  */
-public class Island
-{
+public class Island {
   /**
    * To run this via the command line, follow these steps:
    * <p>
@@ -41,7 +40,7 @@ public class Island
    * <p>
    * 3. Modify and use this command line from the root of the project:
    * <p>
-   * <code>mvn exec:java -Dexec.mainClass="org.immregistries.mismo.trainer.Island" -Dexec.args="http://florence.immregistries.org/mismo/CentralServlet src/main/java/org.immregistries.pm/servlet/MIIS-F1.txt"</code>
+   * <code>mvn exec:java -Dexec.mainClass="org.immregistries.mismo.trainer.Island""</code>
    * 
    * @param args
    * @throws Exception
@@ -79,10 +78,10 @@ public class Island
       System.out.println("Not starting world without island name.");
       System.exit(0);
     }
-    System.out.println("Starting patient match optimization island '" + islandName + "' in world '" + worldName + "' with " + worldSize + " creatures.");
+    System.out.println("Starting patient match optimization island '" + islandName + "' in world '" + worldName
+        + "' with " + worldSize + " creatures.");
     System.out.println("Central repository location: " + centralUrlString);
-    
-    
+
     URL centralUrl = new URL(centralUrlString);
     System.out.println("Asking central server for best configuration to start with.");
     String configurationScript = null;
@@ -92,26 +91,21 @@ public class Island
       System.out.println("Unable to query central server");
       e.printStackTrace(System.err);
     }
-    
+
     System.out.println("Creating world");
     World world = new World(worldSize, worldName, islandName, configurationScript);
-    
-    // Will use score weights from latest configuration that was returned from thes server
+
+    // Will use score weights from latest configuration that was returned from thes
+    // server
     int[][] w = Scorer.getWeights();
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         w[i][j] = world.getCreatures()[0].getPatientCompare().getConfiguration().getScoringWeights()[i][j];
       }
     }
-    System.out.println("Using these weights:");
-    System.out.println("  +--------------+-------+-------+-------+");
-    System.out.println("  | Weights      | Match | Poss  | Not M |");
-    System.out.println("  +--------------+-------+-------+-------+");
-    System.out.println("  | Should Match |" + pad(w[0][0]) + " |" + pad(w[0][1]) + " |" + pad(w[0][2]) + " |");
-    System.out.println("  | Should Poss  |" + pad(w[1][0]) + " |" + pad(w[1][1]) + " |" + pad(w[1][2]) + " |");
-    System.out.println("  | Should Not M |" + pad(w[2][0]) + " |" + pad(w[2][1]) + " |" + pad(w[2][2]) + " |");
-    System.out.println("  +--------------+-------+-------+-------+");
-    
+
+    printWeights(w);
+
     List<MatchItem> matchItemList;
     {
       System.out.println("Loading test cases from this file: " + testCasesFilename);
@@ -120,7 +114,7 @@ public class Island
       System.out.println("  + test case count: " + matchItemList.size());
     }
     world.setMatchItemList(matchItemList);
-    
+
     System.out.println("Syncing with central server");
     IslandSync islandSync = new IslandSync(world, centralUrl);
     islandSync.start();
@@ -146,7 +140,8 @@ public class Island
         System.out.println("  +-------+-------+-------------------------------------------------|");
         for (int i = 0; i < 10 && i < creatures.length; i++) {
           System.out.println("  |" + pad(creatures[i].getGeneration()) + " |"
-              + pad((int) (creatures[i].getScore() * 100.0 + 0.5)) + " |" + pad(creatures[i].getPatientCompare().getSignature(), 49) + "|");
+              + pad((int) (creatures[i].getScore() * 100.0 + 0.5)) + " |"
+              + pad(creatures[i].getPatientCompare().getSignature(), 49) + "|");
         }
         System.out.println("  +-------+-------+-------------------------------------------------|");
         if (creatures.length > 0) {
@@ -174,18 +169,61 @@ public class Island
         } else if (command.equalsIgnoreCase("sync")) {
           System.out.println("Syncing now");
           islandSync.interrupt();
+        } else if (command.equalsIgnoreCase("weights")) {
+          printWeights(w);
         } else if (command.equalsIgnoreCase("script")) {
           if (creatures != null) {
             System.out.println(creatures[0].getPatientCompare().getConfiguration());
           }
+        } else if (command.toLowerCase().startsWith("diagnose ")) {
+          // diagnose S-4:ADDRESS_CHANGED:IDEAL-GOODA
+          String[] parts = command.split(" ");
+          if (parts.length <= 1) {
+            System.err.println("Usage: diagnose <test>");
+          } else {
+            String test = parts[1];
+            if (creatures != null) {
+              boolean found = false;
+              for (MatchItem matchItem : world.getMatchItemList()) {
+
+                if (matchItem.getLabel().equals(test)) {
+                  PatientCompare patientCompare = new PatientCompare(
+                      creatures[0].getPatientCompare().getConfiguration().getConfigurationScript());
+                  patientCompare.setMatchItem(matchItem);
+                  System.out.println("Result: " + patientCompare.getResult());
+                  patientCompare.printOut();
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
+                System.err.println("Test not found: " + test);
+              }
+            }
+          }
+
         } else {
           System.out.println("The following commands are available: ");
-          System.out.println(" + exit   - Stop processing and exit");
-          System.out.println(" + sync   - Synchronize data to central server");
-          System.out.println(" + script - Print out script for first creature");
+          System.out.println(" + exit            - Stop processing and exit");
+          System.out.println(" + sync            - Synchronize data to central server");
+          System.out.println(" + script          - Print out script for first creature");
+          System.out.println(" + weights         - Print out weights being used");
+          System.out.println(" + diagnose (test) - Explain decision on single test case");
         }
       }
     }
+
+  }
+
+  private static void printWeights(int[][] w) {
+    System.out.println("Using these weights:");
+    System.out.println("  +--------------+-------+-------+-------+");
+    System.out.println("  | Weights      | Match | Poss  | Not M |");
+    System.out.println("  +--------------+-------+-------+-------+");
+    System.out.println("  | Should Match |" + pad(w[0][0]) + " |" + pad(w[0][1]) + " |" + pad(w[0][2]) + " |");
+    System.out.println("  | Should Poss  |" + pad(w[1][0]) + " |" + pad(w[1][1]) + " |" + pad(w[1][2]) + " |");
+    System.out.println("  | Should Not M |" + pad(w[2][0]) + " |" + pad(w[2][1]) + " |" + pad(w[2][2]) + " |");
+    System.out.println("  +--------------+-------+-------+-------+");
   }
 
   private static String readInput(String question) {
@@ -234,7 +272,7 @@ public class Island
    * be used to display to the user or to start and optimization run.
    * 
    * @param in
-   *          open buffered reader
+   *           open buffered reader
    * @return a list of MatchTestCase ojects
    * @throws IOException
    */
