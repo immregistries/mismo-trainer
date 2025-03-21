@@ -36,7 +36,7 @@ public class HomeServlet extends HttpServlet {
 
   public static final String PARAM_ACTION = "action";
   public static final String ATTRIBUTE_USER = "user";
-  public static final String ATTRIUBTE_DATA_SESSION = "dataSession";
+  public static final String ATTRIBUTE_DATA_SESSION = "dataSession";
 
   public static final String ATTRIBUTE_PATIENT_COMPARE = "patientCompare";
   public static final String ATTRIBUTE_MATCH_TEST_CASE_LIST = "matchTestCaseList";
@@ -45,13 +45,13 @@ public class HomeServlet extends HttpServlet {
   protected void setup(HttpServletRequest req, HttpServletResponse resp)
   {
     HttpSession session = req.getSession(true);
-    Session dataSession = (Session) session.getAttribute(ATTRIUBTE_DATA_SESSION);
+    Session dataSession = (Session) session.getAttribute(ATTRIBUTE_DATA_SESSION);
     if (dataSession != null) {
       dataSession.close();
     }
     getSessionFactory();
     dataSession = factory.openSession();
-    session.setAttribute(ATTRIUBTE_DATA_SESSION, dataSession);
+    session.setAttribute(ATTRIBUTE_DATA_SESSION, dataSession);
     if (req.getParameter(PARAM_CONFIGURATION_ID) != null) {
       Configuration configuration = (Configuration) dataSession.get(Configuration.class,
         Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)));
@@ -70,7 +70,7 @@ public class HomeServlet extends HttpServlet {
       setup(req, resp);
       HttpSession session = req.getSession(true);
       User user = (User) session.getAttribute(ATTRIBUTE_USER);
-      Session dataSession = (Session) session.getAttribute(ATTRIUBTE_DATA_SESSION);
+      Session dataSession = (Session) session.getAttribute(ATTRIBUTE_DATA_SESSION);
       String message = req.getParameter(PARAM_MESSAGE);
 
       String action = req.getParameter(PARAM_ACTION);
@@ -275,11 +275,11 @@ public class HomeServlet extends HttpServlet {
 
   protected static void teardown(HttpServletRequest req, HttpServletResponse resp) {
     HttpSession session = req.getSession(true);
-    Session dataSession = (Session) session.getAttribute(ATTRIUBTE_DATA_SESSION);
+    Session dataSession = (Session) session.getAttribute(ATTRIBUTE_DATA_SESSION);
     if (dataSession != null) {
       dataSession.close();
     }
-    session.removeAttribute(ATTRIUBTE_DATA_SESSION);
+    session.removeAttribute(ATTRIBUTE_DATA_SESSION);
   }
 
   @Override

@@ -44,7 +44,7 @@ public class ReviewServlet extends HomeServlet
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute(TestSetServlet.ATTRIBUTE_USER);
-    Session dataSession = (Session) session.getAttribute(TestSetServlet.ATTRIUBTE_DATA_SESSION);
+    Session dataSession = (Session) session.getAttribute(TestSetServlet.ATTRIBUTE_DATA_SESSION);
     try {
       if (user == null) {
         RequestDispatcher dispatcher = req.getRequestDispatcher("HomeServlet");

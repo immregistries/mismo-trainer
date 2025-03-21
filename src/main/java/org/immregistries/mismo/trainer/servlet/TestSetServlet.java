@@ -72,7 +72,7 @@ public class TestSetServlet extends HomeServlet {
         return;
       }
 
-      Session dataSession = (Session) session.getAttribute(ATTRIUBTE_DATA_SESSION);
+      Session dataSession = (Session) session.getAttribute(ATTRIBUTE_DATA_SESSION);
       String message = req.getParameter(PARAM_MESSAGE);
 
       MatchSet matchSetSelected = null;
@@ -392,6 +392,7 @@ public class TestSetServlet extends HomeServlet {
               String link = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetSelected.getMatchSetId() + "&"
                   + PARAM_MATCH_ITEM_ID + "=" + matchItem.getMatchItemId();
               String style = "";
+              patientCompare.setMatchItem(matchItem);
               String signature = patientCompare.getSignature();
               if (matchItem.isExpectedStatusSet() && !matchItem.isTested()) {
                 updatePassStatus(matchItem, patientCompare);
@@ -532,6 +533,8 @@ public class TestSetServlet extends HomeServlet {
       out.println("      </tr>");
       out.println("    </table>");
       out.println("    </form>");
+
+      out.println("<a href=\"TestSetOriginalServlet\">Original Test Comparison</a>");
 
       HomeServlet.doFooter(out, req);
 

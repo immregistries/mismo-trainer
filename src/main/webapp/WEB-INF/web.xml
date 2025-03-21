@@ -22,12 +22,20 @@
 		<servlet-class>org.immregistries.mismo.trainer.servlet.MatchPatientServlet</servlet-class>
 	</servlet>
 	<servlet>
+		<servlet-name>MatchPatientOriginalServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.MatchPatientOriginalServlet</servlet-class>
+	</servlet>
+	<servlet>
 		<servlet-name>DownloadHl7Servlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.DownloadHl7Servlet</servlet-class>
 	</servlet>
 	<servlet>
 		<servlet-name>TestSetServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.TestSetServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>TestSetOriginalServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.TestSetOriginalServlet</servlet-class>
 	</servlet>
 	<servlet>
 		<servlet-name>TestSetUploadServlet</servlet-name>
@@ -90,6 +98,10 @@
 		<url-pattern>/MatchPatientServlet</url-pattern>
 	</servlet-mapping>
 	<servlet-mapping>
+		<servlet-name>MatchPatientOriginalServlet</servlet-name>
+		<url-pattern>/MatchPatientOriginalServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
 		<servlet-name>ReviewServlet</servlet-name>
 		<url-pattern>/ReviewServlet</url-pattern>
 	</servlet-mapping>
@@ -104,6 +116,10 @@
 	<servlet-mapping>
 		<servlet-name>TestSetServlet</servlet-name>
 		<url-pattern>/TestSetServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>TestSetOriginalServlet</servlet-name>
+		<url-pattern>/TestSetOriginalServlet</url-pattern>
 	</servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>TestSetUploadServlet</servlet-name>
