@@ -44,6 +44,7 @@ public class MatchPatientOriginalServlet extends HomeServlet {
       List<org.immregistries.mismo.match.model.MatchItem> matchTestCaseList = (List<org.immregistries.mismo.match.model.MatchItem>) session
           .getAttribute(TestMatchingServlet.ATTRIBUTE_MATCH_TEST_CASE_LIST);
       PatientCompare patientCompare  = new PatientCompare();
+      patientCompare.readScript(TestSetOriginalServlet.ORIGINAL_CONFIG);
 
       String testId = req.getParameter("testId");
       if (testId == null) {

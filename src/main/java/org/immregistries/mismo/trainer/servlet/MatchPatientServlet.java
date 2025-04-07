@@ -44,7 +44,8 @@ public class MatchPatientServlet extends HomeServlet {
       @SuppressWarnings("unchecked")
       List<MatchItem> matchTestCaseList = (List<MatchItem>) session
           .getAttribute(TestMatchingServlet.ATTRIBUTE_MATCH_TEST_CASE_LIST);
-      PatientCompare patientCompare = (PatientCompare) session.getAttribute("patientCompare");
+          
+      PatientCompare patientCompare = (PatientCompare) session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
 
       String testId = req.getParameter("testId");
       if (testId == null) {
