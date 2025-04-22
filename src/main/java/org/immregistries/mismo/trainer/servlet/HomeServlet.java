@@ -259,20 +259,6 @@ public class HomeServlet extends HttpServlet {
       out.println("        <tr><th>Signature</th><td>" + c.getHashForSignature() + "</td></tr>");
       out.println("        <tr><th>Score</th><td>" + decimalFormat.format((c.getGenerationScore() * 100.0)) + "</td></tr>");
       out.println("      <table>");
-      MatchNode matchNode = patientCompare.getConfiguration().getMatch();
-      while (matchNode != null)
-      {
-        decimalFormat = new DecimalFormat("#0.000000");
-        out.println("   --&gt; " + matchNode.getMatchName() + " (" + decimalFormat.format((matchNode.getMaxScore() )) + ")");
-        if (matchNode instanceof AggregateMatchNode)
-        {
-          AggregateMatchNode agg = (AggregateMatchNode) matchNode;
-          matchNode = agg.getMatchNodeList().size()  == 0? null : agg.getMatchNodeList().get(0);
-        }
-        else {
-          matchNode = null;
-        }
-      }
     }
     out.println("    <p></p>");
     SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");

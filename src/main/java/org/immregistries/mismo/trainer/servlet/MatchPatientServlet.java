@@ -46,7 +46,7 @@ public class MatchPatientServlet extends HomeServlet {
           .getAttribute(TestMatchingServlet.ATTRIBUTE_MATCH_TEST_CASE_LIST);
           
       PatientCompare patientCompare = (PatientCompare) session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
-
+      
       String testId = req.getParameter("testId");
       if (testId == null) {
         testId = "";
@@ -66,7 +66,7 @@ public class MatchPatientServlet extends HomeServlet {
       MatchItem matchItemSelected = null;
       if (req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID) != null) {
         matchItemSelected = (MatchItem) dataSession.get(MatchItem.class,
-            Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)));
+        Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)));
         patientCompare.setMatchItem(matchItemSelected);
         patientAValues = matchItemSelected.getPatientDataA();
         patientBValues = matchItemSelected.getPatientDataB();
@@ -85,8 +85,11 @@ public class MatchPatientServlet extends HomeServlet {
         } else {
           patientCompare.setPatientB(new Patient(patientBValues));
         }
+        out.println("<p>Match Item Id is set</p>");
       }
       HomeServlet.doHeader(out, user, null);
+      
+      
       out.println("    <h1>Match Patient</h1>");
       out.println("    <form action=\"MatchPatientServlet\" method=\"POST\"> ");
       out.println("    <table>");
@@ -145,13 +148,13 @@ public class MatchPatientServlet extends HomeServlet {
       out.println("    </table>");
 
       MatchNode match = patientCompare.getMatch();
-      setMinMax(req, match, "match");
+      // setMinMax(req, match, "match");
       MatchNode notMatch = patientCompare.getNotMatch();
-      setMinMax(req, notMatch, "notmatch");
+      // setMinMax(req, notMatch, "notmatch");
       MatchNode twin = patientCompare.getTwin();
-      setMinMax(req, twin, "twin");
+      // setMinMax(req, twin, "twin");
       MatchNode missing = patientCompare.getMissing();
-      setMinMax(req, missing, "missing");
+      // setMinMax(req, missing, "missing");
 
       out.println("    <br>");
       out.println("    <table border=\"1\" cellspacing=\"0\">");
@@ -173,6 +176,7 @@ public class MatchPatientServlet extends HomeServlet {
       }
       out.println("    </table>");
       out.println("    <br>");
+
       {
         out.println("<table border=\"1\" cellspacing=\"0\">");
         out.println("<tr><td valign=\"top\">Match</td>");

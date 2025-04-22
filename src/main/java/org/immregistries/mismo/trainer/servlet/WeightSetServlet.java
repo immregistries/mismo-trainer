@@ -43,10 +43,8 @@ public class WeightSetServlet extends HomeServlet {
 
       String message = null;
       if (req.getParameter(PARAM_CONFIGURATION_SCRIPT) != null) {
-        PatientCompare patientCompare = new PatientCompare();
+        PatientCompare patientCompare = new PatientCompare(req.getParameter(PARAM_CONFIGURATION_SCRIPT));
         session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
-        patientCompare.getConfiguration().setConfigurationScript(req.getParameter(PARAM_CONFIGURATION_SCRIPT));
-        patientCompare.getConfiguration().setup();
         message = "Manual configuration loaded";
       }
       HomeServlet.doHeader(out, user, message);
