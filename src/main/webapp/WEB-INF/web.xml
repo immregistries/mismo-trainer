@@ -57,6 +57,10 @@
 		<servlet-name>CentralServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.CentralServlet</servlet-class>
 	</servlet>
+	<servlet>
+		<servlet-name>SignatureServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.SignatureServlet</servlet-class>
+	</servlet>
 	
 	
 	<servlet>
@@ -160,5 +164,9 @@
 	<servlet-mapping>
 		<servlet-name>AddressTestServlet</servlet-name>
 		<url-pattern>/AddressTestServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>SignatureServlet</servlet-name>
+		<url-pattern>/SignatureServlet</url-pattern>
 	</servlet-mapping>
 </web-app>
