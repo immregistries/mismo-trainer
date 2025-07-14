@@ -22,7 +22,8 @@ import org.immregistries.mismo.match.model.User;
 import org.immregistries.mismo.trainer.SoftwareVersion;
 
 /**
- * This servlet tests a set of match test cases against a given script to give a summary of how well
+ * This servlet tests a set of match test cases against a given script to give a
+ * summary of how well
  * the weights work.
  *
  * @author Nathan Bunker
@@ -43,9 +44,7 @@ public class HomeServlet extends HttpServlet {
   public static final String ATTRIBUTE_PATIENT_COMPARE = "patientCompare";
   public static final String ATTRIBUTE_MATCH_TEST_CASE_LIST = "matchTestCaseList";
 
-
-  protected void setup(HttpServletRequest req, HttpServletResponse resp)
-  {
+  protected void setup(HttpServletRequest req, HttpServletResponse resp) {
     HttpSession session = req.getSession(true);
     Session dataSession = (Session) session.getAttribute(ATTRIBUTE_DATA_SESSION);
     if (dataSession != null) {
@@ -56,11 +55,12 @@ public class HomeServlet extends HttpServlet {
     session.setAttribute(ATTRIBUTE_DATA_SESSION, dataSession);
     if (req.getParameter(PARAM_CONFIGURATION_ID) != null) {
       Configuration configuration = (Configuration) dataSession.get(Configuration.class,
-        Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)));
-      PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript()); // (PatientCompare) session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
+          Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)));
+      PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript()); // (PatientCompare)
+                                                                                                  // session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
       session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
     }
-      
+
   }
 
   @Override
@@ -185,7 +185,7 @@ public class HomeServlet extends HttpServlet {
                 + " spreadsheet that was requested by the CDC deduplication project.</li>");
         out.println(
             "    <li><a href=\"ExampleServlet\">Example Servlet</a>:  Compares two inputs with JaroWinkler</li>");
-              out.println("  </ul>");
+        out.println("  </ul>");
         out.println("    </div>");
 
         out.println(
@@ -210,8 +210,7 @@ public class HomeServlet extends HttpServlet {
       doFooter(out, req);
     } catch (Exception e) {
       e.printStackTrace(out);
-    }
-    finally {
+    } finally {
       teardown(req, resp);
     }
     out.close();
@@ -246,7 +245,6 @@ public class HomeServlet extends HttpServlet {
   public static void doFooter(PrintWriter out, HttpServletRequest req) {
     out.println("    </div>");
 
-    
     PatientCompare patientCompare = (PatientCompare) req.getSession().getAttribute(ATTRIBUTE_PATIENT_COMPARE);
     if (patientCompare != null) {
       out.println("    <div class=\"w3-container\">");
@@ -257,7 +255,8 @@ public class HomeServlet extends HttpServlet {
       out.println("        <tr><th>World</th><td>" + c.getWorldName() + "</td></tr>");
       out.println("        <tr><th>Island</th><td>" + c.getIslandName() + "</td></tr>");
       out.println("        <tr><th>Signature</th><td>" + c.getHashForSignature() + "</td></tr>");
-      out.println("        <tr><th>Score</th><td>" + decimalFormat.format((c.getGenerationScore() * 100.0)) + "</td></tr>");
+      out.println(
+          "        <tr><th>Score</th><td>" + decimalFormat.format((c.getGenerationScore() * 100.0)) + "</td></tr>");
       out.println("      <table>");
     }
     out.println("    <p></p>");
@@ -317,6 +316,9 @@ public class HomeServlet extends HttpServlet {
       out.println(
           "        <a href=\"TestSetServlet\" class=\"w3-bar-item w3-button\">Test Set</a>");
       out.println("        <a href=\"ReviewServlet\" class=\"w3-bar-item w3-button\">Review</a>");
+      out.println(
+          "        <a href=\"SignatureServlet\" class=\"w3-bar-item w3-button\">Signature</a>");
+
       out.println(
           "        <a href=\"HomeServlet?"
               + PARAM_ACTION
