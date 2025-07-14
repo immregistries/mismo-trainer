@@ -3,13 +3,6 @@ package org.immregistries.mismo.trainer.servlet;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -18,8 +11,6 @@ import org.hibernate.Session;
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.matchers.AggregateMatchNode;
 import org.immregistries.mismo.match.matchers.MatchNode;
-import org.immregistries.mismo.match.model.MatchItem;
-import org.immregistries.mismo.match.model.Patient;
 import org.immregistries.mismo.match.model.User;
 
 /**
@@ -51,6 +42,7 @@ public class SignatureServlet extends HomeServlet {
                 signature = "";
             }
 
+            HomeServlet.doHeader(out, user, null);
             out.println("    <h1>Signature</h1>");
             out.println("    <form action=\"SignatureServlet\" method=\"POST\"> ");
             out.println("    Signature: <input type=\"text\" name=\"signature\" value=\""

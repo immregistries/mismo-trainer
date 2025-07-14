@@ -185,6 +185,8 @@ public class HomeServlet extends HttpServlet {
                 + " spreadsheet that was requested by the CDC deduplication project.</li>");
         out.println(
             "    <li><a href=\"ExampleServlet\">Example Servlet</a>:  Compares two inputs with JaroWinkler</li>");
+        out.println(
+            "    <li><a href=\"MatchNodeServlet\">Match Node Servlet</a>:  Shows operation of single match node</li>");
         out.println("  </ul>");
         out.println("    </div>");
 
