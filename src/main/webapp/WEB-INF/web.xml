@@ -10,6 +10,10 @@
 		<servlet-class>org.immregistries.mismo.trainer.servlet.ExampleServlet</servlet-class>
 	</servlet>
 	<servlet>
+		<servlet-name>MatchNodeServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.MatchNodeServlet</servlet-class>
+	</servlet>
+	<servlet>
 		<servlet-name>HomeServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.HomeServlet</servlet-class>
 	</servlet>
@@ -92,6 +96,10 @@
 	<servlet-mapping>
 		<servlet-name>ExampleServlet</servlet-name>
 		<url-pattern>/ExampleServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>MatchNodeServlet</servlet-name>
+		<url-pattern>/MatchNodeServlet</url-pattern>
 	</servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>HomeServlet</servlet-name>
