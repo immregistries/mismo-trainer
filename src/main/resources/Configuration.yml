@@ -49,6 +49,22 @@ Match:
         enabled: true
         minScore: 0.0
         maxScore: 0.6
+      L-first:
+        label: L-first
+        detector: ExactMatchNode
+        fieldName: nameLast
+        fieldNameOther: nameFirst
+        enabled: true
+        minScore: 0.0
+        maxScore: 0.5
+      L-middle:
+        label: L-middle
+        detector: ExactMatchNode
+        fieldName: nameLast
+        fieldNameOther: nameMiddle
+        enabled: true
+        minScore: 0.0
+        maxScore: 0.5
     Guardian:
       label: Guardian
       enabled: false
@@ -303,6 +319,24 @@ Not Match:
         enabled: true
         minScore: 0.0
         maxScore: 0.6
+      L-not-first:
+        label: L-not-first
+        detector: ExactMatchNode
+        fieldName: nameLast
+        fieldNameOther: nameFirst
+        not: true
+        enabled: true
+        minScore: 0.0
+        maxScore: 0.5
+      L-not-middle:
+        label: L-not-middle
+        detector: ExactMatchNode
+        fieldName: nameLast
+        fieldNameOther: nameMiddle
+        not: true
+        enabled: true
+        minScore: 0.0
+        maxScore: 0.5
     Guardian:
       label: Guardian
       enabled: false

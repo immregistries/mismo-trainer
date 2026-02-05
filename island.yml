@@ -1,6 +1,16 @@
 centralURL: http://localhost:8080/mismo-trainer-1.0/CentralServlet
-testCaseFileName: src/main/resources/AIRA-C.txt
-worldName: Hurricane
-islandName: Pomme
+testCaseFileName: src/main/resources/AIRA-2026-B.txt
+worldName: Jacob Lake
+islandName: Twix Bar
 populationSize: 1000
+scoringWeights: 
+  shouldMatch_Matches: 12
+  shouldMatch_Possible: 10
+  shouldMatch_NoMatch: -10
+  shouldPossible_Matches: 10
+  shouldPossible_Possible: 12
+  shouldPossible_NoMatch: -8
+  shouldNoMatch_Matches: -4
+  shouldNoMatch_Possible: -2
+  shouldNoMatch_NoMatch: 10
 

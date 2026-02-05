@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
@@ -12,9 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.immregistries.mismo.match.PatientCompare;
-import org.immregistries.mismo.match.PatientMatcher;
-import org.immregistries.mismo.match.matchers.AggregateMatchNode;
-import org.immregistries.mismo.match.matchers.MatchNode;
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.trainer.model.Creature;
 import org.immregistries.mismo.trainer.model.Scorer;
@@ -40,7 +36,7 @@ public class Island {
    * <p>
    * 3. Modify and use this command line from the root of the project:
    * <p>
-   * <code>mvn exec:java -Dexec.mainClass="org.immregistries.mismo.trainer.Island""</code>
+   * <code>mvn exec:java </code>
    * 
    * @param args
    * @throws Exception
@@ -51,6 +47,7 @@ public class Island {
     int worldSize;
     String islandName;
     String worldName;
+    int[][] weights = null;
     {
       String configFileName = "island.yml";
       if (args.length > 0) {
@@ -65,6 +62,19 @@ public class Island {
         worldName = (String) data.get("worldName");
         islandName = (String) data.get("islandName");
         worldSize = (Integer) data.get("populationSize");
+        Map<String, Integer> scoringWeights = (Map<String, Integer>) data.get("scoringWeights");
+        if (scoringWeights != null) {
+          weights = Scorer.getWeights();
+          weights[0][0] = scoringWeights.getOrDefault("shouldMatch_Matches", weights[0][0]);
+          weights[0][1] = scoringWeights.getOrDefault("shouldMatch_Possible", weights[0][1]);
+          weights[0][2] = scoringWeights.getOrDefault("shouldMatch_NoMatch", weights[0][2]);
+          weights[1][0] = scoringWeights.getOrDefault("shouldPossible_Matches", weights[1][0]);
+          weights[1][1] = scoringWeights.getOrDefault("shouldPossible_Possible", weights[1][1]);
+          weights[1][2] = scoringWeights.getOrDefault("shouldPossible_NoMatch", weights[1][2]);
+          weights[2][0] = scoringWeights.getOrDefault("shouldNoMatch_Matches", weights[2][0]);
+          weights[2][1] = scoringWeights.getOrDefault("shouldNoMatch_Possible", weights[2][1]);
+          weights[2][2] = scoringWeights.getOrDefault("shouldNoMatch_NoMatch", weights[2][2]);
+        }
       } catch (FileNotFoundException e) {
         System.err.println("Configuration file not found: " + configFileName);
         return;
@@ -95,14 +105,21 @@ public class Island {
     System.out.println("Creating world");
     World world = new World(worldSize, worldName, islandName, configurationScript);
 
-    // Will use score weights from latest configuration that was returned from thes
-    // server
+    // Will use score weights from latest configuration that was returned from the
+    // server or the ones set in the YAML file..
     int[][] w = Scorer.getWeights();
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        w[i][j] = world.getCreatures()[0].getPatientCompare().getConfiguration().getScoringWeights()[i][j];
+        if (weights == null) {
+          w[i][j] = world.getCreatures()[0].getPatientCompare().getConfiguration().getScoringWeights()[i][j];
+        } else {
+          w[i][j] = weights[i][j];
+
+        }
       }
     }
+
+    // But if there are weights set in Yaml file these will override.
 
     printWeights(w);
 
