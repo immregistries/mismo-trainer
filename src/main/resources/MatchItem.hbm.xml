@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
-<hibernate-mapping package="org.immregistries.mismo.match.model">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
   <class name="MatchItem" table="match_item">
     <id name="matchItemId" column="match_item_id">
       <generator class="native"/>
@@ -14,5 +14,9 @@
     <many-to-one name="user" column="user_id" class="User"/>
     <property name="updateDate" column="update_date" type="timestamp"/>
     <property name="dataSource" column="data_source" type="string"/>
+    <many-to-one name="createdByUser" column="created_by_user_id" class="User"/>
+    <many-to-one name="updatedByUser" column="updated_by_user_id" class="User"/>
+    <property name="createdAt" column="created_at" type="timestamp"/>
+    <property name="updatedAt" column="updated_at" type="timestamp"/>
   </class>
 </hibernate-mapping>

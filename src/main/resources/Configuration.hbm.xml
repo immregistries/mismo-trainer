@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
-<hibernate-mapping package="org.immregistries.mismo.match.model">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
   <class name="Configuration" table="configuration">
     <id name="configurationId" column="configuration_id">
       <generator class="native"/>
@@ -12,8 +12,9 @@
     <property name="generatedDate" column="generated_date" type="date"/>
     <property name="hashForSignature" column="hash_for_signature" type="string"/>
     <property name="configurationScript" column="configuration_script" type="string"/>
+    <many-to-one name="organization" column="organization_id" class="Organization"/>
+    <many-to-one name="createdByUser" column="created_by_user_id" class="User"/>
+    <many-to-one name="islandCredential" column="island_credential_id" class="IslandCredential"/>
+    <property name="createdAt" column="created_at" type="timestamp"/>
   </class>
 </hibernate-mapping>
-
-
-
