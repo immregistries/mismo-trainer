@@ -1,5 +1,5 @@
 centralURL: http://localhost:8080/mismo/CentralServlet
-testCaseFileName: src/main/resources/AIRA-2026-B.txt
+testCaseFileName: legacy-test-data/AIRA-2026-B.txt
 worldName: Jacob Lake
 islandName: Twix Bar
 credential: REPLACE_WITH_ISLAND_CREDENTIAL_TOKEN

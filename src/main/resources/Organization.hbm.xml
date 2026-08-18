@@ -7,6 +7,7 @@
     </id>
     <property name="name" column="name" type="string" not-null="true"/>
     <property name="domain" column="domain" type="string" unique="true"/>
+    <property name="templateOrg" column="is_template_org" type="boolean" not-null="true"/>
     <property name="createdAt" column="created_at" type="timestamp"/>
     <property name="updatedAt" column="updated_at" type="timestamp"/>
   </class>

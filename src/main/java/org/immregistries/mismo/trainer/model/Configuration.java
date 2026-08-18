@@ -20,6 +20,7 @@ public class Configuration {
   private String hashForSignature;
   private String configurationScript;
   private Organization organization;
+  private boolean isTemplate;
   private User createdByUser;
   private IslandCredential islandCredential;
   private Date createdAt;
@@ -94,6 +95,18 @@ public class Configuration {
 
   public void setOrganization(Organization organization) {
     this.organization = organization;
+  }
+
+  /**
+   * Publish switch (database-schema-migration-plan.md §2.10) -- same rule as
+   * {@link MatchSet#isTemplate()}.
+   */
+  public boolean isTemplate() {
+    return isTemplate;
+  }
+
+  public void setTemplate(boolean isTemplate) {
+    this.isTemplate = isTemplate;
   }
 
   public User getCreatedByUser() {

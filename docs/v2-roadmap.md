@@ -1,11 +1,14 @@
 # Mismo-Trainer v2 Roadmap
 
-**Status:** Planning complete for the phases below; no v2 implementation work has started yet. This document ties together four workstreams that were evaluated separately and sequences them into one plan.
+**Status:** Phases 1–6 are complete, verified, and committed — Java 17/Tomcat 10.1/jakarta.servlet, the schema foundation and entity cutover, InteropHub SSO, organization scoping + AIRA look-and-feel, Island credential authentication, and constraint tightening/legacy cleanup. The original four foundational workstreams (§1) are done. This document now continues as the living implementation plan, extended each time new functionality is scoped — Phases 7–11 below are the next round, not yet started.
 
 **Sources this roadmap synthesizes:**
 
 - [`mismo-conceptual-overview.md`](mismo-conceptual-overview.md), [`matching-engine.md`](matching-engine.md), [`data-model.md`](data-model.md), [`trainer-pages.md`](trainer-pages.md), [`optimization-and-islands.md`](optimization-and-islands.md), [`modernization-notes.md`](modernization-notes.md) — the v1 code-review snapshot.
-- [`database-schema-migration-plan.md`](database-schema-migration-plan.md) — the v2 schema/authentication design.
+- [`database-schema-migration-plan.md`](database-schema-migration-plan.md) — the v2 schema/authentication design (Phases 1–9; Phase 7's "Phase 7" DB constraint work is done, Phases 8–9 — template organization and expert-review tracking — feed into Phase 9 below).
+- [`proposed-functional-model-and-navigation.md`](proposed-functional-model-and-navigation.md) — the analyst-facing functional/navigation model driving Phases 8–11.
+- [`database-changes-for-functional-model.md`](database-changes-for-functional-model.md) — schema Phases 10–13 supporting that functional model.
+- [`ui-changes-for-functional-model.md`](ui-changes-for-functional-model.md) — the corresponding UI checklist.
 - A Java/Tomcat upgrade evaluation (empirically tested against this repo, not just read from manifests — see Phase 1 below).
 - Research passes over `C:\dev\immregistries\InteropHub-Client` (SSO) and `C:\dev\immregistries\aira-web` (look-and-feel), both sibling repos in this ecosystem.
 
@@ -136,7 +139,75 @@ After all rows are backfilled and validated:
 
 ---
 
-## 8. Database change process: `unapplied_updates.sql`
+## 8. Phase 7 — Template organization and starter data (schema plan §2.10/Phase 8)
+
+Not part of the original four workstreams — a follow-up scoped once the schema/auth foundation was stable. Gives every organization a real, ready-to-use starting point instead of an empty account.
+
+- Add `organization.is_template_org`, `match_set.is_template`, `configuration.is_template`; set `is_template_org = true` on the AIRA organization only.
+- Move **all** bundled `AIRA-*.txt`/`MIIS-*.txt` files and `Configuration.yml` out of `src/main/resources` into a new top-level `legacy-test-data/` folder — this alone removes them from the WAR, since Maven only packages `src/main/resources`/`src/main/webapp`.
+- Run a one-time, idempotent bootstrap that loads `AIRA-D.txt` into a new AIRA-owned, `is_template=true` `match_set` (reusing `TestSetUploadServlet`'s existing parser) and `Configuration.yml` into a new AIRA-owned, `is_template=true` `configuration` row (reusing the same `Configuration(InputStream)` + `.setup()` canonicalization `CentralServlet` already performs).
+- Remove the code that becomes dead once the files are gone: the `MIIS-*` dropdown in `TestMatchingServlet`/`ReviewServlet`, `GenerateWeightsServlet` entirely (already a `modernization-notes.md` deletion candidate), and repoint `island.yml`'s `testCaseFileName` at the new `legacy-test-data/` location (still genuinely needed there, unlike the dropdown).
+- Extend `OrgScope`'s read/list methods so a `is_template=true` row is visible to every organization regardless of owner; add the "copy to my organization" action for `match_set`/`configuration`; enforce that `is_template` can only be set `true` on a row owned by an `is_template_org` organization.
+
+**This fully resolves §14's "Deferred — removing the bundled flat-file test corpora"** (previously open below) — not just the one starter file, all of them.
+
+---
+
+## 9. Phase 8 — Navigation reorganization + no-database quick wins
+
+From `ui-changes-for-functional-model.md` Track A + §3. **No database dependency at all** — safe to do independently of, or in parallel with, Phase 7.
+
+- Reorganize the top navigation from the current flat five-item menu (`Central | Configuration | Test Set | Review | Signature`) into the five analyst-facing areas from the functional model: **Test Sets | Configurations | Evaluations | Signatures | Optimization**, each with its own right-side context navigation (`AiraPage`'s existing nav-item builder handles this — no new framework needed).
+- Page-to-area mapping: Test Sets → `TestSetServlet`/`TestSetUploadServlet`; Configurations → `WeightSetServlet`/`CentralServlet`'s `doGet`; Evaluations → `TestMatchingServlet`/`ReviewServlet` ("the existing Mismo 'Review' functionality should conceptually move here" — functional doc §7.1); Signatures → `SignatureServlet`; Optimization → `CentralServlet`'s Island-facing parts + `IslandCredentialServlet`.
+- Needs a placement decision: `MatchPatientServlet` doesn't map cleanly to one area (recommend Test Sets, linking out to Signatures for network detail); the dev/diagnostic utility pages (`AddressTestServlet`, `ExampleServlet`, `ConvertDataServlet`, `MatchNodeServlet`, `TestScriptExploreServlet`, the `Random*` generators) don't fit the five-area model at all (recommend a small "Tools" catch-all rather than forcing them in).
+- Also worth doing in this same pass, since neither needs any schema work: **visual same/different/missing highlighting** on the Test Case review page (currently raw values only, no highlighting at all), and **Signature Inspector polish** (show populated fields dynamically instead of a fixed subset, emphasize non-zero Match/Missing values).
+
+---
+
+## 10. Phase 9 — Test Set lifecycle/versioning and Test Case review workflow
+
+The most directly-requested functionality — combines `database-changes-for-functional-model.md` schema Phases 10 (`match_set`) and 11 (`match_item`, absorbing the schema plan's own Phase 9 which is documented but was never built separately), plus the corresponding `ui-changes-for-functional-model.md` Track B items. Land as one phase since the schema doc itself notes Phase 11 and the old Phase 9 "touch the same review workflow."
+
+**Schema:**
+- `match_set`: `lifecycle_status` (DRAFT/REVIEWED/APPROVED, reversible), `version`, `copied_from_match_set_id`, `root_match_set_id` (always populated — a family's own id for a root set, inherited unchanged by every copy, so "all versions of this Test Set" is a flat query, not a chain-walk), `archived_at`.
+- `match_item`: `original_expect_status` (snapshotted once at creation, never modified again), `is_reviewed`/`needs_review` (explicit flags set by the classify action itself, not inferred by comparing values — an analyst confirming an already-correct classification still counts as reviewed), `provenance_type`, `copied_from_match_item_id`, `source_signature`, `review_notes`.
+- New `match_item_review` table — append-only history of every reviewer opinion, not just the current one; `match_item.expect_status`/`is_reviewed` update on each new row, but history rows are immutable.
+- **Deep-copy behavior (decided):** copying a Test Set gives every new `match_item` a clean `match_item_review` history — no rows carried over. `original_expect_status` snapshots the source's *current* value at copy time (not the source's own original); `is_reviewed`/`needs_review` reset to `false`. The source's full history stays intact and reachable via `copied_from_match_item_id`.
+- `evaluation_result` retention (if/when `evaluation`, Phase 10 below, needs it) is explicitly not decided here — the design doesn't require an answer now.
+
+**UI:** lifecycle badges + transition controls; deep-copy ("create new version") — real server-side work, not just a button; version-family navigation; archive/restore; provenance badges + case-list filtering; notes field; "needs further review" toggle; review-history panel.
+
+**Needs more definition, not just schema:** filtered review queues (Next unreviewed / Not Sure / flagged / by signature group / from an Evaluation) with Previous/Next operating within the selected queue. The functional doc names the filters but not how queue selection should persist across navigation — don't extend `TestSetServlet`'s existing session-attribute-based sublist mechanism (already flagged fragile in the v1 review); decide on URL-based state instead.
+
+---
+
+## 11. Phase 10 — Evaluation
+
+The single biggest piece of new functionality — `database-changes-for-functional-model.md` schema Phase 12 + the corresponding UI checklist. Worth its own dedicated phase rather than folding into Phase 9.
+
+Today, "evaluation" isn't a persisted concept at all — results are computed live against whatever configuration happens to be loaded in session and thrown away after rendering. This phase makes it durable and queryable, per the functional model's own rule: "Evaluation must identify the exact Test Set and Configuration used."
+
+**Schema:** new `evaluation` (summary: total/scorable/not-sure/agree/disagree counts, overall score, which Test Set + Configuration + who ran it + when) and `evaluation_result` (one row per case, snapshotting `expected_classification` at run time so it can't silently drift if the case is reclassified later) tables. The confusion matrix is deliberately not stored — it's derived from `evaluation_result` by aggregation, avoiding a second place for the same data to go stale.
+
+**UI:** start an Evaluation (select Test Set + Configuration, run, persist); summary view; disagreement/failure review with a direct path back into Test Case Review.
+
+**Needs more definition:** signature-group analysis within an Evaluation (grouping potentially thousands of results by signature, surfacing conflicting expectations within a group — more than a list view); Configuration comparison (A vs. B against the same Test Set — case-level improved/regressed lists, not just score deltas; worth scoping once basic Evaluation exists and there's something real to compare against).
+
+---
+
+## 12. Phase 11 — Signature batch analysis and Optimization dashboard
+
+Lower urgency, can trail behind Phase 10 — `database-changes-for-functional-model.md` schema Phase 13 + the remaining UI checklist items.
+
+- New `signature_batch`/`signature_batch_entry` tables — deliberately storing only the raw uploaded `(signature, count)` pairs, not decoded results, so a batch stays re-analyzable against any configuration rather than going stale the moment a different one becomes relevant.
+- UI: batch upload; export to delimited file (both straightforward). **Needs more definition:** the batch analysis/decode view, since decoding on demand means deciding how the analyst picks which configuration to decode against and whether that choice is sticky across a session.
+- **Optimization analyst dashboard** (runs, Islands, candidate configurations, best/recent results) — confirmed to need **no new schema**: the existing insert-only `configuration` history (Phase 6) plus `island_credential` already contain everything needed, so this is queries over existing data, not a new entity. The dashboard UI itself still needs real design work for what's shown and how "runs" get grouped/displayed.
+
+**Explicitly deferred by the functional model itself, not just by this roadmap** — noting so neither gets designed in by accident: generating synthetic examples directly from a selected signature (the source doc calls this "future functionality"), and Configuration lifecycle/promotion/versioning (the source doc defers it, matching the database plan's decision not to add a promotion flag).
+
+---
+
+## 13. Database change process: `unapplied_updates.sql`
 
 Every phase above that touches the schema (Phases 2, 3, 5, 6, 7) produces DDL/DML. Rather than adopting a migration-framework tool, this follows the same manual-apply convention already used elsewhere in this ecosystem (e.g. `interophub`'s `db/unapplied_updates.sql`, applied by that project's own local-restore process): pending, not-yet-released database changes accumulate in **`src/db/unapplied_updates.sql`**, in the same directory as the existing `initial.sql`/`upgrade-1.1.sql`/`create-user.sql` scripts.
 
@@ -147,23 +218,26 @@ Every phase above that touches the schema (Phases 2, 3, 5, 6, 7) produces DDL/DM
 4. Add further changes to `unapplied_updates.sql` as they're needed, in the order they'll actually run.
 5. On release, the statements in `unapplied_updates.sql` are applied to production and the file is cycled out — folded into a new dated/versioned snapshot (following the existing `upgrade-1.1.sql` precedent, e.g. `upgrade-2.0.sql`) and reset to empty for the next round of changes.
 
-**How this maps onto the phases above:**
+**How this maps onto the phases above** (roadmap phase numbers; every phase not listed here — 1, 4, 8 — touches no schema at all):
 - Phase 2's DDL (new `organization`/`island_credential` tables, new nullable columns on `user`/`match_set`/`match_item`/`configuration`) is non-destructive and safe to accumulate and release early — it was designed with exactly this incremental-apply workflow in mind (nullable-first, so existing data isn't broken mid-migration).
 - Phase 3's backfill (assigning the initial organization, migrating attribution) is data-only DML and belongs in the same file, run after Phase 2's DDL.
-- Phase 7's constraint-tightening and column drops (`NOT NULL`, foreign keys, dropping `user.password`, `match_item.user_id`, etc.) are destructive/irreversible — keep these as a clearly delineated, separately-commented block at the end of the file, applied only after everything earlier has been validated against production data, not bundled in with the earlier additive changes.
+- Phase 5's `island_credential`-related additions and Phase 6's constraint-tightening and column drops (`NOT NULL`, foreign keys, dropping `user.password`, `match_item.user_id`, etc. — schema plan's own "Phase 7") are destructive/irreversible — keep these as a clearly delineated, separately-commented block at the end of the file, applied only after everything earlier has been validated against production data, not bundled in with the earlier additive changes.
+- Phases 7, 9, 10, and 11's schema work (template organization, Test Set/Test Case functional-model columns, `evaluation`/`evaluation_result`, `signature_batch`) is all purely additive — new tables and new nullable/defaulted columns, none of it touching existing data destructively — so it follows the same accumulate-and-release-early pattern as Phase 2, not the destructive-block pattern.
 
 This is intentionally the same lightweight, manually-applied approach v1 already used for `upgrade-1.1.sql` — no new tooling, just a consistent accumulation file and a documented cycle for when it gets flushed.
 
 ---
 
-## 9. Deferred — removing the bundled flat-file test corpora
+## 14. Resolved — removing the bundled flat-file test corpora
 
-Not scheduled in any phase above. Once the database is the authoritative home for test data (which this whole roadmap moves toward), the `MIIS-*`/`AIRA-*` files become redundant with `match_set`/`match_item`. Removing them is a product decision for later, not a schema or auth blocker now (§2.9 of the schema plan).
+Previously deferred here with no phase assigned. **Now scheduled as Phase 7** (§8 above) — not just the one starter file, all of the bundled `MIIS-*`/`AIRA-*` files move out of the WAR at once.
 
 ---
 
-## 10. Open items to resolve before implementation starts
+## 15. Open items to resolve before implementation starts
 
 - ~~**InteropHub app registration**~~ — done for local dev (app code `mismo`, see §4). Production registration is still a separate future step.
-- **`hub_user_id` stability guarantee** — confirm with InteropHub administrators that it's stable and non-reused, since the schema plan makes it the permanent identity key.
-- **Fate of the legacy `patientmatch`/`org.immregistries.pm` comparison path** — confirm with the maintainer whether the old-vs-new regression-comparison capability the "Original" servlets provide is still needed before deleting it in Phase 6.
+- ~~**Fate of the legacy `patientmatch`/`org.immregistries.pm` comparison path**~~ — resolved: confirmed with the maintainer, removed in Phase 6.
+- **`hub_user_id` stability guarantee** — confirm with InteropHub administrators that it's stable and non-reused, since the schema plan makes it the permanent identity key. Still open.
+- **Placement of `MatchPatientServlet` and the dev/diagnostic utility pages** in the new navigation (Phase 8, §9 above) — needs a decision before that phase starts.
+- **`match_set` version-family grouping, `evaluation_result` retention, and copy-time review history** — all three resolved during Phase 9/10 planning; see `database-changes-for-functional-model.md` §9 for the record.

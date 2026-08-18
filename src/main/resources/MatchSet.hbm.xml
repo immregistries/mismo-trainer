@@ -7,6 +7,7 @@
     </id>
     <property name="label" column="label" type="string"/>
     <many-to-one name="organization" column="organization_id" class="Organization"/>
+    <property name="template" column="is_template" type="boolean" not-null="true"/>
     <many-to-one name="createdByUser" column="created_by_user_id" class="User"/>
     <many-to-one name="updatedByUser" column="updated_by_user_id" class="User"/>
     <property name="createdAt" column="created_at" type="timestamp"/>

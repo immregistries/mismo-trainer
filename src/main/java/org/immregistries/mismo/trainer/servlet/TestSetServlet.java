@@ -44,6 +44,7 @@ public class TestSetServlet extends HomeServlet {
   public static final String ACTION_NOT_A_MATCH = "Not a Match";
   public static final String ACTION_SELECT = "Select";
   public static final String ACTION_DOWNLOAD = "Download";
+  public static final String ACTION_COPY_TO_MY_ORGANIZATION = "Copy to My Organization";
 
   public static final String PARAM_MATCH_ITEM_ID = "matchItemId";
   public static final String PARAM_MATCH_ITEM_ID_NEXT = "matchItemIdNext";
@@ -104,6 +105,14 @@ public class TestSetServlet extends HomeServlet {
           Transaction transaction = dataSession.beginTransaction();
           OrgScope.createMatchSet(dataSession, label, user);
           transaction.commit();
+        } else if (matchItemSelectedRow != null && !OrgScope.isEditable(matchItemSelectedRow, user)
+            && (action.equals(ACTION_MATCH) || action.equals(ACTION_POSSIBLE_MATCH) || action.equals(ACTION_NOT_A_MATCH)
+                || action.equals(ACTION_RESEARCH) || action.equals(ACTION_NOT_SURE))) {
+          // matchItemSelectedRow is readable (it may be a template owned by another
+          // organization, §4.1) but not editable -- classifying it would silently write into
+          // another organization's data. Copy the match set to this organization first.
+          message = "Cannot classify a test case in a template match set you do not own. Copy it"
+              + " to your organization first.";
         } else if (matchItemSelectedRow != null && (action.equals(ACTION_MATCH) || action.equals(ACTION_POSSIBLE_MATCH)
             || action.equals(ACTION_NOT_A_MATCH) || action.equals(ACTION_RESEARCH) || action.equals(ACTION_NOT_SURE))) {
           Transaction transaction = dataSession.beginTransaction();
@@ -159,6 +168,13 @@ public class TestSetServlet extends HomeServlet {
             out.println("PATIENT B: " + matchItem.getPatientDataB());
           }
           return;
+        } else if (action.equals(ACTION_COPY_TO_MY_ORGANIZATION) && matchSetSelected != null) {
+          Transaction transaction = dataSession.beginTransaction();
+          MatchSet copy = OrgScope.copyMatchSet(dataSession, matchSetSelected, user);
+          transaction.commit();
+          matchSetSelected = copy;
+          session.setAttribute(ATTRIBUTE_MATCH_SET, matchSetSelected);
+          message = "Copied \"" + copy.getLabel() + "\" to your organization.";
         }
       }
 
@@ -517,12 +533,16 @@ public class TestSetServlet extends HomeServlet {
         out.println("   <table border=\"1\" cellspacing=\"0\">");
         out.println("      <tr>");
         out.println("        <th>Label</th>");
+        out.println("        <th>Owner</th>");
         out.println("        <th>Last Updated</th>");
         out.println("        <th>Action</th>");
         out.println("      </tr>");
         for (MatchSet matchSet : matchSetList) {
+          boolean editable = OrgScope.isEditable(matchSet, user);
           out.println("      <tr>");
           out.println("        <td>" + matchSet.getLabel() + "</td>");
+          out.println("        <td>" + (editable ? "You"
+              : escapeHtml(matchSet.getOrganization().getName()) + " (template)") + "</td>");
           out.println("        <td>" + sdf.format(matchSet.getUpdatedAt()) + "</td>");
           out.println("        <td>");
           out.println("          <form action=\"TestSetServlet\" method=\"POST\"> ");
@@ -532,6 +552,10 @@ public class TestSetServlet extends HomeServlet {
               + "\"/>");
           out.println("            <input type=\"submit\" name=\"" + PARAM_ACTION + "\" value=\"" + ACTION_DOWNLOAD
               + "\"/>");
+          if (!editable) {
+            out.println("            <input type=\"submit\" name=\"" + PARAM_ACTION + "\" value=\""
+                + ACTION_COPY_TO_MY_ORGANIZATION + "\"/>");
+          }
           out.println("          </form>");
           out.println("        </td>");
           out.println("      </tr>");

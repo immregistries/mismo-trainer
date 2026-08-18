@@ -11,6 +11,7 @@ public class MatchSet {
   private int matchSetId;
   private String label;
   private Organization organization;
+  private boolean isTemplate;
   private User createdByUser;
   private User updatedByUser;
   private Date createdAt;
@@ -38,6 +39,22 @@ public class MatchSet {
 
   public void setOrganization(Organization organization) {
     this.organization = organization;
+  }
+
+  /**
+   * Publish switch (database-schema-migration-plan.md §2.10): {@code true} means every
+   * organization may read/browse/score against this row, but only its owning organization may
+   * ever edit it. May only be set {@code true} when the owning organization's
+   * {@link Organization#isTemplateOrg()} is {@code true} -- enforced in
+   * {@link org.immregistries.mismo.trainer.servlet.OrgScope#requireTemplateEligible}, not by a
+   * database constraint.
+   */
+  public boolean isTemplate() {
+    return isTemplate;
+  }
+
+  public void setTemplate(boolean isTemplate) {
+    this.isTemplate = isTemplate;
   }
 
   public User getCreatedByUser() {

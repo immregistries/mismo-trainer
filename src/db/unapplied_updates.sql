@@ -306,3 +306,35 @@ ALTER TABLE match_set
 -- remain the authoritative persisted patient-pair representation.
 -- ---------------------------------------------------------------------
 DROP TABLE patient;
+
+-- =====================================================================
+-- Phase 7 (docs/v2-roadmap.md §8; docs/database-schema-migration-plan.md
+-- §2.10, §6 Phase 8) -- template organization and starter data.
+--
+-- Purely additive (new boolean columns, all NOT NULL DEFAULT false) plus
+-- one idempotent UPDATE -- no drops, no NOT NULL tightening of existing
+-- columns -- so this follows the same accumulate-and-release-early
+-- pattern as Phase 2 above, not the destructive block immediately above
+-- it (v2-roadmap.md §13).
+-- =====================================================================
+
+ALTER TABLE organization
+    ADD COLUMN is_template_org boolean NOT NULL DEFAULT false;
+
+ALTER TABLE match_set
+    ADD COLUMN is_template boolean NOT NULL DEFAULT false;
+
+ALTER TABLE configuration
+    ADD COLUMN is_template boolean NOT NULL DEFAULT false;
+
+-- Publish AIRA as the one template-eligible organization (§2.10). AIRA is
+-- not a synthetic "system" org -- it's the same real organization that
+-- LoginServlet's email-domain auto-provisioning (§2.4) already lands every
+-- *@immregistries.org login in. Matched by domain, not by name (InteropHub
+-- supplies the display name, which is not a stable match key). Idempotent:
+-- a no-op once already set, and also a no-op (nothing to update) on a
+-- database where nobody from that domain has logged in yet -- re-run this
+-- statement after that first login creates the row.
+UPDATE organization
+SET is_template_org = true
+WHERE domain = 'immregistries.org';

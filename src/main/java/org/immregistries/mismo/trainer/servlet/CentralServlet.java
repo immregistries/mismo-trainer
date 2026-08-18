@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.URLEncoder;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -51,6 +52,7 @@ public class CentralServlet extends HomeServlet {
   public static final String ACTION_UPDATE = "update";
   public static final String ACTION_QUERY = "query";
   public static final String ACTION_REQUEST_START_SCRIPT = "requestStartScript";
+  public static final String ACTION_COPY_CONFIGURATION = "Copy to My Organization";
 
   public static final String RESULT_NOT_FOUND = "Not Found";
   public static final String RESULT_UNAUTHORIZED = "Unauthorized";
@@ -68,10 +70,28 @@ public class CentralServlet extends HomeServlet {
       return;
     }
 
+    if (ACTION_COPY_CONFIGURATION.equals(req.getParameter(PARAM_ACTION))
+        && req.getParameter(PARAM_CONFIGURATION_ID) != null) {
+      Configuration source = OrgScope.loadConfiguration(dataSession,
+          Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)), user);
+      String message;
+      if (source == null) {
+        message = "Configuration not found";
+      } else {
+        Transaction transaction = dataSession.beginTransaction();
+        Configuration copy = OrgScope.copyConfiguration(dataSession, source, user);
+        transaction.commit();
+        message = "Copied \"" + copy.getWorldName() + " / " + copy.getIslandName() + "\" to your organization.";
+      }
+      teardown(req, resp);
+      resp.sendRedirect("CentralServlet?" + PARAM_MESSAGE + "=" + URLEncoder.encode(message, "UTF-8"));
+      return;
+    }
+
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     try {
-      HomeServlet.doHeader(out, req, user, null);
+      HomeServlet.doHeader(out, req, user, req.getParameter(PARAM_MESSAGE));
       out.println("    <div class=\"aira-container--wide aira-stack\">");
       out.println("    <h1 class=\"aira-page-title\">Central Servlet</h1>");
       out.println(
@@ -86,15 +106,19 @@ public class CentralServlet extends HomeServlet {
       out.println("  <tr>");
       out.println("    <th>World</th>");
       out.println("    <th>Island</th>");
+      out.println("    <th>Owner</th>");
       out.println("    <th>Signature</th>");
       out.println("    <th>Generation</th>");
       out.println("    <th>Score</th>");
       out.println("    <th>Select</th>");
       out.println("  </tr>");
       for (Configuration configuration : configurationList) {
+        boolean editable = OrgScope.isEditable(configuration, user);
         out.println("      <tr>");
         out.println("        <td>" + configuration.getWorldName() + "</td>");
         out.println("        <td>" + configuration.getIslandName() + "</td>");
+        out.println("        <td>" + (editable ? "You"
+            : escapeHtml(configuration.getOrganization().getName()) + " (template)") + "</td>");
         out.println("        <td>" + configuration.getHashForSignature() + "</td>");
         out.println("        <td>" + configuration.getGeneration() + "</td>");
         out.println("        <td>" + decimalFormat.format((configuration.getGenerationScore() * 100.0)) + "</td>");
@@ -104,6 +128,14 @@ public class CentralServlet extends HomeServlet {
             + "\" value=\"" + configuration.getConfigurationId() + "\"/>");
         out.println("          <input type=\"submit\" name=\"submit\" value=\"Select\"/>");
         out.println("          </form>");
+        if (!editable) {
+          out.println("          <form action=\"CentralServlet\" method=\"GET\"> ");
+          out.println("            <input type=\"hidden\" name=\"" + PARAM_CONFIGURATION_ID
+              + "\" value=\"" + configuration.getConfigurationId() + "\"/>");
+          out.println("            <input type=\"submit\" name=\"" + PARAM_ACTION + "\" value=\""
+              + ACTION_COPY_CONFIGURATION + "\"/>");
+          out.println("          </form>");
+        }
         out.println("        </td>");
         out.println("      </tr>");
       }

@@ -24,6 +24,12 @@ import org.immregistries.mismo.trainer.model.User;
  */
 public class TestScriptExploreServlet extends HomeServlet
 {
+  // The bundled MIIS-*.txt corpus these names refer to now lives outside the WAR, in
+  // legacy-test-data/ (v2-roadmap.md §8) -- this dev/diagnostic page is unaffected by that move
+  // for now (its own placement is a Phase 8 navigation decision), but getResourceAsStream below
+  // will no longer find these files on the classpath.
+  private static final String[] TEST_SCRIPTS = { "MIIS-B", "MIIS-C", "MIIS-D", "MIIS-E", "MIIS-E2", "MIIS-E3", "MIIS-F1", "MIIS-F2" };
+
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     setup(req, resp);
@@ -45,7 +51,7 @@ public class TestScriptExploreServlet extends HomeServlet
         MatchItem matchTestCase = null;
 
         BufferedReader in = null;
-        for (String possibleScript : TestMatchingServlet.TEST_SCRIPTS) {
+        for (String possibleScript : TEST_SCRIPTS) {
           if (testScript.equals(possibleScript)) {
             in = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream(possibleScript + ".txt")));
             break;
@@ -84,7 +90,7 @@ public class TestScriptExploreServlet extends HomeServlet
       out.println("      <tr>");
       out.println("        <td valign=\"top\">Test Script</td>");
       out.println("        <td><select name=\"testScript\">");
-      for (String possibleScript : TestMatchingServlet.TEST_SCRIPTS) {
+      for (String possibleScript : TEST_SCRIPTS) {
         out.println("          <option value=\"" + possibleScript + "\">" + possibleScript + "</option>");
       }
       out.println("           </select>");

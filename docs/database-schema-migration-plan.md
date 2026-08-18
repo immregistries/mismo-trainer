@@ -1,10 +1,14 @@
 # Mismo-Trainer v2 Database Schema Migration Plan
 
+**Status:** This document started as a fixed plan for migrating off the legacy v1 schema (Phases 1–8 below, all complete). It has become the living schema design record for Mismo-Trainer going forward, extended each time a new functional area is scoped rather than closed out now that the original migration is done — more phases are coming as functionality (beyond auth/organizations/templates) gets designed.
+
+**This development database is the starting point for the new production system**, not a separate environment migrated into later. Schema and data changes made here, through the established `src/db/unapplied_updates.sql` review-and-apply workflow (`v2-roadmap.md` §8), are what production will actually run. Treat every addition to this document with that in mind — it's not describing a throwaway dev sandbox.
+
 ## 1. Purpose
 
-This document defines the initial database changes needed for the Mismo-Trainer v2 modernization.
+This document defines the database changes needed for the Mismo-Trainer v2 modernization and, from here forward, for its continued development.
 
-The immediate goals are to:
+The original migration's immediate goals were to:
 
 - replace the legacy Mismo-Trainer username/password login with InteropHub authentication;
 - maintain a local Mismo-Trainer user record for attribution and application relationships;
@@ -15,7 +19,7 @@ The immediate goals are to:
 - add database-enforced foreign keys where practical;
 - preserve the existing training/test data and configuration model unless a change is required for these goals.
 
-This is intentionally a minimal migration plan. It does not attempt to redesign every legacy Mismo-Trainer concept at once.
+Each phase, including the original migration and everything added since, is intentionally minimal for what it sets out to do — this document does not attempt to redesign every legacy Mismo-Trainer concept at once, and new functional phases should keep that discipline rather than trying to anticipate every future need up front.
 
 ---
 
@@ -315,6 +319,9 @@ description            varchar(1000) NULL
 patient_data_a         text NOT NULL
 patient_data_b         text NOT NULL
 expect_status          varchar(20) NOT NULL
+original_expect_status varchar(20) NULL
+is_reviewed            boolean NOT NULL DEFAULT false
+needs_review           boolean NOT NULL DEFAULT false
 data_source            varchar(120) NOT NULL
 created_by_user_id     int/bigint NULL FK -> user.user_id
 updated_by_user_id     int/bigint NULL FK -> user.user_id
@@ -328,6 +335,11 @@ updated_at             datetime NOT NULL
 - Do not revive the unused `patient` table as part of this migration.
 - Preserve `data_source`; it represents provenance and is different from the application user who edited the record.
 - Replace the ambiguous existing `user_id` with explicit created/updated attribution.
+- `expect_status` keeps its current meaning — the current/adjudicated value, which is also what scoring already reads. No scoring-logic change is needed for any of the three new columns below.
+- `original_expect_status` is written once, at creation, equal to `expect_status`, and never modified again — a plain audit snapshot of the starting value, independent of whether or how many times the case is later reclassified.
+- `is_reviewed` is set by the classify action itself (any of Match/Possible Match/Not a Match/Research/Not Sure), not inferred by comparing `expect_status` to `original_expect_status` — an analyst confirming an already-correct classification is still a review, and comparing values would miss that. This is also more robust than reusing `updated_at`/`updated_by_user_id` as a proxy: those already get stamped by the classify action today, but overloading them to also mean "reviewed" would break the day any other kind of edit (e.g. correcting a typo'd patient field) starts touching the same columns for an unrelated reason.
+- `needs_review` is fully independent of `is_reviewed` and of `expect_status` — a case can be reviewed and flagged for further discussion at the same time, reviewed and not flagged, or flagged before anyone has reviewed it at all.
+- `is_reviewed`/`needs_review` together give "next unreviewed" (`is_reviewed = false`) and "next flagged" (`needs_review = true`) navigation as plain queries, with no derived/inferred logic.
 
 Recommended indexes:
 
@@ -667,6 +679,17 @@ After all rows have been backfilled successfully:
 5. Remove the now-dead `MIIS-*` dropdown code in `TestMatchingServlet`/`ReviewServlet`, delete `GenerateWeightsServlet`, and update `island.yml`'s `testCaseFileName` to the new `legacy-test-data/` path.
 6. Extend `OrgScope`'s read/list methods per §4.1; add the copy action for `match_set` and `configuration`; enforce the "`is_template` only settable by an `is_template_org` owner" rule wherever it's set.
 
+## Phase 9 — Expert review tracking on `match_item` (§3.4)
+
+1. Add `match_item.original_expect_status`, `is_reviewed`, `needs_review`.
+2. Backfill: `original_expect_status = expect_status` for every existing row; `is_reviewed`/`needs_review` default `false` for existing rows (there's no real history to infer either from before this column exists).
+3. Wire `is_reviewed = true` into the existing classify action in `TestSetServlet` (the same code path that already sets `updated_by_user_id`/`updated_at`), and add the `needs_review` toggle as an independent control.
+4. Add the navigation queries this unlocks (`is_reviewed = false` / `needs_review = true`) wherever case navigation/filtering lives.
+
+## Later phases
+
+More phases will be added here as the functional-area planning in progress now (menu structure, the full set of supported functions) gets scoped into concrete work. Keep each one as narrowly scoped as Phases 1–9 above, rather than trying to design the whole remaining system's schema in one pass.
+
 ---
 
 # 7. Foreign-Key Relationships
@@ -720,7 +743,7 @@ The following are intentionally not required for the initial access/schema migra
 - ~~formal ownership/organization-scoping of the bundled `MIIS-*`/`AIRA-*` flat-file test corpora~~ — resolved by §2.10/Phase 8: the one starter test set actually needed moves into the database as an AIRA-owned template; the rest of the files are archived out of the WAR rather than modeled.
 - a general-purpose template/marketplace model (multiple template-eligible organizations, template categories, versioning of published templates) — §2.10 intentionally supports exactly one template-eligible organization (AIRA) publishing individual rows; broaden this only if a real second case appears.
 
-These may be added later without changing the core `organization -> user/resources` ownership model.
+These may be added later without changing the core `organization -> user/resources` ownership model. This list will keep growing as new functional phases get scoped — an item sitting here isn't a rejection, just not yet needed.
 
 ---
 

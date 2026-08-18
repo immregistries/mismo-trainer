@@ -65,39 +65,19 @@ public class TestSetUploadServlet extends TestSetServlet {
 
     if (matchSetSelected == null) {
       message = "Match set not found";
+    } else if (!OrgScope.isEditable(matchSetSelected, user)) {
+      // matchSetSelected is readable (possibly a template owned by another organization,
+      // §4.1) but not editable -- uploading to it would silently write into another
+      // organization's data. Copy it to this organization first.
+      message = "Cannot upload data to a template match set you do not own. Copy it to your"
+          + " organization first.";
     } else if (dataSource.equals("")) {
       message = "Data source is required";
     } else {
       Part filePart = req.getPart(PARAM_DATA_FILE);
       InputStream inputStream = filePart.getInputStream();
       BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
-      List<MatchItem> matchItemList = new ArrayList<MatchItem>();
-      {
-        MatchItem matchItem = null;
-        String line = "";
-        while ((line = in.readLine()) != null) {
-          if (line.startsWith("TEST:")) {
-            if (matchItem != null) {
-              matchItemList.add(matchItem);
-            }
-            matchItem = new MatchItem();
-            matchItem.setLabel(readValue(line));
-          } else if (matchItem != null) {
-            if (line.startsWith("EXPECT:")) {
-              matchItem.setExpectStatus(readValue(line));
-            } else if (line.startsWith("PATIENT A:")) {
-              matchItem.setPatientDataA(readValue(line));
-            } else if (line.startsWith("PATIENT B:")) {
-              matchItem.setPatientDataB(readValue(line));
-            } else if (line.startsWith("DESCRIPTION:")) {
-              matchItem.setDescription(readValue(line));
-            }
-          }
-        }
-        if (matchItem != null) {
-          matchItemList.add(matchItem);
-        }
-      }
+      List<MatchItem> matchItemList = parseMatchItems(in);
       in.close();
       Transaction transaction = dataSession.beginTransaction();
       Date updateDate = new Date();
@@ -140,6 +120,42 @@ public class TestSetUploadServlet extends TestSetServlet {
     String newUrl = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetId
         + "&" + PARAM_MESSAGE + "=" + URLEncoder.encode(message, "UTF-8");
     resp.sendRedirect(newUrl);
+  }
+
+  /**
+   * Parses the {@code TEST:}/{@code EXPECT:}/{@code PATIENT A:}/{@code PATIENT B:}/
+   * {@code DESCRIPTION:} flat-file format into unsaved {@code MatchItem} rows. Shared with
+   * {@link org.immregistries.mismo.trainer.TemplateDataBootstrap}, which reuses this exact
+   * parser to load {@code legacy-test-data/AIRA-D.txt} into the AIRA template match set
+   * (v2-roadmap.md §8) instead of re-implementing it.
+   */
+  public static List<MatchItem> parseMatchItems(BufferedReader in) throws IOException {
+    List<MatchItem> matchItemList = new ArrayList<MatchItem>();
+    MatchItem matchItem = null;
+    String line = "";
+    while ((line = in.readLine()) != null) {
+      if (line.startsWith("TEST:")) {
+        if (matchItem != null) {
+          matchItemList.add(matchItem);
+        }
+        matchItem = new MatchItem();
+        matchItem.setLabel(readValue(line));
+      } else if (matchItem != null) {
+        if (line.startsWith("EXPECT:")) {
+          matchItem.setExpectStatus(readValue(line));
+        } else if (line.startsWith("PATIENT A:")) {
+          matchItem.setPatientDataA(readValue(line));
+        } else if (line.startsWith("PATIENT B:")) {
+          matchItem.setPatientDataB(readValue(line));
+        } else if (line.startsWith("DESCRIPTION:")) {
+          matchItem.setDescription(readValue(line));
+        }
+      }
+    }
+    if (matchItem != null) {
+      matchItemList.add(matchItem);
+    }
+    return matchItemList;
   }
 
   private static String readValue(String s) {

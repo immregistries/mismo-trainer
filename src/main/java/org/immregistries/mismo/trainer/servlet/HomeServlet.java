@@ -118,10 +118,6 @@ public class HomeServlet extends HttpServlet {
             "            <li><a href=\"AddressTestServlet\">Address Test</a>: Allows for looking at how"
                 + " addresses are read.</li>");
         out.println(
-            "            <li><a href=\"GenerateWeightsServlet\">Generate Weights</a>: Starts evolutionary"
-                + " algorithm that hunts for best weights. Do not click unless you are ready for"
-                + " generator start.</li>");
-        out.println(
             "            <li><a href=\"RandomServlet\">Random</a>: Supports creating a set of three random"
                 + " patients, the second matching with the first and the third having similar"
                 + " characteristics but not being a match.</li>");

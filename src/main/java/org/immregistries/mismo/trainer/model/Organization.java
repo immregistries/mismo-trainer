@@ -11,6 +11,7 @@ public class Organization {
   private int organizationId;
   private String name;
   private String domain;
+  private boolean isTemplateOrg;
   private Date createdAt;
   private Date updatedAt;
 
@@ -36,6 +37,19 @@ public class Organization {
 
   public void setDomain(String domain) {
     this.domain = domain;
+  }
+
+  /**
+   * Marks this organization's {@code match_set}/{@code configuration} rows as eligible to be
+   * published as templates (database-schema-migration-plan.md §2.10). {@code true} for AIRA
+   * only; a row's own {@code isTemplate} flag is the actual publish switch.
+   */
+  public boolean isTemplateOrg() {
+    return isTemplateOrg;
+  }
+
+  public void setTemplateOrg(boolean isTemplateOrg) {
+    this.isTemplateOrg = isTemplateOrg;
   }
 
   public Date getCreatedAt() {

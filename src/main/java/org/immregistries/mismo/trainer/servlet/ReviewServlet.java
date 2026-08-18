@@ -28,8 +28,6 @@ import org.immregistries.mismo.trainer.model.User;
  */
 public class ReviewServlet extends HomeServlet
 {
-  protected static final String[] TEST_SCIPTS = { "MIIS-B", "MIIS-C", "MIIS-D", "MIIS-E", "MIIS-E2", "MIIS-E3", "MIIS-F1", "MIIS-F2" };
-
   public static final String ATTRIBUTE_SHOULD_NOT_MATCH_BUT_MATCHED = "matchItemListShouldNotMatchButMatched";
   public static final String ATTRIBUTE_SHOULD_NOT_MATCH_BUT_POSSIBLE_MATCHED = "matchItemListShouldNotMatchButPossibleMatched";
   public static final String ATTRIBUTE_SHOULD_POSSIBLE_MATCH_BUT_MATCHED = "matchItemListShouldPossibleMatchButMatched";
@@ -256,15 +254,6 @@ public class ReviewServlet extends HomeServlet
       out.println("        <td class=\"" + style + "\">&nbsp;</td>");
       out.println("      </tr>");
 
-    }
-  }
-
-  private static String readValue(String s) {
-    int pos = s.indexOf(":");
-    if (pos == -1) {
-      return "";
-    } else {
-      return s.substring(pos + 1).trim();
     }
   }
 

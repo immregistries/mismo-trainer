@@ -92,10 +92,6 @@
 		<servlet-class>org.immregistries.mismo.trainer.servlet.TestMatchingServlet</servlet-class>
 	</servlet>
 	<servlet>
-		<servlet-name>GenerateWeightsServlet</servlet-name>
-		<servlet-class>org.immregistries.mismo.trainer.servlet.GenerateWeightsServlet</servlet-class>
-	</servlet>
-	<servlet>
 		<servlet-name>RandomServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.RandomServlet</servlet-class>
 	</servlet>
@@ -156,10 +152,6 @@
 	<servlet-mapping>
 		<servlet-name>TestScriptExploreServlet</servlet-name>
 		<url-pattern>/TestScriptExploreServlet</url-pattern>
-	</servlet-mapping>
-	<servlet-mapping>
-		<servlet-name>GenerateWeightsServlet</servlet-name>
-		<url-pattern>/GenerateWeightsServlet</url-pattern>
 	</servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>RandomServlet</servlet-name>

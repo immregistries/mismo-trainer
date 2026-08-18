@@ -32,9 +32,6 @@ import org.immregistries.mismo.trainer.model.User;
  */
 public class TestMatchingServlet extends HomeServlet
 {
-  protected static final String[] TEST_SCRIPTS = { "MIIS-B", "MIIS-C", "MIIS-D", "MIIS-E", "MIIS-E2", "MIIS-E3", "MIIS-F1", "MIIS-F2" };
-
-
   public static final String PARAM_CONFIGURATION_SCRIPT = "configurationScript";
 
   public static final String PARAM_CONFIGURATION_ID = "configurationId";
