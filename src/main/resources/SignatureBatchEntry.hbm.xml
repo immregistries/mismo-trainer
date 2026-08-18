@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
+  <class name="SignatureBatchEntry" table="signature_batch_entry">
+    <id name="signatureBatchEntryId" column="signature_batch_entry_id">
+      <generator class="native"/>
+    </id>
+    <many-to-one name="signatureBatch" column="signature_batch_id" class="SignatureBatch" not-null="true"/>
+    <property name="signature" column="signature" type="string" not-null="true"/>
+    <property name="count" column="count" type="int" not-null="true"/>
+  </class>
+</hibernate-mapping>

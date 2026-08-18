@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URLEncoder;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -48,6 +49,9 @@ public class CentralServlet extends HomeServlet {
   public static final String PARAM_WORLD_NAME = "worldName";
   public static final String PARAM_ISLAND_NAME = "islandName";
   public static final String PARAM_CREDENTIAL = "credential";
+  public static final String PARAM_RUN_WORLD_NAME = "runWorldName";
+  public static final String PARAM_RUN_ISLAND_NAME = "runIslandName";
+  public static final String PARAM_RUN_CREDENTIAL_ID = "runIslandCredentialId";
 
   public static final String ACTION_UPDATE = "update";
   public static final String ACTION_QUERY = "query";
@@ -100,46 +104,108 @@ public class CentralServlet extends HomeServlet {
 
       DecimalFormat decimalFormat = new DecimalFormat("#0.0");
 
-      List<Configuration> configurationList = OrgScope.listConfigurations(dataSession, user);
+      List<OrgScope.OptimizationRun> runs = OrgScope.listOptimizationRuns(dataSession, user);
 
+      String runWorldName = req.getParameter(PARAM_RUN_WORLD_NAME);
+      String runIslandName = req.getParameter(PARAM_RUN_ISLAND_NAME);
+      Integer runCredentialId = null;
+      if (req.getParameter(PARAM_RUN_CREDENTIAL_ID) != null && !req.getParameter(PARAM_RUN_CREDENTIAL_ID).isEmpty()) {
+        runCredentialId = Integer.parseInt(req.getParameter(PARAM_RUN_CREDENTIAL_ID));
+      }
+      OrgScope.OptimizationRun runSelected = null;
+      if (runWorldName != null) {
+        for (OrgScope.OptimizationRun run : runs) {
+          boolean credentialMatches = runCredentialId == null ? run.getIslandCredential() == null
+              : run.getIslandCredential() != null
+                  && run.getIslandCredential().getIslandCredentialId() == runCredentialId;
+          if (run.getWorldName().equals(runWorldName) && run.getIslandName().equals(runIslandName)
+              && credentialMatches) {
+            runSelected = run;
+            break;
+          }
+        }
+      }
+
+      out.println("    <h2>Optimization Runs</h2>");
+      out.println("    <p>Every generation an Island has submitted, grouped by world, island, and submitting"
+          + " credential.</p>");
       out.println("<table border=\"1\" cellspacing=\"0\">");
       out.println("  <tr>");
       out.println("    <th>World</th>");
       out.println("    <th>Island</th>");
-      out.println("    <th>Owner</th>");
-      out.println("    <th>Signature</th>");
-      out.println("    <th>Generation</th>");
-      out.println("    <th>Score</th>");
-      out.println("    <th>Select</th>");
+      out.println("    <th>Credential</th>");
+      out.println("    <th>Generations</th>");
+      out.println("    <th>Best Score</th>");
+      out.println("    <th>Latest Score</th>");
+      out.println("    <th>Last Activity</th>");
+      out.println("    <th>&nbsp;</th>");
       out.println("  </tr>");
-      for (Configuration configuration : configurationList) {
-        boolean editable = OrgScope.isEditable(configuration, user);
-        out.println("      <tr>");
-        out.println("        <td>" + configuration.getWorldName() + "</td>");
-        out.println("        <td>" + configuration.getIslandName() + "</td>");
-        out.println("        <td>" + (editable ? "You"
-            : escapeHtml(configuration.getOrganization().getName()) + " (template)") + "</td>");
-        out.println("        <td>" + configuration.getHashForSignature() + "</td>");
-        out.println("        <td>" + configuration.getGeneration() + "</td>");
-        out.println("        <td>" + decimalFormat.format((configuration.getGenerationScore() * 100.0)) + "</td>");
-        out.println("        <td>");
-        out.println("          <form action=\"WeightSetServlet\" method=\"GET\"> ");
-        out.println("            <input type=\"hidden\" name=\"" + WeightSetServlet.PARAM_CONFIGURATION_ID
-            + "\" value=\"" + configuration.getConfigurationId() + "\"/>");
-        out.println("          <input type=\"submit\" name=\"submit\" value=\"Select\"/>");
-        out.println("          </form>");
-        if (!editable) {
-          out.println("          <form action=\"CentralServlet\" method=\"GET\"> ");
-          out.println("            <input type=\"hidden\" name=\"" + PARAM_CONFIGURATION_ID
-              + "\" value=\"" + configuration.getConfigurationId() + "\"/>");
-          out.println("            <input type=\"submit\" name=\"" + PARAM_ACTION + "\" value=\""
-              + ACTION_COPY_CONFIGURATION + "\"/>");
-          out.println("          </form>");
-        }
-        out.println("        </td>");
+      SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm");
+      for (OrgScope.OptimizationRun run : runs) {
+        boolean selected = runSelected == run;
+        String credentialLabel = run.getIslandCredential() == null ? "(none / legacy)"
+            : escapeHtml(run.getIslandCredential().getName());
+        String credentialIdParam = run.getIslandCredential() == null ? ""
+            : String.valueOf(run.getIslandCredential().getIslandCredentialId());
+        String drillLink = "CentralServlet?" + PARAM_RUN_WORLD_NAME + "=" + URLEncoder.encode(run.getWorldName(), "UTF-8")
+            + "&" + PARAM_RUN_ISLAND_NAME + "=" + URLEncoder.encode(run.getIslandName(), "UTF-8")
+            + "&" + PARAM_RUN_CREDENTIAL_ID + "=" + credentialIdParam;
+        out.println("      <tr" + (selected ? " class=\"pass\"" : "") + ">");
+        out.println("        <td>" + escapeHtml(run.getWorldName()) + "</td>");
+        out.println("        <td>" + escapeHtml(run.getIslandName()) + "</td>");
+        out.println("        <td>" + credentialLabel + "</td>");
+        out.println("        <td>" + run.getGenerationCount() + "</td>");
+        out.println("        <td>" + decimalFormat.format(run.getBest().getGenerationScore() * 100.0) + "</td>");
+        out.println("        <td>" + decimalFormat.format(run.getLatest().getGenerationScore() * 100.0) + "</td>");
+        out.println("        <td>" + sdf.format(run.getLastActivity()) + "</td>");
+        out.println("        <td><a href=\"" + drillLink + "\">" + (selected ? "Viewing" : "View Generations")
+            + "</a></td>");
         out.println("      </tr>");
       }
       out.println("    </table>");
+
+      if (runSelected != null) {
+        out.println("    <h2>Generations for &quot;" + escapeHtml(runSelected.getWorldName()) + " / "
+            + escapeHtml(runSelected.getIslandName()) + "&quot;</h2>");
+        out.println("<table border=\"1\" cellspacing=\"0\">");
+        out.println("  <tr>");
+        out.println("    <th>Owner</th>");
+        out.println("    <th>Signature</th>");
+        out.println("    <th>Generation</th>");
+        out.println("    <th>Score</th>");
+        out.println("    <th>Generated</th>");
+        out.println("    <th>&nbsp;</th>");
+        out.println("  </tr>");
+        for (Configuration configuration : runSelected.getConfigurations()) {
+          boolean editable = OrgScope.isEditable(configuration, user);
+          out.println("      <tr>");
+          out.println("        <td>" + (editable ? "You"
+              : escapeHtml(configuration.getOrganization().getName()) + " (template)") + "</td>");
+          out.println("        <td>" + configuration.getHashForSignature() + "</td>");
+          out.println("        <td>" + configuration.getGeneration() + "</td>");
+          out.println("        <td>" + decimalFormat.format((configuration.getGenerationScore() * 100.0)) + "</td>");
+          out.println("        <td>" + sdf.format(configuration.getGeneratedDate()) + "</td>");
+          out.println("        <td>");
+          out.println("          <form action=\"WeightSetServlet\" method=\"GET\" style=\"display:inline\"> ");
+          out.println("            <input type=\"hidden\" name=\"" + WeightSetServlet.PARAM_CONFIGURATION_ID
+              + "\" value=\"" + configuration.getConfigurationId() + "\"/>");
+          out.println("          <input type=\"submit\" name=\"submit\" value=\"Select\"/>");
+          out.println("          </form>");
+          out.println("          <a href=\"EvaluationServlet?" + PARAM_CONFIGURATION_ID + "="
+              + configuration.getConfigurationId() + "\">Evaluate this candidate</a>");
+          if (!editable) {
+            out.println("          <form action=\"CentralServlet\" method=\"GET\" style=\"display:inline\"> ");
+            out.println("            <input type=\"hidden\" name=\"" + PARAM_CONFIGURATION_ID
+                + "\" value=\"" + configuration.getConfigurationId() + "\"/>");
+            out.println("            <input type=\"submit\" name=\"" + PARAM_ACTION + "\" value=\""
+                + ACTION_COPY_CONFIGURATION + "\"/>");
+            out.println("          </form>");
+          }
+          out.println("        </td>");
+          out.println("      </tr>");
+        }
+        out.println("    </table>");
+      }
       // create a form that allows posting actions to this same servlet
       // first form is for the requestStartScript action
       // will need to have a text entry field for the world name and island name, then

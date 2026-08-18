@@ -85,7 +85,11 @@
 		<servlet-name>IslandCredentialServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.IslandCredentialServlet</servlet-class>
 	</servlet>
-	
+	<servlet>
+		<servlet-name>SignatureBatchServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.SignatureBatchServlet</servlet-class>
+	</servlet>
+
 	
 	<servlet>
 		<servlet-name>TestMatchingServlet</servlet-name>
@@ -196,6 +200,10 @@
 	<servlet-mapping>
 		<servlet-name>EvaluationCompareServlet</servlet-name>
 		<url-pattern>/EvaluationCompareServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>SignatureBatchServlet</servlet-name>
+		<url-pattern>/SignatureBatchServlet</url-pattern>
 	</servlet-mapping>
 
 	<welcome-file-list>

@@ -19,6 +19,8 @@ import org.immregistries.mismo.trainer.model.MatchItemReview;
 import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.Organization;
 import org.immregistries.mismo.trainer.model.Scorer;
+import org.immregistries.mismo.trainer.model.SignatureBatch;
+import org.immregistries.mismo.trainer.model.SignatureBatchEntry;
 import org.immregistries.mismo.trainer.model.User;
 
 /**
@@ -701,5 +703,186 @@ public final class OrgScope {
       }
     }
     return comparison;
+  }
+
+  /**
+   * Creates and saves a new, organization-owned {@code SignatureBatch} plus its
+   * {@code SignatureBatchEntry} rows, attributed to {@code user} (v2-roadmap.md §12;
+   * database-changes-for-functional-model.md §7). {@code entries} are not yet attached to a
+   * batch -- this method saves each one against the newly-created batch.
+   */
+  public static SignatureBatch createSignatureBatch(Session dataSession, String label,
+      List<SignatureBatchEntry> entries, User user) {
+    SignatureBatch batch = new SignatureBatch();
+    batch.setOrganization(user.getOrganization());
+    batch.setLabel(label);
+    batch.setUploadedByUser(user);
+    batch.setUploadedAt(new Date());
+    dataSession.save(batch);
+    for (SignatureBatchEntry entry : entries) {
+      entry.setSignatureBatch(batch);
+      dataSession.save(entry);
+    }
+    return batch;
+  }
+
+  /** Loads a {@code SignatureBatch} by id, returning {@code null} unless owned by {@code user}'s organization. */
+  public static SignatureBatch loadSignatureBatch(Session dataSession, int signatureBatchId, User user) {
+    SignatureBatch batch = (SignatureBatch) dataSession.get(SignatureBatch.class, signatureBatchId);
+    if (!sameOrganization(batch == null ? null : batch.getOrganization(), user)) {
+      return null;
+    }
+    return batch;
+  }
+
+  /** Every {@code SignatureBatch} belonging to {@code user}'s organization, newest first. */
+  @SuppressWarnings("unchecked")
+  public static List<SignatureBatch> listSignatureBatches(Session dataSession, User user) {
+    Query query = dataSession.createQuery("from SignatureBatch where organization = ? order by uploadedAt desc");
+    query.setParameter(0, user.getOrganization());
+    return query.list();
+  }
+
+  /**
+   * Every {@code SignatureBatchEntry} in {@code batch}, highest frequency first. The {@code e.}
+   * alias on {@code count} is required, not stylistic -- {@code count} is a reserved HQL keyword
+   * (the aggregate function), so an unqualified {@code order by count} fails to parse.
+   */
+  @SuppressWarnings("unchecked")
+  public static List<SignatureBatchEntry> listSignatureBatchEntries(Session dataSession, SignatureBatch batch) {
+    Query query = dataSession.createQuery(
+        "from SignatureBatchEntry e where e.signatureBatch = ? order by e.count desc, e.signatureBatchEntryId");
+    query.setParameter(0, batch);
+    return query.list();
+  }
+
+  /**
+   * Finds the trainer {@code Configuration} matching {@code hashForSignature}, readable by
+   * {@code user} -- used to default the batch analysis view's configuration selector to whatever
+   * configuration is currently loaded in the analyst's session ({@code HomeServlet}'s
+   * "Configuration Loaded" convention), which is tracked only as a {@code mismo-match} runtime
+   * object, not a trainer entity id.
+   */
+  @SuppressWarnings("unchecked")
+  public static Configuration findConfigurationByHash(Session dataSession, String hashForSignature, User user) {
+    if (hashForSignature == null) {
+      return null;
+    }
+    Query query = dataSession.createQuery(
+        "from Configuration where hashForSignature = ? and (organization = ? or template = true)");
+    query.setParameter(0, hashForSignature);
+    query.setParameter(1, user.getOrganization());
+    query.setMaxResults(1);
+    List<Configuration> list = query.list();
+    return list.isEmpty() ? null : list.get(0);
+  }
+
+  /**
+   * One "run" -- every {@code Configuration} generation submitted for the same (world name,
+   * island name, submitting credential) (v2-roadmap.md §12; database-changes-for-functional-
+   * model.md §6: needs no new schema, purely a grouping over the existing insert-only
+   * {@code configuration} history plus {@code island_credential}).
+   */
+  public static final class OptimizationRun {
+    private final String worldName;
+    private final String islandName;
+    private final IslandCredential islandCredential;
+    private final List<Configuration> configurations;
+
+    OptimizationRun(String worldName, String islandName, IslandCredential islandCredential,
+        List<Configuration> configurations) {
+      this.worldName = worldName;
+      this.islandName = islandName;
+      this.islandCredential = islandCredential;
+      this.configurations = configurations;
+    }
+
+    public String getWorldName() {
+      return worldName;
+    }
+
+    public String getIslandName() {
+      return islandName;
+    }
+
+    /** Nullable -- legacy or manually-copied configurations have no submitting credential. */
+    public IslandCredential getIslandCredential() {
+      return islandCredential;
+    }
+
+    /** Every {@code Configuration} generation in this run. */
+    public List<Configuration> getConfigurations() {
+      return configurations;
+    }
+
+    public int getGenerationCount() {
+      return configurations.size();
+    }
+
+    /** The generation with the highest {@code generationScore}. */
+    public Configuration getBest() {
+      Configuration best = configurations.get(0);
+      for (Configuration configuration : configurations) {
+        if (configuration.getGenerationScore() > best.getGenerationScore()) {
+          best = configuration;
+        }
+      }
+      return best;
+    }
+
+    /** The most recently generated row in this run. */
+    public Configuration getLatest() {
+      Configuration latest = configurations.get(0);
+      for (Configuration configuration : configurations) {
+        if (configuration.getGeneratedDate().after(latest.getGeneratedDate())) {
+          latest = configuration;
+        }
+      }
+      return latest;
+    }
+
+    /**
+     * {@code islandCredential.lastUsedAt} if a credential submitted this run, else the latest
+     * generation's {@code generatedDate}. Whether an Island is *currently* running is a live-
+     * process question the database can't authoritatively answer (database-changes-for-
+     * functional-model.md §6) -- this is the best available proxy for "last activity."
+     */
+    public Date getLastActivity() {
+      if (islandCredential != null && islandCredential.getLastUsedAt() != null) {
+        return islandCredential.getLastUsedAt();
+      }
+      return getLatest().getGeneratedDate();
+    }
+  }
+
+  /**
+   * Groups every readable {@code Configuration} into {@link OptimizationRun}s by (worldName,
+   * islandName, islandCredential) -- the Optimization analyst dashboard's "runs" view
+   * (v2-roadmap.md §12), sorted by most recent activity first.
+   */
+  public static List<OptimizationRun> listOptimizationRuns(Session dataSession, User user) {
+    List<Configuration> all = listConfigurations(dataSession, user);
+    Map<String, List<Configuration>> grouped = new LinkedHashMap<String, List<Configuration>>();
+    for (Configuration configuration : all) {
+      String key = runKey(configuration);
+      List<Configuration> list = grouped.get(key);
+      if (list == null) {
+        list = new ArrayList<Configuration>();
+        grouped.put(key, list);
+      }
+      list.add(configuration);
+    }
+    List<OptimizationRun> runs = new ArrayList<OptimizationRun>();
+    for (List<Configuration> group : grouped.values()) {
+      Configuration first = group.get(0);
+      runs.add(new OptimizationRun(first.getWorldName(), first.getIslandName(), first.getIslandCredential(), group));
+    }
+    runs.sort((a, b) -> b.getLastActivity().compareTo(a.getLastActivity()));
+    return runs;
+  }
+
+  private static String runKey(Configuration configuration) {
+    return configuration.getWorldName() + " " + configuration.getIslandName() + " "
+        + (configuration.getIslandCredential() == null ? "" : configuration.getIslandCredential().getIslandCredentialId());
   }
 }

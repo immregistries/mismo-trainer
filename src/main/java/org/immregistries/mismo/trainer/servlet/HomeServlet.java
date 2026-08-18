@@ -198,7 +198,8 @@ public class HomeServlet extends HttpServlet {
             new NavPage("Review", "/ReviewServlet"))),
     SIGNATURES("Signatures", "Inspect how a match signature scores against a configuration.",
         List.of(
-            new NavPage("Signature Inspector", "/SignatureServlet"))),
+            new NavPage("Signature Inspector", "/SignatureServlet"),
+            new NavPage("Batch Signature Analysis", "/SignatureBatchServlet"))),
     OPTIMIZATION("Optimization", "Monitor Island optimization processes and manage their credentials.",
         List.of(
             new NavPage("Central / Island Sync", "/CentralServlet"),
@@ -248,6 +249,7 @@ public class HomeServlet extends HttpServlet {
     map.put("/TestMatchingServlet", NavArea.EVALUATIONS);
     map.put("/ReviewServlet", NavArea.EVALUATIONS);
     map.put("/SignatureServlet", NavArea.SIGNATURES);
+    map.put("/SignatureBatchServlet", NavArea.SIGNATURES);
     map.put("/CentralServlet", NavArea.OPTIMIZATION);
     map.put("/IslandCredentialServlet", NavArea.OPTIMIZATION);
     map.put("/AddressTestServlet", NavArea.TOOLS);

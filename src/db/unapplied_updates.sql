@@ -517,3 +517,47 @@ CREATE TABLE evaluation_result (
     KEY idx_evaluation_result_evaluation_signature (evaluation_id, signature),
     KEY idx_evaluation_result_match_item_id (match_item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- =====================================================================
+-- Phase 11 (docs/v2-roadmap.md §12; docs/database-changes-for-functional-
+-- model.md §7) -- Signature batch analysis.
+--
+-- Purely additive: two new tables, nothing else touched. Deliberately
+-- stores only the raw uploaded (signature, count) pairs -- not decoded
+-- classifications or which configuration was used to decode them -- so a
+-- batch stays re-analyzable against any configuration later rather than
+-- being tied to whichever one was picked at upload time (decode-on-demand,
+-- same principle as evaluation_result NOT storing the confusion matrix
+-- directly).
+--
+-- No FOREIGN KEY constraints are added, consistent with this file's
+-- established pattern for brand-new tables (match_item_review, evaluation/
+-- evaluation_result above) -- deferred to a future constraint-tightening
+-- pass once there's confidence no orphaned values exist.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- signature_batch (new) -- one row per upload.
+-- ---------------------------------------------------------------------
+CREATE TABLE signature_batch (
+    signature_batch_id int NOT NULL AUTO_INCREMENT,
+    organization_id int NOT NULL,
+    label varchar(250) DEFAULT NULL,
+    uploaded_by_user_id int DEFAULT NULL,
+    uploaded_at datetime NOT NULL,
+    PRIMARY KEY (signature_batch_id),
+    KEY idx_signature_batch_organization_id (organization_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ---------------------------------------------------------------------
+-- signature_batch_entry (new) -- one row per (signature, count) pair in
+-- an uploaded batch. No decoded classification column -- see above.
+-- ---------------------------------------------------------------------
+CREATE TABLE signature_batch_entry (
+    signature_batch_entry_id int NOT NULL AUTO_INCREMENT,
+    signature_batch_id int NOT NULL,
+    signature varchar(500) NOT NULL,
+    count int NOT NULL,
+    PRIMARY KEY (signature_batch_entry_id),
+    KEY idx_signature_batch_entry_signature_batch_id (signature_batch_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

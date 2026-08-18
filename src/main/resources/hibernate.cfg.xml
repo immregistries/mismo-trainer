@@ -23,6 +23,8 @@
     <mapping resource="MatchItemReview.hbm.xml"/>
     <mapping resource="MatchSet.hbm.xml"/>
     <mapping resource="Organization.hbm.xml"/>
+    <mapping resource="SignatureBatch.hbm.xml"/>
+    <mapping resource="SignatureBatchEntry.hbm.xml"/>
     <mapping resource="User.hbm.xml"/>
 
   </session-factory>
