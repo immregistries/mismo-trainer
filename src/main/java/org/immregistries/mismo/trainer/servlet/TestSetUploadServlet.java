@@ -59,10 +59,13 @@ public class TestSetUploadServlet extends TestSetServlet {
     Session dataSession = (Session) session.getAttribute("dataSession");
 
     String dataSource = req.getParameter(PARAM_DATA_SOURCE);
-    MatchSet matchSetSelected = (MatchSet) dataSession.get(MatchSet.class, Integer.parseInt(req.getParameter(PARAM_MATCH_SET_ID)));
+    MatchSet matchSetSelected = OrgScope.loadMatchSet(dataSession,
+        Integer.parseInt(req.getParameter(PARAM_MATCH_SET_ID)), user);
     String message = null;
 
-    if (dataSource.equals("")) {
+    if (matchSetSelected == null) {
+      message = "Match set not found";
+    } else if (dataSource.equals("")) {
       message = "Data source is required";
     } else {
       Part filePart = req.getPart(PARAM_DATA_FILE);
@@ -99,6 +102,8 @@ public class TestSetUploadServlet extends TestSetServlet {
       Transaction transaction = dataSession.beginTransaction();
       Date updateDate = new Date();
       matchSetSelected.setUpdateDate(updateDate);
+      matchSetSelected.setUpdatedByUser(user);
+      matchSetSelected.setUpdatedAt(updateDate);
       dataSession.update(matchSetSelected);
       for (MatchItem matchItem : matchItemList) {
         Query query = dataSession.createQuery("from MatchItem where matchSet = ? and label = ?");
@@ -112,12 +117,18 @@ public class TestSetUploadServlet extends TestSetServlet {
           saveMatchItem.setPatientDataA(matchItem.getPatientDataA());
           saveMatchItem.setPatientDataB(matchItem.getPatientDataB());
           saveMatchItem.setDescription(matchItem.getDescription());
+          saveMatchItem.setUpdatedByUser(user);
+          saveMatchItem.setUpdatedAt(updateDate);
           dataSession.update(saveMatchItem);
         } else {
           matchItem.setMatchSet(matchSetSelected);
           matchItem.setUser(user);
           matchItem.setUpdateDate(updateDate);
           matchItem.setDataSource(dataSource);
+          matchItem.setCreatedByUser(user);
+          matchItem.setUpdatedByUser(user);
+          matchItem.setCreatedAt(updateDate);
+          matchItem.setUpdatedAt(updateDate);
           dataSession.save(matchItem);
         }
       }
@@ -127,8 +138,9 @@ public class TestSetUploadServlet extends TestSetServlet {
 
     teardown(req, resp);
 
-
-    String newUrl = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetSelected.getMatchSetId()
+    int matchSetId = matchSetSelected == null ? Integer.parseInt(req.getParameter(PARAM_MATCH_SET_ID))
+        : matchSetSelected.getMatchSetId();
+    String newUrl = "TestSetServlet?" + PARAM_MATCH_SET_ID + "=" + matchSetId
         + "&" + PARAM_MESSAGE + "=" + URLEncoder.encode(message, "UTF-8");
     resp.sendRedirect(newUrl);
   }

@@ -63,13 +63,13 @@ public class CentralServlet extends HomeServlet {
     resp.setContentType("text/html");
     PrintWriter out = new PrintWriter(resp.getOutputStream());
     try {
-      HomeServlet.doHeader(out, user, null);
-      out.println("    <h1>Central Servlet</h1>");
+      HomeServlet.doHeader(out, req, user, null);
+      out.println("    <div class=\"aira-container--wide aira-stack\">");
+      out.println("    <h1 class=\"aira-page-title\">Central Servlet</h1>");
 
       DecimalFormat decimalFormat = new DecimalFormat("#0.0");
 
-      Query query = dataSession.createQuery("from Configuration order by worldName, islandName, generation desc");
-      List<Configuration> configurationList = query.list();
+      List<Configuration> configurationList = OrgScope.listConfigurations(dataSession, user);
 
       out.println("<table border=\"1\" cellspacing=\"0\">");
       out.println("  <tr>");
@@ -114,6 +114,7 @@ public class CentralServlet extends HomeServlet {
       out.println("    </form>");
       out.println("   <h2>Last Configuration Script Received</h2>");
       out.println("   <pre>" + lastConfigurationScriptReceived + "</pre>");
+      out.println("    </div>");
       HomeServlet.doFooter(out, req);
     } catch (Exception e) {
       out.print("<pre>");

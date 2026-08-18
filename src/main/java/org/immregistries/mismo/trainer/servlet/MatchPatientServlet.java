@@ -66,15 +66,18 @@ public class MatchPatientServlet extends HomeServlet {
       String patientBValues;
       MatchItem matchItemSelected = null;
       if (req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID) != null) {
-        org.immregistries.mismo.trainer.model.MatchItem matchItemRow =
-            (org.immregistries.mismo.trainer.model.MatchItem) dataSession.get(
-                org.immregistries.mismo.trainer.model.MatchItem.class,
-                Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)));
+        org.immregistries.mismo.trainer.model.MatchItem matchItemRow = OrgScope.loadMatchItem(dataSession,
+            Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)), user);
+        if (matchItemRow == null) {
+          patientAValues = req.getParameter("patientAValues");
+          patientBValues = req.getParameter("patientBValues");
+        } else {
         matchItemSelected = Island.toRuntimeMatchItem(matchItemRow);
         patientCompare.setMatchItem(matchItemSelected);
         patientAValues = matchItemSelected.getPatientDataA();
         patientBValues = matchItemSelected.getPatientDataB();
         testId = matchItemSelected.getLabel();
+        }
       } else {
         patientAValues = req.getParameter("patientAValues");
         if (patientAValues == null && patientCompare.getPatientA() != null) {
@@ -91,10 +94,9 @@ public class MatchPatientServlet extends HomeServlet {
         }
         out.println("<p>Match Item Id is set</p>");
       }
-      HomeServlet.doHeader(out, user, null);
-      
-      
-      out.println("    <h1>Match Patient</h1>");
+      HomeServlet.doHeader(out, req, user, null);
+      out.println("    <div class=\"aira-container--wide aira-stack\">");
+      out.println("    <h1 class=\"aira-page-title\">Match Patient</h1>");
       out.println("    <form action=\"MatchPatientServlet\" method=\"POST\"> ");
       out.println("    <table>");
       if (!testId.equals("")) {
@@ -164,13 +166,13 @@ public class MatchPatientServlet extends HomeServlet {
       out.println("    <table border=\"1\" cellspacing=\"0\">");
       out.println("      <tr><th>Node</th><th>Signal</th><th>Score</th></tr>");
       out.println("      <tr><td>Match</td><td>" + match.hasSignal(patientCompare) + "</td>"
-          + printScore(match.weightScore(patientCompare)) + "</tr>");
+          + MatchTreeRenderer.printScore(match.weightScore(patientCompare)) + "</tr>");
       out.println("      <tr><td>Not Match</td><td>" + notMatch.hasSignal(patientCompare) + "</td>"
-          + printScore(notMatch.weightScore(patientCompare)) + "</tr>");
+          + MatchTreeRenderer.printScore(notMatch.weightScore(patientCompare)) + "</tr>");
       out.println("      <tr><td>Suspect Twin</td><td>" + twin.hasSignal(patientCompare) + "</td>"
-          + printScore(twin.weightScore(patientCompare)) + "</tr>");
+          + MatchTreeRenderer.printScore(twin.weightScore(patientCompare)) + "</tr>");
       out.println("      <tr><td>Missing Data</td><td>" + missing.hasSignal(patientCompare)
-          + "</td>" + printScore(missing.weightScore(patientCompare)) + "</tr>");
+          + "</td>" + MatchTreeRenderer.printScore(missing.weightScore(patientCompare)) + "</tr>");
       if (patientCompare.getResult().equals("Match")) {
         out.println("      <tr><td>Result</td><td class=\"pass\" colspan=\"2\">"
             + patientCompare.getResult() + "</td></tr>");
@@ -184,19 +186,19 @@ public class MatchPatientServlet extends HomeServlet {
       {
         out.println("<table border=\"1\" cellspacing=\"0\">");
         out.println("<tr><td valign=\"top\">Match</td>");
-        printAggregateNode(out, patientCompare.getPatientA(), patientCompare.getPatientB(), match,
+        MatchTreeRenderer.printAggregateNode(out, patientCompare.getPatientA(), patientCompare.getPatientB(), match,
             "match");
         out.println("    </tr>");
         out.println("<tr><td valign=\"top\">Not a Match</td>");
-        printAggregateNode(out, patientCompare.getPatientA(), patientCompare.getPatientB(),
+        MatchTreeRenderer.printAggregateNode(out, patientCompare.getPatientA(), patientCompare.getPatientB(),
             notMatch, "notmatch");
         out.println("    </tr>");
         out.println("<tr><td valign=\"top\">Twin</td>");
-        printAggregateNode(out, patientCompare.getPatientA(), patientCompare.getPatientB(), twin,
+        MatchTreeRenderer.printAggregateNode(out, patientCompare.getPatientA(), patientCompare.getPatientB(), twin,
             "twin");
         out.println("    </tr>");
         out.println("<tr><td valign=\"top\">Missing</td>");
-        printAggregateNode(out, patientCompare.getPatientA(), patientCompare.getPatientB(), missing,
+        MatchTreeRenderer.printAggregateNode(out, patientCompare.getPatientA(), patientCompare.getPatientB(), missing,
             "missing");
         out.println("    </tr>");
         out.println("    </table>");
@@ -294,6 +296,7 @@ public class MatchPatientServlet extends HomeServlet {
         }
         out.println("    </table>");
       }
+      out.println("    </div>");
 
       HomeServlet.doFooter(out, req);
     } catch (Exception e) {
@@ -325,52 +328,6 @@ public class MatchPatientServlet extends HomeServlet {
         setMinMax(req, childNode, childName);
       }
     }
-  }
-
-  private void printAggregateNode(PrintWriter out, Patient patientA, Patient patientB,
-      MatchNode node, String name) {
-    DecimalFormat df = new DecimalFormat("0.000");
-    out.println("<td>");
-    if (node instanceof AggregateMatchNode) {
-      AggregateMatchNode amNode = (AggregateMatchNode) node;
-      out.println("<table border=\"1\" cellspacing=\"0\">");
-      out.println("<tr><th>" + amNode.getMatchName()
-          + "</th><th>W Score</th><th>Min W</th><th>Max W</th><th>Score</th><th>&nbsp;</th></tr>");
-      for (MatchNode childNode : amNode.getMatchNodeList()) {
-        String childName = name + "." + childNode.getMatchName();
-        out.println("<tr>");
-        out.println("<td valign=\"top\">" + childNode.getMatchName() + "</td>");
-        if (childNode.isEnabled()) {
-          out.println("<td valign=\"top\">" + df.format(childNode.weightScore(patientA, patientB))
-              + "</td>");
-          out.println("<td valign=\"top\"><input type=\"text\" name=\"min_" + childName
-              + "\" size=\"5\" value=\"" + childNode.getMinScore() + "\"</td>");
-          out.println("<td valign=\"top\"><input type=\"text\" name=\"max_" + childName
-              + "\" size=\"5\" value=\"" + childNode.getMaxScore() + "\"</td>");
-          out.println("" + printScore(childNode.score(patientA, patientB)) + "</td>");
-          printAggregateNode(out, patientA, patientB, childNode, childName);
-        } else {
-          out.println("<td valign=\"top\" colspan=\"5\"><em>disabled</em></td>");
-        }
-        out.println("</tr>");
-      }
-      out.println("</table>");
-    } else {
-      String description = node.getDescription(patientA, patientB);
-      if (description.equals("")) {
-        description = "&nbsp;";
-      }
-      out.println(description);
-    }
-    out.println("</td>");
-  }
-
-  private static String printScore(double d) {
-    DecimalFormat df = new DecimalFormat("0.00");
-    if (d > 0.5) {
-      return "<td class=\"pass\" valign=\"top\">" + df.format(d) + "</td>";
-    }
-    return "<td class=\"fail\" valign=\"top\">" + df.format(d) + "</td>";
   }
 
   @Override

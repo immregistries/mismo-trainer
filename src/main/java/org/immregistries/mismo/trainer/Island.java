@@ -356,7 +356,8 @@ public class Island {
     if (matchItem.getUser() != null) {
       org.immregistries.mismo.match.model.User runtimeUser = new org.immregistries.mismo.match.model.User();
       runtimeUser.setUserId(matchItem.getUser().getUserId());
-      runtimeUser.setName(matchItem.getUser().getName());
+      runtimeUser.setName(matchItem.getUser().getDisplayName() != null ? matchItem.getUser().getDisplayName()
+          : matchItem.getUser().getEmail());
       runtimeUser.setEmail(matchItem.getUser().getEmail());
       runtimeMatchItem.setUser(runtimeUser);
     }

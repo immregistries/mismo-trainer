@@ -1,0 +1,56 @@
+/*
+ * Local styles for Mismo Trainer's hand-written pass/fail tables and legacy
+ * expand/collapse rows. Layered on top of the shared AIRA stylesheet
+ * (aira.css), which this file is loaded after -- see AiraPage.Builder's
+ * addLocalStylesheet call in HomeServlet.
+ */
+
+.pass {
+  background: var(--aira-success-surface);
+  color: var(--aira-success);
+}
+
+.fail {
+  background: var(--aira-error-surface);
+  color: var(--aira-danger);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+td, th {
+  padding-left: var(--aira-space-2);
+  padding-right: var(--aira-space-2);
+}
+
+.scrollbox {
+  width: 700px;
+  height: 300px;
+  overflow: auto;
+  font-size: 0.8rem;
+}
+
+.help {
+  width: 700px;
+  padding: var(--aira-space-3);
+}
+
+.navMenu {
+  padding: var(--aira-space-2);
+  margin-bottom: var(--aira-space-2);
+}
+
+a.navMenuLink {
+  color: var(--aira-text);
+  text-decoration: none;
+  border: 1px solid var(--aira-border-strong);
+  background-color: var(--aira-surface-muted);
+  padding-left: var(--aira-space-1);
+  padding-right: var(--aira-space-1);
+  border-radius: var(--aira-radius-control);
+}
+
+a.navMenuLink:hover {
+  background-color: var(--aira-surface-selected);
+}

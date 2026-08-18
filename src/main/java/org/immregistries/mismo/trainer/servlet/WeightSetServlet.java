@@ -47,11 +47,12 @@ public class WeightSetServlet extends HomeServlet {
         session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
         message = "Manual configuration loaded";
       }
-      HomeServlet.doHeader(out, user, message);
+      HomeServlet.doHeader(out, req, user, message);
+      out.println("    <div class=\"aira-container--wide aira-stack\">");
 
       PatientCompare patientCompare = (PatientCompare) session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
 
-      out.println("<h1>Configuration</h1>");
+      out.println("<h1 class=\"aira-page-title\">Configuration</h1>");
       if (patientCompare != null) {
         out.println("<p>Configuration is loaded.</p>");
       }
@@ -68,11 +69,9 @@ public class WeightSetServlet extends HomeServlet {
           "      <tr><td colspan=\"2\" align=\"right\"><input type=\"submit\" name=\"submit\""
               + " value=\"Submit\"></td></tr>");
       out.println("    </table>");
+      out.println("    </div>");
 
       HomeServlet.doFooter(out, req);
-
-      out.println("  </body>");
-      out.println("</html>");
     } catch (Exception e) {
       e.printStackTrace(out);
     } finally {

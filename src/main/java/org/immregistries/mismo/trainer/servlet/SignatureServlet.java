@@ -2,15 +2,12 @@ package org.immregistries.mismo.trainer.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.text.DecimalFormat;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.hibernate.Session;
 import org.immregistries.mismo.match.PatientCompare;
-import org.immregistries.mismo.match.matchers.AggregateMatchNode;
-import org.immregistries.mismo.match.matchers.MatchNode;
 import org.immregistries.mismo.trainer.model.User;
 
 /**
@@ -42,8 +39,9 @@ public class SignatureServlet extends HomeServlet {
                 signature = "";
             }
 
-            HomeServlet.doHeader(out, user, null);
-            out.println("    <h1>Signature</h1>");
+            HomeServlet.doHeader(out, req, user, null);
+            out.println("    <div class=\"aira-container--wide aira-stack\">");
+            out.println("    <h1 class=\"aira-page-title\">Signature</h1>");
             out.println("    <form action=\"SignatureServlet\" method=\"POST\"> ");
             out.println("    Signature: <input type=\"text\" name=\"signature\" value=\""
                     + signature + "\" size=\"50\"/>");
@@ -66,20 +64,21 @@ public class SignatureServlet extends HomeServlet {
             {
                 out.println("<table border=\"1\" cellspacing=\"0\">");
                 out.println("<tr><td valign=\"top\">Match</td>");
-                printAggregateNode(out, patientCompare.getMatch(), "match");
+                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getMatch(), "match");
                 out.println("    </tr>");
                 out.println("<tr><td valign=\"top\">Not a Match</td>");
-                printAggregateNode(out, patientCompare.getNotMatch(), "notmatch");
+                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getNotMatch(), "notmatch");
                 out.println("    </tr>");
                 out.println("<tr><td valign=\"top\">Twin</td>");
-                printAggregateNode(out, patientCompare.getTwin(), "twin");
+                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getTwin(), "twin");
                 out.println("    </tr>");
                 out.println("<tr><td valign=\"top\">Missing</td>");
-                printAggregateNode(out, patientCompare.getMissing(), "missing");
+                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getMissing(), "missing");
                 out.println("    </tr>");
                 out.println("    </table>");
             }
             out.println("    </form>");
+            out.println("    </div>");
 
             HomeServlet.doFooter(out, req);
         } catch (Exception e) {
@@ -90,47 +89,6 @@ public class SignatureServlet extends HomeServlet {
             teardown(req, resp);
             out.close();
         }
-    }
-
-    private void printAggregateNode(PrintWriter out,
-            MatchNode node, String name) {
-        DecimalFormat df = new DecimalFormat("0.000");
-        out.println("<td>");
-        if (node instanceof AggregateMatchNode) {
-            AggregateMatchNode amNode = (AggregateMatchNode) node;
-            out.println("<table border=\"1\" cellspacing=\"0\">");
-            out.println("<tr><th>" + amNode.getMatchName()
-                    + "</th><th>W Score</th><th>Min W</th><th>Max W</th><th>Score</th><th>&nbsp;</th></tr>");
-            for (MatchNode childNode : amNode.getMatchNodeList()) {
-                String childName = name + "." + childNode.getMatchName();
-                out.println("<tr>");
-                out.println("<td valign=\"top\">" + childNode.getMatchName() + "</td>");
-                if (childNode.isEnabled()) {
-                    out.println("<td valign=\"top\">" + df.format(childNode.weightScoreFromSignaturer()) + "</td>");
-                    out.println("<td valign=\"top\"><input type=\"text\" name=\"min_" + childName
-                            + "\" size=\"5\" value=\"" + childNode.getMinScore() + "\"</td>");
-                    out.println("<td valign=\"top\"><input type=\"text\" name=\"max_" + childName
-                            + "\" size=\"5\" value=\"" + childNode.getMaxScore() + "\"</td>");
-                    out.println("" + printScore(childNode.getScoreFromSignature()) + "</td>");
-                    printAggregateNode(out, childNode, childName);
-                } else {
-                    out.println("<td valign=\"top\" colspan=\"5\"><em>disabled</em></td>");
-                }
-                out.println("</tr>");
-            }
-            out.println("</table>");
-        } else {
-            // TODO put generated comparison here
-        }
-        out.println("</td>");
-    }
-
-    private static String printScore(double d) {
-        DecimalFormat df = new DecimalFormat("0.00");
-        if (d > 0.5) {
-            return "<td class=\"pass\" valign=\"top\">" + df.format(d) + "</td>";
-        }
-        return "<td class=\"fail\" valign=\"top\">" + df.format(d) + "</td>";
     }
 
     @Override

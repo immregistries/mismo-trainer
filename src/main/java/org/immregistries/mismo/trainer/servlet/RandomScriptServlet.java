@@ -38,26 +38,7 @@ public class RandomScriptServlet extends HomeServlet {
     HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute(TestSetServlet.ATTRIBUTE_USER);
     try {
-      HomeServlet.doHeader(out, user, null);
-      out.println("    <script>");
-      out.println("      function toggleLayer(whichLayer) ");
-      out.println("      {");
-      out.println("        var elem, vis;");
-      out.println("        if (document.getElementById) ");
-      out.println("          elem = document.getElementById(whichLayer);");
-      out.println("        else if (document.all) ");
-      out.println("          elem = document.all[whichLayer] ");
-      out.println("        else if (document.layers) ");
-      out.println("          elem = document.layers[whichLayer]");
-      out.println("        vis = elem.style;");
-      out.println(
-          "        if (vis.display == '' && elem.offsetWidth != undefined && elem.offsetHeight != undefined) ");
-      out.println(
-          "          vis.display = (elem.offsetWidth != 0 && elem.offsetHeight != 0) ? 'block' : 'none';");
-      out.println(
-          "        vis.display = (vis.display == '' || vis.display == 'block') ? 'none' : 'block';");
-      out.println("      }");
-      out.println("    </script>");
+      HomeServlet.doHeader(out, req, user, null);
       out.println("    <h1>Random Patient Scripts</h1>");
 
       out.println("    <table border=\"1\" cellspacing=\"0\">");
@@ -240,7 +221,7 @@ public class RandomScriptServlet extends HomeServlet {
     } catch (Exception e) {
       out.println("<pre>");
       e.printStackTrace(out);
-      out.println("</Fpre>");
+      out.println("</pre>");
     } finally {
       teardown(req, resp);
       out.close();

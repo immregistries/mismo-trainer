@@ -107,7 +107,7 @@ These two are independent in principle but **both require touching every one of 
 **AIRA look-and-feel** (`aira-web-components`/`aira-web-theme`, Maven coordinates `org.immregistries:aira-web-components:0.1.10` / `org.immregistries:aira-web-theme:0.1.10`, already in local `.m2`):
 - No framework rewrite needed — `AiraPage.builder()...build()` wraps existing `PrintWriter` output exactly the way `aira-web-demo`'s own reference servlet does. Replace `HomeServlet.doHeader`/`doFooter`/`makeMenu` and the w3schools CDN link with one `AiraPage` call; everything inside `<main>` stays hand-written HTML, same as today.
 - Start with `HomeServlet`'s shared shell (since nearly every other servlet extends it), then the highest-traffic pages (`TestSetServlet`, `MatchPatientServlet`, `CentralServlet`), then the rest opportunistically.
-- `AiraPage`'s account/sign-in display slot is exactly where Phase 3's `SessionUser` plugs in — doing SSO before this phase means it's one less thing to redo.
+- `AiraPage`'s account/sign-in display slot is exactly where Phase 3's session `User` (`HomeServlet.ATTRIBUTE_USER`) plugs in — doing SSO before this phase means it's one less thing to redo.
 
 **Fold in while touching each page** (from `modernization-notes.md`'s existing punch list): the recurring missing-`>` markup bug, the copy-pasted `toggleLayer` dead JavaScript, the duplicated `printAggregateNode`/`printScore`/`printMatchRow` rendering helpers — a single shared rendering layer for the four-network/detector-tree visualization fixes several v1 findings at once.
 

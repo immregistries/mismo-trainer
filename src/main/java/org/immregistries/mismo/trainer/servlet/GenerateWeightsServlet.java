@@ -52,7 +52,7 @@ public class GenerateWeightsServlet extends HomeServlet {
         }
       }
 
-      HomeServlet.doHeader(out, user, null);
+      HomeServlet.doHeader(out, req, user, null);
       out.println("    <script>");
       out.println("      function toggleLayer(whichLayer) ");
       out.println("      {");

@@ -63,7 +63,7 @@ public class TestSetOriginalServlet extends HomeServlet {
 
       out.println(
           "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\"> ");
-      HomeServlet.doHeader(out, user, null);
+      HomeServlet.doHeader(out, req, user, null);
       out.println("    <h1>Test Set</h1>");
       if (message != null) {
         out.println("<p>" + message + "</p>");

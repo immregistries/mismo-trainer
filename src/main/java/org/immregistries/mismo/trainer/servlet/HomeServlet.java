@@ -3,7 +3,7 @@ package org.immregistries.mismo.trainer.servlet;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
+import java.util.List;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,9 +12,13 @@ import jakarta.servlet.http.HttpSession;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.AnnotationConfiguration;
+import org.immregistries.aira.web.AiraAccountConfig;
+import org.immregistries.aira.web.AiraContextConfig;
+import org.immregistries.aira.web.AiraDefaults;
+import org.immregistries.aira.web.AiraLogo;
+import org.immregistries.aira.web.AiraNavigationItem;
+import org.immregistries.aira.web.AiraPage;
 import org.immregistries.mismo.match.PatientCompare;
-import org.immregistries.mismo.match.matchers.AggregateMatchNode;
-import org.immregistries.mismo.match.matchers.MatchNode;
 import org.immregistries.mismo.trainer.SoftwareVersion;
 import org.immregistries.mismo.trainer.model.Configuration;
 import org.immregistries.mismo.trainer.model.User;
@@ -37,6 +41,9 @@ public class HomeServlet extends HttpServlet {
   public static final String ATTRIBUTE_PATIENT_COMPARE = "patientCompare";
   public static final String ATTRIBUTE_MATCH_TEST_CASE_LIST = "matchTestCaseList";
 
+  private static final String APPLICATION_NAME = "Mismo Trainer";
+  private static final String APPLICATION_SUBTITLE = "MISMO patient matching test and tuning";
+
   protected void setup(HttpServletRequest req, HttpServletResponse resp) {
     HttpSession session = req.getSession(true);
     Session dataSession = (Session) session.getAttribute(ATTRIBUTE_DATA_SESSION);
@@ -47,10 +54,13 @@ public class HomeServlet extends HttpServlet {
     dataSession = factory.openSession();
     session.setAttribute(ATTRIBUTE_DATA_SESSION, dataSession);
     if (req.getParameter(PARAM_CONFIGURATION_ID) != null) {
-      Configuration configuration = (Configuration) dataSession.get(Configuration.class,
-          Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)));
-      PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript());
-      session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
+      User user = (User) session.getAttribute(ATTRIBUTE_USER);
+      Configuration configuration = OrgScope.loadConfiguration(dataSession,
+          Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)), user);
+      if (configuration != null) {
+        PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript());
+        session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
+      }
     }
 
   }
@@ -66,86 +76,71 @@ public class HomeServlet extends HttpServlet {
       User user = (User) session.getAttribute(ATTRIBUTE_USER);
       String message = req.getParameter(PARAM_MESSAGE);
 
-      doHeader(out, user, message);
-      out.println("  <h1>Mismo Match Toolset</h1>");
+      doHeader(out, req, user, message);
+      out.println("    <div class=\"aira-container--wide aira-stack\">");
+      out.println("      <h1 class=\"aira-page-title\">Mismo Match Toolset</h1>");
       if (user == null) {
         // Unreachable in practice: AuthenticationFilter redirects to InteropHub
         // login before any request reaches this servlet with no session user.
-        out.println("    <div class=\"w3-container w3-half w3-margin-top\">");
-        out.println("    <p>You must log in via InteropHub to use Mismo Match.</p>");
-        out.println("    </div>");
+        out.println("      <p>You must log in via InteropHub to use Mismo Match.</p>");
       } else {
-        out.println("    <div class=\"w3-container w3-half w3-margin-top\">");
-        out.println("  <h3>Primary Tools</h3>");
-        out.println("  <ul>");
+        out.println("      <div class=\"aira-grid\">");
+        out.println("        <section class=\"aira-panel\">");
+        out.println("          <h2 class=\"aira-panel__title\">Primary Tools</h2>");
+        out.println("          <ul>");
         out.println(
-            "    <li><a href=\"CentralServlet\">Central</a>: Shows the status of the central server"
+            "            <li><a href=\"CentralServlet\">Central</a>: Shows the status of the central server"
                 + " that is responsible for listening to remote Island processes and reporting on"
                 + " the progress of these optimizations.</li>");
         out.println(
-            "    <li><a href=\"WeightSetServlet\">Test Set</a>: Allows for viewing and updating the"
+            "            <li><a href=\"WeightSetServlet\">Configuration</a>: Allows for viewing and updating the"
                 + " currently selected weight set.</li>");
         out.println(
-            "    <li><a href=\"TestSetServlet\">Test Set</a>: Allows for entry and management of"
+            "            <li><a href=\"TestSetServlet\">Test Set</a>: Allows for entry and management of"
                 + " test sets.</li>");
         out.println(
-            "    <li><a href=\"TestSetServlet\">Review</a>: Review tests that fail in context of"
+            "            <li><a href=\"ReviewServlet\">Review</a>: Review tests that fail in context of"
                 + " similar tests. </li>");
-        out.println("    <li><a href=\"logout\">Logout</a></li>");
-        out.println("  </ul>");
-        out.println("  <h3>Other Tools</h3>");
-        out.println("  <ul>");
+        out.println("            <li><a href=\"logout\">Logout</a></li>");
+        out.println("          </ul>");
+        out.println("        </section>");
+        out.println("        <section class=\"aira-panel\">");
+        out.println("          <h2 class=\"aira-panel__title\">Other Tools</h2>");
+        out.println("          <ul>");
         out.println(
-            "    <li><a href=\"TestMatchingServlet\">Test Matching</a>: Shows the results of how"
+            "            <li><a href=\"TestMatchingServlet\">Test Matching</a>: Shows the results of how"
                 + " well a particular matching set works.</li>");
         out.println(
-            "    <li><a href=\"MatchPatientServlet\">Match Patient</a>: Shows how a single patient"
+            "            <li><a href=\"MatchPatientServlet\">Match Patient</a>: Shows how a single patient"
                 + " is matched using the weighting system.</li>");
-        out.println("    <li><a href=\"ConvertDataServlet\">Convert Data to Match Format</a></li>");
+        out.println("            <li><a href=\"ConvertDataServlet\">Convert Data to Match Format</a></li>");
         out.println(
-            "    <li><a href=\"AddressTestServlet\">Address Test</a>: Allows for looking at how"
+            "            <li><a href=\"AddressTestServlet\">Address Test</a>: Allows for looking at how"
                 + " addresses are read.</li>");
-        out.println("    <li><a href=\"DownloadHl7Servlet\">Download HL7</a></li>");
+        out.println("            <li><a href=\"DownloadHl7Servlet\">Download HL7</a></li>");
         out.println(
-            "    <li><a href=\"GenerateWeightsServlet\">Generate Weights</a>: Starts evolutionary"
+            "            <li><a href=\"GenerateWeightsServlet\">Generate Weights</a>: Starts evolutionary"
                 + " algorithm that hunts for best weights. Do not click unless you are ready for"
                 + " generator start.</li>");
         out.println(
-            "    <li><a href=\"RandomServlet\">Random</a>: Supports creating a set of three random"
+            "            <li><a href=\"RandomServlet\">Random</a>: Supports creating a set of three random"
                 + " patients, the second matching with the first and the third having similar"
                 + " characteristics but not being a match.</li>");
         out.println(
-            "    <li><a href=\"RandomScriptServlet\">Random Script</a>: Creates script with lots of"
+            "            <li><a href=\"RandomScriptServlet\">Random Script</a>: Creates script with lots of"
                 + " example data.</li>");
         out.println(
-            "    <li><a href=\"RandomForCDCServlet\">Random for CDC Servlet</a>:  Creates data in a"
+            "            <li><a href=\"RandomForCDCServlet\">Random for CDC Servlet</a>:  Creates data in a"
                 + " spreadsheet that was requested by the CDC deduplication project.</li>");
         out.println(
-            "    <li><a href=\"ExampleServlet\">Example Servlet</a>:  Compares two inputs with JaroWinkler</li>");
+            "            <li><a href=\"ExampleServlet\">Example Servlet</a>:  Compares two inputs with JaroWinkler</li>");
         out.println(
-            "    <li><a href=\"MatchNodeServlet\">Match Node Servlet</a>:  Shows operation of single match node</li>");
-        out.println("  </ul>");
-        out.println("    </div>");
-
-        out.println(
-            "  <img src=\"images/erol-ahmed-FTy5VSGIfiQ-unsplash.jpg\" class=\"w3-round\""
-                + " alt=\"Sandbox\" width=\"400\">");
-        out.println(
-            "<a style=\"background-color:black;color:white;text-decoration:none;padding:4px"
-                + " 6px;font-family:-apple-system, BlinkMacSystemFont, &quot;San Francisco&quot;,"
-                + " &quot;Helvetica Neue&quot;, Helvetica, Ubuntu, Roboto, Noto, &quot;Segoe"
-                + " UI&quot;, Arial,"
-                + " sans-serif;font-size:12px;font-weight:bold;line-height:1.2;display:inline-block;border-radius:3px\""
-                + " href=\"https://unsplash.com/@erol?utm_medium=referral&amp;utm_campaign=photographer-credit&amp;utm_content=creditBadge\""
-                + " target=\"_blank\" rel=\"noopener noreferrer\" title=\"Download free do whatever"
-                + " you want high-resolution photos from Erol Ahmed\"><span"
-                + " style=\"display:inline-block;padding:2px 3px\"><svg"
-                + " xmlns=\"http://www.w3.org/2000/svg\""
-                + " style=\"height:12px;width:auto;position:relative;vertical-align:middle;top:-2px;fill:white\""
-                + " viewBox=\"0 0 32 32\"><title>unsplash-logo</title><path d=\"M10 9V0h12v9H10zm12"
-                + " 5h10v18H0V14h10v9h12v-9z\"></path></svg></span><span"
-                + " style=\"display:inline-block;padding:2px 3px\">Erol Ahmed</span></a>");
+            "            <li><a href=\"MatchNodeServlet\">Match Node Servlet</a>:  Shows operation of single match node</li>");
+        out.println("          </ul>");
+        out.println("        </section>");
+        out.println("      </div>");
       }
+      out.println("    </div>");
       doFooter(out, req);
     } catch (Exception e) {
       e.printStackTrace(out);
@@ -156,60 +151,74 @@ public class HomeServlet extends HttpServlet {
   }
 
   /**
-   * Implements header html.
+   * Writes the shared AIRA page shell (identity, account, contextual navigation) and opens
+   * &lt;main&gt;. Everything printed after this call until {@link #doFooter} stays hand-written
+   * HTML, same as v1.
    */
-  public static void doHeader(PrintWriter out, User user, String message) {
-    out.println(
-        "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\""
-            + " \"http://www.w3.org/TR/html4/loose.dtd\"> ");
-    out.println("<html>");
-    out.println("  <head>");
-    out.println("    <title>Mismo Match</title>");
-    out.println("    <link rel=\"stylesheet\" href=\"https://www.w3schools.com/w3css/4/w3.css\"/>");
-    out.println("  </head>");
-    out.println("  <body>");
-    makeMenu(out, user);
-    out.println("    <div class=\"w3-container\">");
+  public static void doHeader(PrintWriter out, HttpServletRequest req, User user, String message) {
+    AiraPage page = buildPage(req, user).build();
+    page.writeStart(out);
     if (message != null) {
-      out.println(
-          "    <div class=\"w3-panel w3-yellow\"><p class=\"w3-left-align\">"
-              + message
-              + "</p></div>");
+      out.println("    <div class=\"aira-container--wide\">");
+      out.println("      <div class=\"aira-alert aira-alert--warning\" role=\"alert\"><p>"
+          + escapeHtml(message) + "</p></div>");
+      out.println("    </div>");
     }
   }
 
+  private static AiraPage.Builder buildPage(HttpServletRequest req, User user) {
+    String activePath = req.getServletPath();
+    AiraPage.Builder builder = AiraPage.builder()
+        .applicationName(APPLICATION_NAME)
+        .applicationSubtitle(APPLICATION_SUBTITLE)
+        .applicationVersion(SoftwareVersion.VERSION)
+        .documentTitle(APPLICATION_NAME)
+        .contextPath(req.getContextPath())
+        .identityHref("/HomeServlet")
+        .logo(new AiraLogo(AiraDefaults.DEFAULT_LOGO_PATH, AiraDefaults.DEFAULT_LOGO_ALT_TEXT))
+        .addLocalStylesheet("/css/application.css");
+    if (user != null) {
+      String label = user.getDisplayName() == null ? user.getEmail() : user.getDisplayName();
+      if (user.getOrganization() != null && user.getOrganization().getName() != null) {
+        label = label + " · " + user.getOrganization().getName();
+      }
+      builder.account(new AiraAccountConfig(label, "Log out", "/logout"));
+      builder.context(new AiraContextConfig(APPLICATION_NAME, List.of(
+          new AiraNavigationItem("Central", "/CentralServlet", "/CentralServlet".equals(activePath)),
+          new AiraNavigationItem("Configuration", "/WeightSetServlet", "/WeightSetServlet".equals(activePath)),
+          new AiraNavigationItem("Test Set", "/TestSetServlet", "/TestSetServlet".equals(activePath)),
+          new AiraNavigationItem("Review", "/ReviewServlet", "/ReviewServlet".equals(activePath)),
+          new AiraNavigationItem("Signature", "/SignatureServlet", "/SignatureServlet".equals(activePath)))));
+    } else {
+      builder.account(new AiraAccountConfig("", "Log in", "/login"));
+    }
+    return builder;
+  }
+
   /**
-   * Implements footer html.
+   * Closes out any content that must render inside &lt;main&gt; (the loaded-configuration panel)
+   * and writes the shared AIRA footer/document end.
    */
   public static void doFooter(PrintWriter out, HttpServletRequest req) {
-    out.println("    </div>");
-
     PatientCompare patientCompare = (PatientCompare) req.getSession().getAttribute(ATTRIBUTE_PATIENT_COMPARE);
-    if (patientCompare != null) {
-      out.println("    <div class=\"w3-container\">");
+    if (patientCompare != null && patientCompare.getConfiguration() != null) {
       DecimalFormat decimalFormat = new DecimalFormat("#0.0");
       org.immregistries.mismo.match.model.Configuration c = patientCompare.getConfiguration();
-      out.println("      <h2>Configuration Loaded</h2>");
-      out.println("      <table>");
-      out.println("        <tr><th>World</th><td>" + c.getWorldName() + "</td></tr>");
-      out.println("        <tr><th>Island</th><td>" + c.getIslandName() + "</td></tr>");
-      out.println("        <tr><th>Signature</th><td>" + c.getHashForSignature() + "</td></tr>");
-      out.println(
-          "        <tr><th>Score</th><td>" + decimalFormat.format((c.getGenerationScore() * 100.0)) + "</td></tr>");
-      out.println("      <table>");
+      out.println("    <div class=\"aira-container--wide\">");
+      out.println("      <section class=\"aira-panel\">");
+      out.println("        <h2 class=\"aira-panel__title\">Configuration Loaded</h2>");
+      out.println("        <table>");
+      out.println("          <tr><th>World</th><td>" + escapeHtml(c.getWorldName()) + "</td></tr>");
+      out.println("          <tr><th>Island</th><td>" + escapeHtml(c.getIslandName()) + "</td></tr>");
+      out.println("          <tr><th>Signature</th><td>" + escapeHtml(c.getHashForSignature()) + "</td></tr>");
+      out.println("          <tr><th>Score</th><td>" + decimalFormat.format((c.getGenerationScore() * 100.0))
+          + "</td></tr>");
+      out.println("        </table>");
+      out.println("      </section>");
+      out.println("    </div>");
     }
-    out.println("    <p></p>");
-    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
-    out.println("  <div class=\"w3-container w3-green\">");
-    out.println(
-        "    <p>Mismo Match v"
-            + SoftwareVersion.VERSION
-            + " - Current Time "
-            + sdf.format(System.currentTimeMillis())
-            + "</p>");
-    out.println("  </div>");
-    out.println("  </body>");
-    out.println("</html>");
+    AiraPage page = buildPage(req, (User) req.getSession().getAttribute(ATTRIBUTE_USER)).build();
+    page.writeEnd(out);
   }
 
   protected static void teardown(HttpServletRequest req, HttpServletResponse resp) {
@@ -224,7 +233,6 @@ public class HomeServlet extends HttpServlet {
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-    // TODO Auto-generated method stub
     doGet(req, resp);
   }
 
@@ -240,27 +248,10 @@ public class HomeServlet extends HttpServlet {
     return factory;
   }
 
-  private static void makeMenu(PrintWriter out, User user) {
-    out.println("    <header class=\"w3-container w3-light-grey\">");
-    out.println("      <div class=\"w3-bar w3-light-grey\">");
-    out.println(
-        "        <a href=\"HomeServlet\" class=\"w3-bar-item w3-button w3-green\">Mismo"
-            + " Match</a>");
-    if (user == null) {
-      out.println("        <a href=\"login\" class=\"w3-bar-item w3-button\">Login</a>");
-    } else {
-      out.println("        <a href=\"CentralServlet\" class=\"w3-bar-item w3-button\">Central</a>");
-      out.println(
-          "        <a href=\"WeightSetServlet\" class=\"w3-bar-item w3-button\">Configuration</a>");
-      out.println(
-          "        <a href=\"TestSetServlet\" class=\"w3-bar-item w3-button\">Test Set</a>");
-      out.println("        <a href=\"ReviewServlet\" class=\"w3-bar-item w3-button\">Review</a>");
-      out.println(
-          "        <a href=\"SignatureServlet\" class=\"w3-bar-item w3-button\">Signature</a>");
-
-      out.println("        <a href=\"logout\" class=\"w3-bar-item w3-button\">Logout</a>");
+  static String escapeHtml(String value) {
+    if (value == null) {
+      return "";
     }
-    out.println("      </div>");
-    out.println("    </header>");
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
   }
 }

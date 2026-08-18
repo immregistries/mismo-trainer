@@ -66,16 +66,18 @@ public class MatchPatientOriginalServlet extends HomeServlet {
       String patientBValues;
       org.immregistries.mismo.match.model.MatchItem matchItemSelected = null;
       if (req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID) != null) {
-        org.immregistries.mismo.trainer.model.MatchItem matchItemRow =
-            (org.immregistries.mismo.trainer.model.MatchItem) dataSession.get(
-                org.immregistries.mismo.trainer.model.MatchItem.class,
-                Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)));
-        matchItemSelected = Island.toRuntimeMatchItem(matchItemRow);
-        patientCompare.setPatientA(new Patient(matchItemSelected.getPatientA().getValues()));
-        patientCompare.setPatientB(new Patient(matchItemSelected.getPatientB().getValues()));
-        patientAValues = matchItemSelected.getPatientDataA();
-        patientBValues = matchItemSelected.getPatientDataB();
-        testId = matchItemSelected.getLabel();
+        org.immregistries.mismo.trainer.model.MatchItem matchItemRow = OrgScope.loadMatchItem(dataSession,
+            Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)), user);
+        patientAValues = req.getParameter("patientAValues");
+        patientBValues = req.getParameter("patientBValues");
+        if (matchItemRow != null) {
+          matchItemSelected = Island.toRuntimeMatchItem(matchItemRow);
+          patientCompare.setPatientA(new Patient(matchItemSelected.getPatientA().getValues()));
+          patientCompare.setPatientB(new Patient(matchItemSelected.getPatientB().getValues()));
+          patientAValues = matchItemSelected.getPatientDataA();
+          patientBValues = matchItemSelected.getPatientDataB();
+          testId = matchItemSelected.getLabel();
+        }
       } else {
         patientAValues = req.getParameter("patientAValues");
         if (patientAValues == null && patientCompare.getPatientA() != null) {
@@ -91,7 +93,7 @@ public class MatchPatientOriginalServlet extends HomeServlet {
           patientCompare.setPatientB(new Patient(patientBValues));
         }
       }
-      HomeServlet.doHeader(out, user, null);
+      HomeServlet.doHeader(out, req, user, null);
       out.println("    <h1>Match Patient</h1>");
       out.println("    <form action=\"MatchPatientServlet\" method=\"POST\"> ");
       out.println("    <table>");
@@ -237,9 +239,9 @@ public class MatchPatientOriginalServlet extends HomeServlet {
           out.println("<td valign=\"top\">" + df.format(childNode.weightScore(patientA, patientB))
               + "</td>");
           out.println("<td valign=\"top\"><input type=\"text\" name=\"min_" + childName
-              + "\" size=\"3\" value=\"" + childNode.getMinScore() + "\"</td>");
+              + "\" size=\"3\" value=\"" + childNode.getMinScore() + "\"></td>");
           out.println("<td valign=\"top\"><input type=\"text\" name=\"max_" + childName
-              + "\" size=\"3\" value=\"" + childNode.getMaxScore() + "\"</td>");
+              + "\" size=\"3\" value=\"" + childNode.getMaxScore() + "\"></td>");
           out.println("" + printScore(childNode.score(patientA, patientB)) + "</td>");
           printAggregateNode(out, patientA, patientB, childNode, childName);
         } else {

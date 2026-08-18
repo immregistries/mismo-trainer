@@ -39,7 +39,7 @@ public class AddressTestServlet extends HomeServlet
     HttpSession session = req.getSession(true);
     User user = (User) session.getAttribute(TestSetServlet.ATTRIBUTE_USER);
     try {
-      HomeServlet.doHeader(out, user, null);
+      HomeServlet.doHeader(out, req, user, null);
       out.println("    <h1>Address Test</h1>");
 
       List<Address> addressList = new ArrayList<Address>();

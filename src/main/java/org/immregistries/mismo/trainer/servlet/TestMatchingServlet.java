@@ -50,8 +50,8 @@ public class TestMatchingServlet extends HomeServlet
     try {
       MatchSet matchSetSelected = null;
       if (req.getParameter(TestSetServlet.PARAM_MATCH_SET_ID) != null) {
-        matchSetSelected = (MatchSet) dataSession.get(MatchSet.class,
-            Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_SET_ID)));
+        matchSetSelected = OrgScope.loadMatchSet(dataSession,
+            Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_SET_ID)), user);
       } else if (session.getAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET) != null) {
         matchSetSelected = (MatchSet) session.getAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET);
       }
@@ -70,15 +70,15 @@ public class TestMatchingServlet extends HomeServlet
         }
       }
 
-      HomeServlet.doHeader(out, user, null);
-      out.println("    <h1>Test Matching</h1>");
+      HomeServlet.doHeader(out, req, user, null);
+      out.println("    <div class=\"aira-container--wide aira-stack\">");
+      out.println("    <h1 class=\"aira-page-title\">Test Matching</h1>");
       out.println("    <form action=\"TestMatchingServlet\" method=\"POST\"> ");
       out.println("    <table>");
       out.println("      <tr>");
       out.println("        <td valign=\"top\">Match Set</td>");
       out.println("        <td><select name=\"" + TestSetServlet.PARAM_MATCH_SET_ID + "\">");
-      Query matchSetListQuery = dataSession.createQuery("from MatchSet order by updateDate");
-      List<MatchSet> matchSetList = matchSetListQuery.list();
+      List<MatchSet> matchSetList = OrgScope.listMatchSets(dataSession, user);
       for (MatchSet matchSet : matchSetList) {
         if (matchSetSelected != null && matchSetSelected.equals(matchSet)) {
           out.println("          <option value=\"" + matchSet.getMatchSetId() + "\" selected=\"true\">"
@@ -217,6 +217,7 @@ public class TestMatchingServlet extends HomeServlet
           }
         }
       }
+      out.println("    </div>");
       HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {

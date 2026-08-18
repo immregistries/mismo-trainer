@@ -3,7 +3,6 @@ package org.immregistries.mismo.trainer.servlet;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URLEncoder;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -112,23 +111,7 @@ public class RandomServlet extends HomeServlet
         showScores = false;
       }
 
-      HomeServlet.doHeader(out, user, null);
-      out.println("    <script>");
-      out.println("      function toggleLayer(whichLayer) ");
-      out.println("      {");
-      out.println("        var elem, vis;");
-      out.println("        if (document.getElementById) ");
-      out.println("          elem = document.getElementById(whichLayer);");
-      out.println("        else if (document.all) ");
-      out.println("          elem = document.all[whichLayer] ");
-      out.println("        else if (document.layers) ");
-      out.println("          elem = document.layers[whichLayer]");
-      out.println("        vis = elem.style;");
-      out.println("        if (vis.display == '' && elem.offsetWidth != undefined && elem.offsetHeight != undefined) ");
-      out.println("          vis.display = (elem.offsetWidth != 0 && elem.offsetHeight != 0) ? 'block' : 'none';");
-      out.println("        vis.display = (vis.display == '' || vis.display == 'block') ? 'none' : 'block';");
-      out.println("      }");
-      out.println("    </script>");
+      HomeServlet.doHeader(out, req, user, null);
       out.println("    <h1>Random Patient</h1>");
       Transformer transformer = new Transformer();
       Patient patientA = null;
@@ -275,26 +258,26 @@ public class RandomServlet extends HomeServlet
           out.println("      <tr>");
           out.println("        <td>&nbsp;</td>");
           out.println("        <td align=\"right\">Match</td>");
-          out.println("        " + printScore(matchB.weightScore(patientCompareB)) + "");
-          out.println("        " + printScore(matchC.weightScore(patientCompareC)) + "");
+          out.println("        " + MatchTreeRenderer.printScore(matchB.weightScore(patientCompareB)) + "");
+          out.println("        " + MatchTreeRenderer.printScore(matchC.weightScore(patientCompareC)) + "");
           out.println("        </tr>");
           out.println("      <tr>");
           out.println("        <td>&nbsp;</td>");
           out.println("        <td align=\"right\">Not a Match</td>");
-          out.println("        " + printScore(notMatchB.weightScore(patientCompareB)) + "");
-          out.println("        " + printScore(notMatchC.weightScore(patientCompareC)) + "");
+          out.println("        " + MatchTreeRenderer.printScore(notMatchB.weightScore(patientCompareB)) + "");
+          out.println("        " + MatchTreeRenderer.printScore(notMatchC.weightScore(patientCompareC)) + "");
           out.println("        </tr>");
           out.println("      <tr>");
           out.println("        <td>&nbsp;</td>");
           out.println("        <td align=\"right\">Suspect Twin</td>");
-          out.println("        " + printScore(twinB.weightScore(patientCompareB)) + "");
-          out.println("        " + printScore(twinC.weightScore(patientCompareC)) + "");
+          out.println("        " + MatchTreeRenderer.printScore(twinB.weightScore(patientCompareB)) + "");
+          out.println("        " + MatchTreeRenderer.printScore(twinC.weightScore(patientCompareC)) + "");
           out.println("        </tr>");
           out.println("      <tr>");
           out.println("        <td>&nbsp;</td>");
           out.println("        <td align=\"right\">Missing Data</td>");
-          out.println("        " + printScore(missingB.weightScore(patientCompareB)) + "");
-          out.println("        " + printScore(missingC.weightScore(patientCompareC)) + "");
+          out.println("        " + MatchTreeRenderer.printScore(missingB.weightScore(patientCompareB)) + "");
+          out.println("        " + MatchTreeRenderer.printScore(missingC.weightScore(patientCompareC)) + "");
           out.println("        </tr>");
           out.println("      <tr>");
           out.println("        <td>&nbsp;</td>");
@@ -375,14 +358,6 @@ public class RandomServlet extends HomeServlet
     }
     return s;
 
-  }
-
-  private static String printScore(double d) {
-    DecimalFormat df = new DecimalFormat("0.00");
-    if (d > 0.5) {
-      return "<td class=\"pass\" valign=\"top\">" + df.format(d) + "</td>";
-    }
-    return "<td class=\"fail\" valign=\"top\">" + df.format(d) + "</td>";
   }
 
 }

@@ -36,7 +36,7 @@ public class ExampleServlet extends HomeServlet {
         return;
       }
 
-      HomeServlet.doHeader(out, user, null);
+      HomeServlet.doHeader(out, req, user, null);
 
       String a = req.getParameter("AName");
       String b = req.getParameter("BName");

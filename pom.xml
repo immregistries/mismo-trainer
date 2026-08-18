@@ -35,6 +35,12 @@
 
 		<dependency>
 			<groupId>org.immregistries</groupId>
+			<artifactId>aira-web-components</artifactId>
+			<version>0.1.10</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.immregistries</groupId>
 			<artifactId>mismo-match</artifactId>
 			<version>1.1</version>
 		</dependency>

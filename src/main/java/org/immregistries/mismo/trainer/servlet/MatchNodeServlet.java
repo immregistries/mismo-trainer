@@ -61,7 +61,7 @@ public class MatchNodeServlet extends HomeServlet {
 
         try {
 
-            HomeServlet.doHeader(out, user, null);
+            HomeServlet.doHeader(out, req, user, null);
             out.println("    <h1>Match Node Demonstration</h1>");
             // SimilarMatchNode
             String field1 = req.getParameter(PARAM_FIELD_1);

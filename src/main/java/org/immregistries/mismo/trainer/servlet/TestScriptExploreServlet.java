@@ -77,7 +77,7 @@ public class TestScriptExploreServlet extends HomeServlet
         }
 
       }
-      HomeServlet.doHeader(out, user, null);
+      HomeServlet.doHeader(out, req, user, null);
       out.println("    <h1>Test Script Explore</h1>");
       out.println("    <form action=\"TestScriptExploreServlet\" method=\"POST\"> ");
       out.println("    <table>");

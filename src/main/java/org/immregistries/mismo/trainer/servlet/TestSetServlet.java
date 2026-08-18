@@ -30,9 +30,9 @@ import org.immregistries.mismo.trainer.model.User;
 /**
  * This servlet tests a set of match test cases against a given script to give a
  * summary of how well the weights work.
- * 
+ *
  * @author Nathan Bunker
- * 
+ *
  */
 public class TestSetServlet extends HomeServlet {
   public static final String ACTION_LOAD_DATA = "Load Data";
@@ -78,8 +78,8 @@ public class TestSetServlet extends HomeServlet {
 
       MatchSet matchSetSelected = null;
       if (req.getParameter(PARAM_MATCH_SET_ID) != null) {
-        matchSetSelected = (MatchSet) dataSession.get(MatchSet.class,
-            Integer.parseInt(req.getParameter(PARAM_MATCH_SET_ID)));
+        matchSetSelected = OrgScope.loadMatchSet(dataSession,
+            Integer.parseInt(req.getParameter(PARAM_MATCH_SET_ID)), user);
       } else if (session.getAttribute(ATTRIBUTE_MATCH_SET) != null) {
         matchSetSelected = (MatchSet) session.getAttribute(ATTRIBUTE_MATCH_SET);
       }
@@ -88,10 +88,11 @@ public class TestSetServlet extends HomeServlet {
       org.immregistries.mismo.trainer.model.MatchItem matchItemSelectedRow = null;
       MatchItem matchItemSelected = null;
       if (req.getParameter(PARAM_MATCH_ITEM_ID) != null) {
-        matchItemSelectedRow = (org.immregistries.mismo.trainer.model.MatchItem) dataSession.get(
-            org.immregistries.mismo.trainer.model.MatchItem.class,
-            Integer.parseInt(req.getParameter(PARAM_MATCH_ITEM_ID)));
-        matchItemSelected = Island.toRuntimeMatchItem(matchItemSelectedRow);
+        matchItemSelectedRow = OrgScope.loadMatchItem(dataSession,
+            Integer.parseInt(req.getParameter(PARAM_MATCH_ITEM_ID)), user);
+        if (matchItemSelectedRow != null) {
+          matchItemSelected = Island.toRuntimeMatchItem(matchItemSelectedRow);
+        }
       }
 
       PatientCompare patientCompare = (PatientCompare) session
@@ -100,14 +101,11 @@ public class TestSetServlet extends HomeServlet {
       if (action != null) {
         if (action.equals(ACTION_CREATE_NEW_MATCH_SET)) {
           String label = req.getParameter(PARAM_LABEL);
-          MatchSet matchSet = new MatchSet();
-          matchSet.setLabel(label);
-          matchSet.setUpdateDate(new Date());
           Transaction transaction = dataSession.beginTransaction();
-          dataSession.save(matchSet);
+          OrgScope.createMatchSet(dataSession, label, user);
           transaction.commit();
-        } else if (action.equals(ACTION_MATCH) || action.equals(ACTION_POSSIBLE_MATCH)
-            || action.equals(ACTION_NOT_A_MATCH) || action.equals(ACTION_RESEARCH) || action.equals(ACTION_NOT_SURE)) {
+        } else if (matchItemSelectedRow != null && (action.equals(ACTION_MATCH) || action.equals(ACTION_POSSIBLE_MATCH)
+            || action.equals(ACTION_NOT_A_MATCH) || action.equals(ACTION_RESEARCH) || action.equals(ACTION_NOT_SURE))) {
           Transaction transaction = dataSession.beginTransaction();
           if (action.equals(ACTION_MATCH)) {
             matchItemSelected.setExpectStatus(MatchItem.MATCH);
@@ -124,19 +122,23 @@ public class TestSetServlet extends HomeServlet {
           if (patientCompare != null) {
             updatePassStatus(matchItemSelected, patientCompare);
           }
+          Date now = new Date();
           matchItemSelectedRow.setExpectStatus(matchItemSelected.getExpectStatus());
           matchItemSelectedRow.setUser(user);
-          matchItemSelectedRow.setUpdateDate(new Date());
+          matchItemSelectedRow.setUpdateDate(now);
+          matchItemSelectedRow.setUpdatedByUser(user);
+          matchItemSelectedRow.setUpdatedAt(now);
           dataSession.update(matchItemSelectedRow);
           transaction.commit();
           if (req.getParameter(PARAM_MATCH_ITEM_ID_NEXT) != null
               && !req.getParameter(PARAM_MATCH_ITEM_ID_NEXT).equals("")) {
-            matchItemSelectedRow = (org.immregistries.mismo.trainer.model.MatchItem) dataSession.get(
-                org.immregistries.mismo.trainer.model.MatchItem.class,
-                Integer.parseInt(req.getParameter(PARAM_MATCH_ITEM_ID_NEXT)));
-            matchItemSelected = Island.toRuntimeMatchItem(matchItemSelectedRow);
+            matchItemSelectedRow = OrgScope.loadMatchItem(dataSession,
+                Integer.parseInt(req.getParameter(PARAM_MATCH_ITEM_ID_NEXT)), user);
+            if (matchItemSelectedRow != null) {
+              matchItemSelected = Island.toRuntimeMatchItem(matchItemSelectedRow);
+            }
           }
-        } else if (action.equals(ACTION_SELECT)) {
+        } else if (action.equals(ACTION_SELECT) && matchSetSelected != null) {
           Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by label");
           query.setParameter(0, matchSetSelected);
           List<org.immregistries.mismo.trainer.model.MatchItem> matchItemRowList = query.list();
@@ -146,7 +148,7 @@ public class TestSetServlet extends HomeServlet {
           }
           session.setAttribute(ATTRIBUTE_MATCH_ITEM_LIST, matchItemList);
           session.setAttribute(ATTRIBUTE_SIGNATURE_MAP, new HashMap<String, List<MatchItem>>());
-        } else if (action.equals(ACTION_DOWNLOAD)) {
+        } else if (action.equals(ACTION_DOWNLOAD) && matchSetSelected != null) {
           resp.setContentType("text/plain");
           resp.setHeader("Content-Disposition", "attachment; filename=" + matchSetSelected.getLabel() + ".txt;");
           Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by label");
@@ -162,13 +164,9 @@ public class TestSetServlet extends HomeServlet {
         }
       }
 
-      out.println(
-          "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\"> ");
-      HomeServlet.doHeader(out, user, null);
-      out.println("    <h1>Test Set</h1>");
-      if (message != null) {
-        out.println("<p>" + message + "</p>");
-      }
+      HomeServlet.doHeader(out, req, user, message);
+      out.println("    <div class=\"aira-container--wide aira-stack\">");
+      out.println("    <h1 class=\"aira-page-title\">Test Set</h1>");
 
       List<MatchItem> matchItemList = (List<MatchItem>) session.getAttribute(ATTRIBUTE_MATCH_ITEM_LIST);
 
@@ -259,34 +257,45 @@ public class TestSetServlet extends HomeServlet {
         if (patientCompare != null && patientCompare.getConfiguration() != null) {
           patientFieldSet = patientCompare.getConfiguration().getPatientFieldSet();
         }
-        printMatchRow(out, matchItemSelected, "Birth Date", Patient.BIRTH_DATE, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Name First", Patient.NAME_FIRST, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Name Middle", Patient.NAME_MIDDLE, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Name Last", Patient.NAME_LAST, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Name Suffix", Patient.NAME_SUFFIX, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Name Alias", Patient.NAME_ALIAS, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Guardian Name Last", Patient.GUARDIAN_NAME_LAST, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Guardian Name First", Patient.GUARDIAN_NAME_FIRST, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Mother Maiden Name", Patient.MOTHER_MAIDEN_NAME, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Address Street 1", Patient.ADDRESS_STREET1, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Address Street 2", Patient.ADDRESS_STREET2, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Address City", Patient.ADDRESS_CITY, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Address State", Patient.ADDRESS_STATE, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Address Zip", Patient.ADDRESS_ZIP, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "2nd Address Street 1", Patient.ADDRESS_2_STREET1, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "2nd Address Street 2", Patient.ADDRESS_2_STREET2, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "2nd Address City", Patient.ADDRESS_2_CITY, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "2nd Address State", Patient.ADDRESS_2_STATE, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "2nd Address Zip", Patient.ADDRESS_2_ZIP, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Phone", Patient.PHONE, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Gender", Patient.GENDER, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "MRNs", Patient.MRNS, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Birth Type", Patient.BIRTH_TYPE, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Birth Order", Patient.BIRTH_ORDER, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Birth Status", Patient.BIRTH_STATUS, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Shot History", Patient.SHOT_HISTORY, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "SSN", Patient.SSN, patientFieldSet);
-        printMatchRow(out, matchItemSelected, "Medicaid #", Patient.MEDICAID, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Birth Date", Patient.BIRTH_DATE, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Name First", Patient.NAME_FIRST, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Name Middle", Patient.NAME_MIDDLE, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Name Last", Patient.NAME_LAST, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Name Suffix", Patient.NAME_SUFFIX, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Name Alias", Patient.NAME_ALIAS, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Guardian Name Last", Patient.GUARDIAN_NAME_LAST,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Guardian Name First", Patient.GUARDIAN_NAME_FIRST,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Mother Maiden Name", Patient.MOTHER_MAIDEN_NAME,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Address Street 1", Patient.ADDRESS_STREET1,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Address Street 2", Patient.ADDRESS_STREET2,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Address City", Patient.ADDRESS_CITY, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Address State", Patient.ADDRESS_STATE,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Address Zip", Patient.ADDRESS_ZIP, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "2nd Address Street 1", Patient.ADDRESS_2_STREET1,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "2nd Address Street 2", Patient.ADDRESS_2_STREET2,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "2nd Address City", Patient.ADDRESS_2_CITY,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "2nd Address State", Patient.ADDRESS_2_STATE,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "2nd Address Zip", Patient.ADDRESS_2_ZIP,
+            patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Phone", Patient.PHONE, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Gender", Patient.GENDER, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "MRNs", Patient.MRNS, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Birth Type", Patient.BIRTH_TYPE, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Birth Order", Patient.BIRTH_ORDER, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Birth Status", Patient.BIRTH_STATUS, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Shot History", Patient.SHOT_HISTORY, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "SSN", Patient.SSN, patientFieldSet);
+        MatchTreeRenderer.printMatchRow(out, matchItemSelected, "Medicaid #", Patient.MEDICAID, patientFieldSet);
         out.println("    </table>");
         String link = "MatchPatientServlet?" + PARAM_MATCH_ITEM_ID + "=" + matchItemSelected.getMatchItemId();
         out.println("    <p><a href=\"" + link + "\">Matching Diagnostics</a></p>");
@@ -328,7 +337,8 @@ public class TestSetServlet extends HomeServlet {
         }
         out.println("      <tr>");
         out.println("        <th>Last Updated By</th>");
-        out.println("        <td>" + matchItemSelected.getUser().getName() + "</td>");
+        out.println("        <td>" + (matchItemSelected.getUser() == null ? "" : matchItemSelected.getUser().getName())
+            + "</td>");
         out.println("      </tr>");
         out.println("      <tr>");
         out.println("        <th>Last Updated</th>");
@@ -503,8 +513,7 @@ public class TestSetServlet extends HomeServlet {
 
       }
 
-      Query query = dataSession.createQuery("from MatchSet order by updateDate");
-      List<MatchSet> matchSetList = query.list();
+      List<MatchSet> matchSetList = OrgScope.listMatchSets(dataSession, user);
       if (matchSetList.size() > 0) {
         out.println("<h3>All Match Sets</h3>");
         out.println("   <table border=\"1\" cellspacing=\"0\">");
@@ -546,6 +555,7 @@ public class TestSetServlet extends HomeServlet {
       out.println("    </form>");
 
       out.println("<a href=\"TestSetOriginalServlet\">Original Test Comparison</a>");
+      out.println("    </div>");
 
       HomeServlet.doFooter(out, req);
 
@@ -569,29 +579,6 @@ public class TestSetServlet extends HomeServlet {
     } else {
       matchItemSelected.setTested(false);
     }
-  }
-
-  private void printMatchRow(PrintWriter out, MatchItem matchItemSelected, String fieldLabel, String fieldName,
-      Set<String> patientFieldSet) {
-    if (patientFieldSet != null) {
-      if (!patientFieldSet.contains(fieldName)) {
-        return;
-      }
-    }
-    Patient patientA = matchItemSelected.getPatientA();
-    Patient patientB = matchItemSelected.getPatientB();
-    String style = "";
-    String valueA = patientA.getValue(fieldName);
-    String valueB = patientB.getValue(fieldName);
-    if (!valueA.equals("") && !valueB.equals("")) {
-      boolean matches = valueA.equalsIgnoreCase(valueB);
-      style = matches ? "pass" : "fail";
-    }
-    out.println("      <tr>");
-    out.println("        <td class=\"" + style + "\">" + fieldLabel + "</td>");
-    out.println("        <td class=\"" + style + "\">" + valueA + "</td>");
-    out.println("        <td class=\"" + style + "\">" + valueB + "</td>");
-    out.println("      </tr>");
   }
 
   @Override

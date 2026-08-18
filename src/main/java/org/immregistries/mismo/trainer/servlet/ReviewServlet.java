@@ -53,8 +53,9 @@ public class ReviewServlet extends HomeServlet
       }
       MatchSet matchSetSelected = (MatchSet) session.getAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET);
 
-      HomeServlet.doHeader(out, user, null);
-      out.println("    <h1>Review</h1>");
+      HomeServlet.doHeader(out, req, user, null);
+      out.println("    <div class=\"aira-container--wide aira-stack\">");
+      out.println("    <h1 class=\"aira-page-title\">Review</h1>");
       Map<String, List<MatchItem>> signatureMap = (Map<String, List<MatchItem>>) session
           .getAttribute(TestSetServlet.ATTRIBUTE_SIGNATURE_MAP);
       if (signatureMap == null) {
@@ -200,8 +201,9 @@ public class ReviewServlet extends HomeServlet
         }
         if (pos == 0) {
           out.println("<p>None found</p>");
-        }    
+        }
       }
+      out.println("    </div>");
       HomeServlet.doFooter(out, req);
 
     } catch (Exception e) {
