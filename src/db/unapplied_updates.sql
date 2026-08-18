@@ -430,3 +430,90 @@ CREATE TABLE match_item_review (
     PRIMARY KEY (match_item_review_id),
     KEY idx_match_item_review_match_item_id (match_item_id, reviewed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- =====================================================================
+-- Phase 10 (docs/v2-roadmap.md §11; docs/database-changes-for-functional-
+-- model.md §5) -- Evaluation, plus Configuration comparison.
+--
+-- Purely additive: two new tables, nothing else touched. Today
+-- "evaluation" isn't persisted at all -- TestMatchingServlet computes
+-- pass/fail live against whatever configuration is in session and throws
+-- it away after rendering. This makes it durable and queryable.
+--
+-- The confusion matrix is deliberately NOT a column anywhere -- it's
+-- derived from evaluation_result by aggregation (GROUP BY
+-- expected_classification, calculated_classification), avoiding a second
+-- place for the same data to go stale.
+--
+-- Configuration comparison (A vs. B against the same match_set) needs no
+-- schema beyond these two tables -- it's a query joining two evaluations'
+-- evaluation_result rows on match_item_id.
+--
+-- No FOREIGN KEY constraints are added, consistent with this file's
+-- established pattern for brand-new tables (match_item_review above,
+-- island_credential when it was first created) -- deferred to a future
+-- constraint-tightening pass once there's confidence no orphaned values
+-- exist. Indexes are added for every column real query patterns need.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- evaluation (new) -- one row per Test Set + Configuration run.
+-- organization_id is the *running* user's organization -- not necessarily
+-- the same as match_set_id's or configuration_id's owning organization,
+-- since either side can be a readable template row owned by another
+-- (template-eligible) organization.
+-- ---------------------------------------------------------------------
+CREATE TABLE evaluation (
+    evaluation_id int NOT NULL AUTO_INCREMENT,
+    organization_id int NOT NULL,
+    match_set_id int NOT NULL,
+    configuration_id int NOT NULL,
+    run_by_user_id int DEFAULT NULL,
+    run_at datetime NOT NULL,
+    total_cases int NOT NULL,
+    scorable_cases int NOT NULL,
+    not_sure_cases int NOT NULL,
+    agree_count int NOT NULL,
+    disagree_count int NOT NULL,
+    score double DEFAULT NULL,
+    PRIMARY KEY (evaluation_id),
+    KEY idx_evaluation_organization_id (organization_id),
+    KEY idx_evaluation_match_set_id (match_set_id),
+    KEY idx_evaluation_configuration_id (configuration_id),
+    KEY idx_evaluation_match_set_configuration (match_set_id, configuration_id, run_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ---------------------------------------------------------------------
+-- evaluation_result (new) -- one row per match_item scored by an
+-- evaluation run, including "Not Sure" expectations (they're excluded
+-- from evaluation's scorable_cases/agree_count/disagree_count/score, per
+-- the functional model's "Not Sure is a valid analyst classification but
+-- is not scorable" rule, but still get a row here so every case is
+-- accounted for).
+--
+-- expected_classification is a snapshot of match_item.expect_status taken
+-- at evaluation run time -- never re-read later, so it can't silently
+-- drift if the case gets reclassified after the fact. Same "don't let
+-- history quietly rewrite itself" principle as match_item.
+-- original_expect_status.
+--
+-- Retention (whether re-running an evaluation also prunes the previous
+-- run's rows) is explicitly not decided -- see
+-- database-changes-for-functional-model.md §5's reasoning. No
+-- cascade-delete is configured; evaluation_result is a self-contained
+-- child of evaluation with nothing else pointing back at it.
+-- ---------------------------------------------------------------------
+CREATE TABLE evaluation_result (
+    evaluation_result_id int NOT NULL AUTO_INCREMENT,
+    evaluation_id int NOT NULL,
+    match_item_id int NOT NULL,
+    expected_classification varchar(20) NOT NULL,
+    calculated_classification varchar(20) NOT NULL,
+    signature varchar(500) DEFAULT NULL,
+    agrees boolean NOT NULL,
+    PRIMARY KEY (evaluation_result_id),
+    KEY idx_evaluation_result_evaluation_id (evaluation_id),
+    KEY idx_evaluation_result_evaluation_agrees (evaluation_id, agrees),
+    KEY idx_evaluation_result_evaluation_signature (evaluation_id, signature),
+    KEY idx_evaluation_result_match_item_id (match_item_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

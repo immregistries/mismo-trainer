@@ -92,6 +92,14 @@
 		<servlet-class>org.immregistries.mismo.trainer.servlet.TestMatchingServlet</servlet-class>
 	</servlet>
 	<servlet>
+		<servlet-name>EvaluationServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.EvaluationServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>EvaluationCompareServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.EvaluationCompareServlet</servlet-class>
+	</servlet>
+	<servlet>
 		<servlet-name>RandomServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.RandomServlet</servlet-class>
 	</servlet>
@@ -180,6 +188,14 @@
 	<servlet-mapping>
 		<servlet-name>IslandCredentialServlet</servlet-name>
 		<url-pattern>/IslandCredentialServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>EvaluationServlet</servlet-name>
+		<url-pattern>/EvaluationServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>EvaluationCompareServlet</servlet-name>
+		<url-pattern>/EvaluationCompareServlet</url-pattern>
 	</servlet-mapping>
 
 	<welcome-file-list>

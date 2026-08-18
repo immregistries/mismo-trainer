@@ -192,6 +192,8 @@ public class HomeServlet extends HttpServlet {
             new NavPage("Browse All Configurations", "/CentralServlet"))),
     EVALUATIONS("Evaluations", "Run test matching against a configuration and review the results.",
         List.of(
+            new NavPage("Evaluations", "/EvaluationServlet"),
+            new NavPage("Compare Configurations", "/EvaluationCompareServlet"),
             new NavPage("Test Matching", "/TestMatchingServlet"),
             new NavPage("Review", "/ReviewServlet"))),
     SIGNATURES("Signatures", "Inspect how a match signature scores against a configuration.",
@@ -241,6 +243,8 @@ public class HomeServlet extends HttpServlet {
     map.put("/TestSetServlet", NavArea.TEST_SETS);
     map.put("/MatchPatientServlet", NavArea.TEST_SETS);
     map.put("/WeightSetServlet", NavArea.CONFIGURATIONS);
+    map.put("/EvaluationServlet", NavArea.EVALUATIONS);
+    map.put("/EvaluationCompareServlet", NavArea.EVALUATIONS);
     map.put("/TestMatchingServlet", NavArea.EVALUATIONS);
     map.put("/ReviewServlet", NavArea.EVALUATIONS);
     map.put("/SignatureServlet", NavArea.SIGNATURES);

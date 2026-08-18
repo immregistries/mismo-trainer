@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
+  <class name="Evaluation" table="evaluation">
+    <id name="evaluationId" column="evaluation_id">
+      <generator class="native"/>
+    </id>
+    <many-to-one name="organization" column="organization_id" class="Organization" not-null="true"/>
+    <many-to-one name="matchSet" column="match_set_id" class="MatchSet" not-null="true"/>
+    <many-to-one name="configuration" column="configuration_id" class="Configuration" not-null="true"/>
+    <many-to-one name="runByUser" column="run_by_user_id" class="User"/>
+    <property name="runAt" column="run_at" type="timestamp" not-null="true"/>
+    <property name="totalCases" column="total_cases" type="int" not-null="true"/>
+    <property name="scorableCases" column="scorable_cases" type="int" not-null="true"/>
+    <property name="notSureCases" column="not_sure_cases" type="int" not-null="true"/>
+    <property name="agreeCount" column="agree_count" type="int" not-null="true"/>
+    <property name="disagreeCount" column="disagree_count" type="int" not-null="true"/>
+    <property name="score" column="score" type="java.lang.Double"/>
+  </class>
+</hibernate-mapping>

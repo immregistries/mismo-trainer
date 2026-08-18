@@ -16,6 +16,8 @@
     <property name="hibernate.c3p0.max_statements">10</property>
     <mapping resource="AppSetting.hbm.xml"/>
     <mapping resource="Configuration.hbm.xml"/>
+    <mapping resource="Evaluation.hbm.xml"/>
+    <mapping resource="EvaluationResult.hbm.xml"/>
     <mapping resource="IslandCredential.hbm.xml"/>
     <mapping resource="MatchItem.hbm.xml"/>
     <mapping resource="MatchItemReview.hbm.xml"/>

@@ -1,15 +1,24 @@
 package org.immregistries.mismo.trainer.servlet;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.hibernate.Query;
 import org.hibernate.Session;
+import org.immregistries.mismo.match.PatientCompare;
+import org.immregistries.mismo.trainer.Island;
 import org.immregistries.mismo.trainer.model.Configuration;
+import org.immregistries.mismo.trainer.model.Evaluation;
+import org.immregistries.mismo.trainer.model.EvaluationResult;
 import org.immregistries.mismo.trainer.model.IslandCredential;
 import org.immregistries.mismo.trainer.model.MatchItem;
 import org.immregistries.mismo.trainer.model.MatchItemReview;
 import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.Organization;
+import org.immregistries.mismo.trainer.model.Scorer;
 import org.immregistries.mismo.trainer.model.User;
 
 /**
@@ -423,5 +432,274 @@ public final class OrgScope {
       dataSession.update(credential);
     }
     return true;
+  }
+
+  /**
+   * Scores every {@code MatchItem} in {@code matchSet} against {@code configuration} -- reusing
+   * the same {@code PatientCompare}/{@code Scorer} machinery {@code TestMatchingServlet} already
+   * uses, not a reimplementation -- and persists the run as a new {@code Evaluation} plus one
+   * {@code EvaluationResult} per case (v2-roadmap.md §11; database-changes-for-functional-
+   * model.md §5). Caller owns the transaction, same as every other write in this class.
+   *
+   * <p>Every case gets a result row, including ones whose snapshotted expected classification is
+   * "Not Sure" -- but those are excluded from {@code scorableCases}/{@code agreeCount}/
+   * {@code disagreeCount}/{@code score} (functional model rule: "Not Sure is a valid analyst
+   * classification but is not scorable").
+   *
+   * <p>{@code matchSet} and {@code configuration} are expected to already be readable (loaded via
+   * {@link #loadMatchSet}/{@link #loadConfiguration}) -- this method does not re-check that, since
+   * either may legitimately be a template owned by a different organization than {@code user}'s.
+   * The evaluation itself is always owned by {@code user}'s own organization, whether or not the
+   * inputs were.
+   */
+  @SuppressWarnings("unchecked")
+  public static Evaluation runEvaluation(Session dataSession, MatchSet matchSet, Configuration configuration,
+      User user) {
+    PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript());
+    Scorer scorer = new Scorer(patientCompare.getConfiguration().getScoringWeights());
+
+    Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by matchItemId");
+    query.setParameter(0, matchSet);
+    List<MatchItem> rows = query.list();
+
+    Evaluation evaluation = new Evaluation();
+    evaluation.setOrganization(user.getOrganization());
+    evaluation.setMatchSet(matchSet);
+    evaluation.setConfiguration(configuration);
+    evaluation.setRunByUser(user);
+    evaluation.setRunAt(new Date());
+
+    List<EvaluationResult> results = new ArrayList<EvaluationResult>();
+    int notSureCases = 0;
+    int agreeCount = 0;
+    int disagreeCount = 0;
+    for (MatchItem row : rows) {
+      org.immregistries.mismo.match.model.MatchItem runtimeItem = Island.toRuntimeMatchItem(row);
+      patientCompare.setMatchItem(runtimeItem);
+      String calculated = patientCompare.getResult();
+      String signature = patientCompare.getSignature();
+      String expected = row.getExpectStatus();
+      boolean agrees = calculated.equals(expected);
+      boolean isNotSure = org.immregistries.mismo.match.model.MatchItem.NOT_SURE.equals(expected);
+      if (isNotSure) {
+        notSureCases++;
+      } else {
+        scorer.registerMatch(runtimeItem, patientCompare);
+        if (agrees) {
+          agreeCount++;
+        } else {
+          disagreeCount++;
+        }
+      }
+      EvaluationResult result = new EvaluationResult();
+      result.setEvaluation(evaluation);
+      result.setMatchItem(row);
+      result.setExpectedClassification(expected);
+      result.setCalculatedClassification(calculated);
+      result.setSignature(signature);
+      result.setAgrees(agrees);
+      results.add(result);
+    }
+
+    evaluation.setTotalCases(rows.size());
+    evaluation.setScorableCases(rows.size() - notSureCases);
+    evaluation.setNotSureCases(notSureCases);
+    evaluation.setAgreeCount(agreeCount);
+    evaluation.setDisagreeCount(disagreeCount);
+    evaluation.setScore(evaluation.getScorableCases() > 0 ? scorer.getScore() : null);
+
+    dataSession.save(evaluation);
+    for (EvaluationResult result : results) {
+      dataSession.save(result);
+    }
+    return evaluation;
+  }
+
+  /** Loads an {@code Evaluation} by id, returning {@code null} unless it belongs to {@code user}'s organization. */
+  public static Evaluation loadEvaluation(Session dataSession, int evaluationId, User user) {
+    Evaluation evaluation = (Evaluation) dataSession.get(Evaluation.class, evaluationId);
+    if (!sameOrganization(evaluation == null ? null : evaluation.getOrganization(), user)) {
+      return null;
+    }
+    return evaluation;
+  }
+
+  /** Every {@code Evaluation} run against {@code matchSet} by {@code user}'s organization, newest first. */
+  @SuppressWarnings("unchecked")
+  public static List<Evaluation> listEvaluationsForMatchSet(Session dataSession, MatchSet matchSet, User user) {
+    Query query = dataSession.createQuery("from Evaluation where matchSet = ? and organization = ? order by runAt desc");
+    query.setParameter(0, matchSet);
+    query.setParameter(1, user.getOrganization());
+    return query.list();
+  }
+
+  /** Every {@code Evaluation} run using {@code configuration} by {@code user}'s organization, newest first. */
+  @SuppressWarnings("unchecked")
+  public static List<Evaluation> listEvaluationsForConfiguration(Session dataSession, Configuration configuration,
+      User user) {
+    Query query = dataSession.createQuery(
+        "from Evaluation where configuration = ? and organization = ? order by runAt desc");
+    query.setParameter(0, configuration);
+    query.setParameter(1, user.getOrganization());
+    return query.list();
+  }
+
+  /**
+   * The most recent {@code Evaluation} for this exact ({@code matchSet}, {@code configuration})
+   * pair, owned by {@code user}'s organization, or {@code null} if none exists yet -- used to
+   * offer reusing a recent run instead of always scoring fresh (database-changes-for-functional-
+   * model.md §5's Configuration comparison).
+   */
+  @SuppressWarnings("unchecked")
+  public static Evaluation findLatestEvaluation(Session dataSession, MatchSet matchSet, Configuration configuration,
+      User user) {
+    Query query = dataSession.createQuery(
+        "from Evaluation where matchSet = ? and configuration = ? and organization = ? order by runAt desc");
+    query.setParameter(0, matchSet);
+    query.setParameter(1, configuration);
+    query.setParameter(2, user.getOrganization());
+    query.setMaxResults(1);
+    List<Evaluation> list = query.list();
+    return list.isEmpty() ? null : list.get(0);
+  }
+
+  /** Every {@code EvaluationResult} row for {@code evaluation}, in case order. */
+  @SuppressWarnings("unchecked")
+  public static List<EvaluationResult> listEvaluationResults(Session dataSession, Evaluation evaluation) {
+    Query query = dataSession.createQuery("from EvaluationResult where evaluation = ? order by evaluationResultId");
+    query.setParameter(0, evaluation);
+    return query.list();
+  }
+
+  /**
+   * Cases where the calculated classification disagreed with the snapshotted expectation --
+   * excluding "Not Sure" cases, which are never scorable and so are never "disagreements" in this
+   * sense (they're always {@code agrees = false} since the matcher can never calculate "Not
+   * Sure," which would otherwise make every Not-Sure case look like a failure here).
+   */
+  @SuppressWarnings("unchecked")
+  public static List<EvaluationResult> listDisagreements(Session dataSession, Evaluation evaluation) {
+    Query query = dataSession.createQuery(
+        "from EvaluationResult where evaluation = ? and agrees = false and expectedClassification <> ?"
+            + " order by evaluationResultId");
+    query.setParameter(0, evaluation);
+    query.setParameter(1, org.immregistries.mismo.match.model.MatchItem.NOT_SURE);
+    return query.list();
+  }
+
+  /**
+   * The confusion matrix for {@code evaluation}, derived by aggregating {@code EvaluationResult}
+   * rows (expected classification -&gt; calculated classification -&gt; count) rather than being
+   * stored anywhere, so there is never a second place for this data to go stale.
+   */
+  @SuppressWarnings("unchecked")
+  public static Map<String, Map<String, Long>> confusionMatrix(Session dataSession, Evaluation evaluation) {
+    Query query = dataSession.createQuery(
+        "select expectedClassification, calculatedClassification, count(*) from EvaluationResult"
+            + " where evaluation = ? group by expectedClassification, calculatedClassification");
+    query.setParameter(0, evaluation);
+    List<Object[]> rows = query.list();
+    Map<String, Map<String, Long>> matrix = new LinkedHashMap<String, Map<String, Long>>();
+    for (Object[] row : rows) {
+      String expected = (String) row[0];
+      String calculated = (String) row[1];
+      Long count = (Long) row[2];
+      Map<String, Long> byCalculated = matrix.get(expected);
+      if (byCalculated == null) {
+        byCalculated = new LinkedHashMap<String, Long>();
+        matrix.put(expected, byCalculated);
+      }
+      byCalculated.put(calculated, count);
+    }
+    return matrix;
+  }
+
+  /** One case-level pairing produced by {@link #compareEvaluations}: the same match item, scored by both runs. */
+  public static final class EvaluationComparisonCase {
+    private final EvaluationResult resultA;
+    private final EvaluationResult resultB;
+
+    EvaluationComparisonCase(EvaluationResult resultA, EvaluationResult resultB) {
+      this.resultA = resultA;
+      this.resultB = resultB;
+    }
+
+    public EvaluationResult getResultA() {
+      return resultA;
+    }
+
+    public EvaluationResult getResultB() {
+      return resultB;
+    }
+  }
+
+  /**
+   * Case-level Configuration-A-vs-B comparison result (database-changes-for-functional-model.md
+   * §5's Configuration comparison): every case common to both evaluations, bucketed into the four
+   * categories the functional model calls out. Improved/Regressed are the two the model
+   * specifically names as the important analyst questions.
+   */
+  public static final class EvaluationComparison {
+    private final List<EvaluationComparisonCase> improved = new ArrayList<EvaluationComparisonCase>();
+    private final List<EvaluationComparisonCase> regressed = new ArrayList<EvaluationComparisonCase>();
+    private final List<EvaluationComparisonCase> changed = new ArrayList<EvaluationComparisonCase>();
+    private final List<EvaluationComparisonCase> unchanged = new ArrayList<EvaluationComparisonCase>();
+
+    /** A disagreed, B agrees -- the candidate configuration fixed this case. */
+    public List<EvaluationComparisonCase> getImproved() {
+      return improved;
+    }
+
+    /** A agreed, B disagrees -- the candidate configuration broke this previously-correct case. */
+    public List<EvaluationComparisonCase> getRegressed() {
+      return regressed;
+    }
+
+    /** Both disagreed, but the calculated classification moved -- still wrong, but differently wrong. */
+    public List<EvaluationComparisonCase> getChanged() {
+      return changed;
+    }
+
+    public List<EvaluationComparisonCase> getUnchanged() {
+      return unchanged;
+    }
+  }
+
+  /**
+   * Joins two evaluations' {@code EvaluationResult} rows on {@code match_item_id} and categorizes
+   * every case common to both (database-changes-for-functional-model.md §5's Configuration
+   * comparison -- needs no schema beyond {@code evaluation}/{@code evaluation_result}, purely a
+   * query over two existing evaluations' results). A case present in only one of the two runs
+   * (e.g. the Test Set changed between runs) is silently skipped -- there is nothing to compare it
+   * against.
+   */
+  public static EvaluationComparison compareEvaluations(Session dataSession, Evaluation evaluationA,
+      Evaluation evaluationB) {
+    List<EvaluationResult> resultsA = listEvaluationResults(dataSession, evaluationA);
+    List<EvaluationResult> resultsB = listEvaluationResults(dataSession, evaluationB);
+    Map<Integer, EvaluationResult> resultsBByMatchItemId = new HashMap<Integer, EvaluationResult>();
+    for (EvaluationResult resultB : resultsB) {
+      resultsBByMatchItemId.put(resultB.getMatchItem().getMatchItemId(), resultB);
+    }
+
+    EvaluationComparison comparison = new EvaluationComparison();
+    for (EvaluationResult resultA : resultsA) {
+      EvaluationResult resultB = resultsBByMatchItemId.get(resultA.getMatchItem().getMatchItemId());
+      if (resultB == null) {
+        continue;
+      }
+      EvaluationComparisonCase comparisonCase = new EvaluationComparisonCase(resultA, resultB);
+      if (!resultA.isAgrees() && resultB.isAgrees()) {
+        comparison.getImproved().add(comparisonCase);
+      } else if (resultA.isAgrees() && !resultB.isAgrees()) {
+        comparison.getRegressed().add(comparisonCase);
+      } else if (!resultA.isAgrees() && !resultB.isAgrees()
+          && !resultA.getCalculatedClassification().equals(resultB.getCalculatedClassification())) {
+        comparison.getChanged().add(comparisonCase);
+      } else {
+        comparison.getUnchanged().add(comparisonCase);
+      }
+    }
+    return comparison;
   }
 }
