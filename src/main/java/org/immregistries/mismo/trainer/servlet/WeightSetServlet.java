@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpSession;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.immregistries.mismo.match.PatientCompare;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * This servlet tests a set of match test cases against a given script to give a summary of how well

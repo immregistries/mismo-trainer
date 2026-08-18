@@ -13,7 +13,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.hibernate.Session;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.Island;
+import org.immregistries.mismo.trainer.model.User;
 import org.immregistries.pm.matchers.AggregateMatchNode;
 import org.immregistries.pm.matchers.MatchNode;
 import org.immregistries.pm.model.MatchItem;
@@ -65,8 +66,11 @@ public class MatchPatientOriginalServlet extends HomeServlet {
       String patientBValues;
       org.immregistries.mismo.match.model.MatchItem matchItemSelected = null;
       if (req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID) != null) {
-        matchItemSelected = (org.immregistries.mismo.match.model.MatchItem) dataSession.get(org.immregistries.mismo.match.model.MatchItem.class,
-            Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)));
+        org.immregistries.mismo.trainer.model.MatchItem matchItemRow =
+            (org.immregistries.mismo.trainer.model.MatchItem) dataSession.get(
+                org.immregistries.mismo.trainer.model.MatchItem.class,
+                Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)));
+        matchItemSelected = Island.toRuntimeMatchItem(matchItemRow);
         patientCompare.setPatientA(new Patient(matchItemSelected.getPatientA().getValues()));
         patientCompare.setPatientB(new Patient(matchItemSelected.getPatientB().getValues()));
         patientAValues = matchItemSelected.getPatientDataA();

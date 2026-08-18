@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.MatchItem;
+import org.immregistries.mismo.match.model.Patient;
 import org.immregistries.mismo.trainer.model.Creature;
 import org.immregistries.mismo.trainer.model.Scorer;
 import org.immregistries.mismo.trainer.model.World;
@@ -329,5 +330,36 @@ public class Island {
     } else {
       return s.substring(pos + 1).trim();
     }
+  }
+
+  /**
+   * Builds the mismo-match runtime {@code MatchItem} that {@code PatientCompare}/{@code Scorer}
+   * need for actual comparison out of a persisted trainer-owned {@code MatchItem} row. Only
+   * {@code patientDataA}/{@code patientDataB} are read by {@code PatientCompare.setMatchItem},
+   * but the rest are copied too since callers also display label/description/expectStatus.
+   *
+   * @param matchItem
+   *          the Hibernate-loaded trainer entity
+   * @return an equivalent mismo-match runtime object, safe to hand to PatientCompare/Scorer
+   */
+  public static MatchItem toRuntimeMatchItem(org.immregistries.mismo.trainer.model.MatchItem matchItem) {
+    MatchItem runtimeMatchItem = new MatchItem();
+    runtimeMatchItem.setMatchItemId(matchItem.getMatchItemId());
+    runtimeMatchItem.setLabel(matchItem.getLabel());
+    runtimeMatchItem.setDescription(matchItem.getDescription());
+    runtimeMatchItem.setPatientDataA(matchItem.getPatientDataA());
+    runtimeMatchItem.setPatientDataB(matchItem.getPatientDataB());
+    runtimeMatchItem.setExpectStatus(matchItem.getExpectStatus());
+    runtimeMatchItem.setPatientA(new Patient(matchItem.getPatientDataA()));
+    runtimeMatchItem.setPatientB(new Patient(matchItem.getPatientDataB()));
+    runtimeMatchItem.setUpdateDate(matchItem.getUpdateDate());
+    if (matchItem.getUser() != null) {
+      org.immregistries.mismo.match.model.User runtimeUser = new org.immregistries.mismo.match.model.User();
+      runtimeUser.setUserId(matchItem.getUser().getUserId());
+      runtimeUser.setName(matchItem.getUser().getName());
+      runtimeUser.setEmail(matchItem.getUser().getEmail());
+      runtimeMatchItem.setUser(runtimeUser);
+    }
+    return runtimeMatchItem;
   }
 }

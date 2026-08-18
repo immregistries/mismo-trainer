@@ -14,7 +14,7 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.immregistries.mismo.match.model.Patient;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * Allows for download of patient data in HL7 format for the CDC project.

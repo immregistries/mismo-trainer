@@ -82,4 +82,12 @@ public class MatchSet {
   public void setUpdatedAt(Date updatedAt) {
     this.updatedAt = updatedAt;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof MatchSet && getMatchSetId() > 0) {
+      return ((MatchSet) o).getMatchSetId() == getMatchSetId();
+    }
+    return super.equals(o);
+  }
 }

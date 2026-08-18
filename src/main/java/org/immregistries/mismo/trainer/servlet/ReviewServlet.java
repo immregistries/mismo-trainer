@@ -15,9 +15,9 @@ import jakarta.servlet.http.HttpSession;
 import org.hibernate.Session;
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.MatchItem;
-import org.immregistries.mismo.match.model.MatchSet;
 import org.immregistries.mismo.match.model.Patient;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.model.MatchSet;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * This servlet tests a set of match test cases against a given script to give a

@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.immregistries.mismo.match.model.Patient;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * Creates a list of patient records, some that match and some that don't, and

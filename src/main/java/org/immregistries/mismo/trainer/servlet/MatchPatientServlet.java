@@ -20,7 +20,8 @@ import org.immregistries.mismo.match.matchers.AggregateMatchNode;
 import org.immregistries.mismo.match.matchers.MatchNode;
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.match.model.Patient;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.Island;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * This was the original servlet that demonstrated how the matching worked for
@@ -65,8 +66,11 @@ public class MatchPatientServlet extends HomeServlet {
       String patientBValues;
       MatchItem matchItemSelected = null;
       if (req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID) != null) {
-        matchItemSelected = (MatchItem) dataSession.get(MatchItem.class,
-        Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)));
+        org.immregistries.mismo.trainer.model.MatchItem matchItemRow =
+            (org.immregistries.mismo.trainer.model.MatchItem) dataSession.get(
+                org.immregistries.mismo.trainer.model.MatchItem.class,
+                Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_ITEM_ID)));
+        matchItemSelected = Island.toRuntimeMatchItem(matchItemRow);
         patientCompare.setMatchItem(matchItemSelected);
         patientAValues = matchItemSelected.getPatientDataA();
         patientBValues = matchItemSelected.getPatientDataB();

@@ -17,9 +17,9 @@ import org.hibernate.cfg.AnnotationConfiguration;
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.matchers.AggregateMatchNode;
 import org.immregistries.mismo.match.matchers.MatchNode;
-import org.immregistries.mismo.match.model.Configuration;
-import org.immregistries.mismo.match.model.User;
 import org.immregistries.mismo.trainer.SoftwareVersion;
+import org.immregistries.mismo.trainer.model.Configuration;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * This servlet tests a set of match test cases against a given script to give a
@@ -56,8 +56,7 @@ public class HomeServlet extends HttpServlet {
     if (req.getParameter(PARAM_CONFIGURATION_ID) != null) {
       Configuration configuration = (Configuration) dataSession.get(Configuration.class,
           Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)));
-      PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript()); // (PatientCompare)
-                                                                                                  // session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
+      PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript());
       session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
     }
 
@@ -251,7 +250,7 @@ public class HomeServlet extends HttpServlet {
     if (patientCompare != null) {
       out.println("    <div class=\"w3-container\">");
       DecimalFormat decimalFormat = new DecimalFormat("#0.0");
-      Configuration c = patientCompare.getConfiguration();
+      org.immregistries.mismo.match.model.Configuration c = patientCompare.getConfiguration();
       out.println("      <h2>Configuration Loaded</h2>");
       out.println("      <table>");
       out.println("        <tr><th>World</th><td>" + c.getWorldName() + "</td></tr>");

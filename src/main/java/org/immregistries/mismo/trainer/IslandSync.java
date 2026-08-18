@@ -17,7 +17,6 @@ import java.net.URLConnection;
 import java.net.URLEncoder;
 
 import org.immregistries.mismo.match.StringUtils;
-import org.immregistries.mismo.match.model.Configuration;
 import org.immregistries.mismo.trainer.model.Creature;
 import org.immregistries.mismo.trainer.model.World;
 import org.immregistries.mismo.trainer.servlet.CentralServlet;

@@ -21,11 +21,10 @@ import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.immregistries.mismo.match.StringUtils;
-import org.immregistries.mismo.match.model.Configuration;
-import org.immregistries.mismo.match.model.MatchItem;
-import org.immregistries.mismo.match.model.User;
 import org.immregistries.mismo.trainer.Island;
+import org.immregistries.mismo.trainer.model.Configuration;
 import org.immregistries.mismo.trainer.model.Creature;
+import org.immregistries.mismo.trainer.model.User;
 import org.immregistries.mismo.trainer.model.World;
 
 /**
@@ -149,8 +148,12 @@ public class CentralServlet extends HomeServlet {
         if (configuration == null) {
           configuration = new Configuration();
         }
-        configuration.setConfigurationScript(configurationScript);
-        configuration.setup();
+        org.immregistries.mismo.match.model.Configuration matchConfiguration =
+            new org.immregistries.mismo.match.model.Configuration();
+        matchConfiguration.setConfigurationScript(configurationScript);
+        matchConfiguration.setup();
+        configuration.setConfigurationScript(matchConfiguration.getConfigurationScript());
+        configuration.setHashForSignature(matchConfiguration.getHashForSignature());
         configuration.setWorldName(worldName);
         configuration.setIslandName(islandName);
 
@@ -191,7 +194,7 @@ public class CentralServlet extends HomeServlet {
         }
         resp.setContentType("text/plain");
         PrintWriter out = new PrintWriter(resp.getOutputStream());
-        out.println(configuration.getConfigurationScript());
+        out.println(configuration.getConfigurationScript() == null ? "" : configuration.getConfigurationScript());
         out.close();
       }
     } finally {

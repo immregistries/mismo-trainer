@@ -11,7 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.immregistries.mismo.match.model.Address;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.model.User;
 
 
 /**

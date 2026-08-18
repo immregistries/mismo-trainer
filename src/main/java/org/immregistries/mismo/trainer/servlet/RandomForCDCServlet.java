@@ -12,7 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.Patient;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.model.User;
 import org.immregistries.mismo.trainer.random.Transformer;
 import org.immregistries.mismo.trainer.random.Typest;
 

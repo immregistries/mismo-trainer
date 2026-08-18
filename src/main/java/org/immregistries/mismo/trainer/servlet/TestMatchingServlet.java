@@ -19,11 +19,11 @@ import jakarta.servlet.http.HttpSession;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.immregistries.mismo.match.PatientCompare;
-import org.immregistries.mismo.match.model.Configuration;
 import org.immregistries.mismo.match.model.MatchItem;
-import org.immregistries.mismo.match.model.MatchSet;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.Island;
+import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.Scorer;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * This servlet tests a set of match test cases against a given script to give a
@@ -79,7 +79,10 @@ public class TestMatchingServlet extends HomeServlet
       if (matchSetSelected != null) {
         Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by dataSource, updateDate");
         query.setParameter(0, matchSetSelected);
-        matchItemList = query.list();
+        List<org.immregistries.mismo.trainer.model.MatchItem> matchItemRowList = query.list();
+        for (org.immregistries.mismo.trainer.model.MatchItem matchItemRow : matchItemRowList) {
+          matchItemList.add(Island.toRuntimeMatchItem(matchItemRow));
+        }
       } else if (!testScript.equals("")) {
         MatchItem matchItem = null;
         BufferedReader in = null;

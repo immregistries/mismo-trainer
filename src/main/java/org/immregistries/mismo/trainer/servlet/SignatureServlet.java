@@ -11,7 +11,7 @@ import org.hibernate.Session;
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.matchers.AggregateMatchNode;
 import org.immregistries.mismo.match.matchers.MatchNode;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * This was the original servlet that demonstrated how the matching worked for

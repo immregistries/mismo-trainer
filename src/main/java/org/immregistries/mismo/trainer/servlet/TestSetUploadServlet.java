@@ -18,9 +18,9 @@ import jakarta.servlet.http.Part;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import org.immregistries.mismo.match.model.MatchItem;
-import org.immregistries.mismo.match.model.MatchSet;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.model.MatchItem;
+import org.immregistries.mismo.trainer.model.MatchSet;
+import org.immregistries.mismo.trainer.model.User;
 
 @MultipartConfig
 public class TestSetUploadServlet extends TestSetServlet {

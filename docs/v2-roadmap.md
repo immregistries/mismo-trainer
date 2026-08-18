@@ -48,14 +48,37 @@ This was empirically tested against this repo, not just evaluated on paper:
 
 ## 3. Phase 2 — Schema foundation: entity decoupling + additive DDL
 
-This is Phase 1 of `database-schema-migration-plan.md`, and it can start **immediately, in parallel with Phase 1 above** — it's pure ORM/DDL work, independent of the servlet API version.
+This is Phase 1 of `database-schema-migration-plan.md`, and it started **immediately, in parallel with Phase 1 above** — it's pure ORM/DDL work, independent of the servlet API version. It has two parts; only the first is done.
 
-1. **Decouple persistence from the match engine.** `User`, `MatchItem`, `MatchSet`, and `Configuration` are currently Hibernate-mapped to classes compiled inside `mismo-match-1.1.jar`, not trainer source — so none of the new columns below can be added without rebuilding that (frozen) jar. Define trainer-owned entity classes (`org.immregistries.mismo.trainer.model.User`, `Organization`, `IslandCredential`, and local replacements for `MatchSet`/`MatchItem`/`Configuration`) with their own `.hbm.xml` mappings. `mismo-match`'s own `Patient`/`Configuration`/`PatientCompare`/`PatientMatcher` classes remain in use exactly as today, purely in-memory, for actual matching/scoring — only persistence moves.
+### 3.1 Done: define the new entities, mappings, and DDL
+
+1. **Decouple persistence from the match engine.** `User`, `MatchItem`, `MatchSet`, and `Configuration` are currently Hibernate-mapped to classes compiled inside `mismo-match-1.1.jar`, not trainer source — so none of the new columns below can be added without rebuilding that (frozen) jar. Define trainer-owned entity classes (`org.immregistries.mismo.trainer.model.User`, `Organization`, `IslandCredential`, and local replacements for `MatchSet`/`MatchItem`/`Configuration`) with their own `.hbm.xml` mappings, registered in `hibernate.cfg.xml` in place of the mappings that used to point at the `mismo-match`-jar classes. `mismo-match`'s own `Patient`/`Configuration`/`PatientCompare`/`PatientMatcher` classes remain in use exactly as today, purely in-memory, for actual matching/scoring — only persistence moves.
 2. Create `organization` and `island_credential` tables.
 3. Add the new identity/attribution/organization columns to `user`, `match_set`, `match_item`, `configuration` — nullable at first, so existing data migrates safely.
 4. `hub_user_id` is a `varchar`, treated as an opaque string end to end (the InteropHub client library returns it as `String`, not a number) — validated as non-blank at login time, not parsed as numeric.
 
 See `database-schema-migration-plan.md` §2.1, §2.7, §3 for the full column-by-column design.
+
+### 3.2 Not yet done, and blocking: cut every call site over to the new entities
+
+Landing the new mappings alone breaks the application. Hibernate resolves an HQL entity name (e.g. `"User"` in `HomeServlet`'s login query, `from User where name = ? and password = ?`) against whichever class is currently registered for that name — now the new `org.immregistries.mismo.trainer.model.User`. But all 21 servlets, `Island`/`IslandSync`, and `World`/`Creature`/`Scorer` still `import org.immregistries.mismo.match.model.{User,MatchSet,MatchItem,Configuration}` and cast query results to those types. The moment login (or any other Hibernate call touching these four entities) actually runs, that cast throws `ClassCastException` — confirmed by inspection, not just inferred: `HomeServlet.java` line 83 runs exactly that query and casts the result to the old, now-unmapped `User` class.
+
+**This means the app is non-functional end to end right now** — not just login, essentially every DB-touching page — until every one of those call sites is migrated. This isn't a defect in what landed; Phase 2 was deliberately scoped to not touch servlet logic (§3 above), so this is the expected, known-about other half of "entity decoupling," not yet done. Don't deploy or demo `main` in this state.
+
+**This cutover is more than a rename for `MatchSet`/`MatchItem`/`Configuration`.** Unlike `User` (never used by the match engine itself), the old `org.immregistries.mismo.match.model.Configuration` plays two roles today: it's both the persisted weight-set row *and* the live parsed weight-tree `PatientCompare`/`Creature`/`World` score against. The new trainer-owned `Configuration` is deliberately just the flat row (`configuration_script` as an opaque `TEXT` column — see the schema plan §3.5). So each call site that currently loads a `Configuration` row and immediately uses it as the scoring tree needs to split into two steps: (1) load/save the trainer entity via Hibernate, and (2) separately build a `org.immregistries.mismo.match.model.Configuration` from that row's `configuration_script` string when it's actually needed for matching/scoring. The same "persisted row vs. mismo-match runtime object" split applies to `MatchItem`/`MatchSet` wherever their `patient_data_a`/`patient_data_b` strings get turned into `mismo-match` `Patient` objects for comparison.
+
+This cutover is the necessary next step before Phase 3, and is prompted for separately below.
+
+---
+
+## 3a. Immediate next step — cut servlets and Island code over to the new entities
+
+Not one of the original four workstreams; a blocking follow-up to §3.2 discovered once Phase 2 landed. Do this before Phase 3.
+
+- Replace every `import org.immregistries.mismo.match.model.{User,MatchSet,MatchItem,Configuration}` used for Hibernate access (queries, `save`/`update`/`delete`, casts of query results) with the corresponding `org.immregistries.mismo.trainer.model.*` class, across all 21 servlets, `Island.java`, `IslandSync.java`, and `World`/`Creature`/`Scorer`.
+- Everywhere a `Configuration` (or `MatchItem`/`MatchSet`) row's data is actually used for matching or scoring — not just displayed or edited — split the call site into "load/save the trainer entity" plus "construct the `mismo-match` runtime object from its data," per §3.2 above.
+- `mismo-match`'s `Patient`/`PatientCompare`/`PatientMatcher`/`Configuration` (the computation classes) are untouched by this — only the persistence-facing usages move.
+- Verify: `mvn clean compile`, plus an actual exercised smoke test this time (not just `buildSessionFactory()`) — log in via the existing password-based `HomeServlet` flow against a local database seeded from `src/db/unapplied_updates.sql`, confirm no `ClassCastException`/`MappingException`, and spot-check one `match_set`/`match_item` browse and one `configuration` load-and-score.
 
 ---
 

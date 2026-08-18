@@ -16,10 +16,10 @@ import org.immregistries.mismo.match.matchers.AggregateMatchNode;
 import org.immregistries.mismo.match.matchers.MatchNode;
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.match.model.Patient;
-import org.immregistries.mismo.match.model.User;
 import org.immregistries.mismo.trainer.Island;
 import org.immregistries.mismo.trainer.model.Creature;
 import org.immregistries.mismo.trainer.model.Scorer;
+import org.immregistries.mismo.trainer.model.User;
 import org.immregistries.mismo.trainer.model.World;
 
 /**

@@ -21,10 +21,11 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.MatchItem;
-import org.immregistries.mismo.match.model.MatchSet;
 import org.immregistries.mismo.match.model.Patient;
-import org.immregistries.mismo.match.model.User;
+import org.immregistries.mismo.trainer.Island;
+import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.Scorer;
+import org.immregistries.mismo.trainer.model.User;
 
 /**
  * This servlet tests a set of match test cases against a given script to give a
@@ -84,10 +85,13 @@ public class TestSetServlet extends HomeServlet {
       }
       session.setAttribute(ATTRIBUTE_MATCH_SET, matchSetSelected);
 
+      org.immregistries.mismo.trainer.model.MatchItem matchItemSelectedRow = null;
       MatchItem matchItemSelected = null;
       if (req.getParameter(PARAM_MATCH_ITEM_ID) != null) {
-        matchItemSelected = (MatchItem) dataSession.get(MatchItem.class,
+        matchItemSelectedRow = (org.immregistries.mismo.trainer.model.MatchItem) dataSession.get(
+            org.immregistries.mismo.trainer.model.MatchItem.class,
             Integer.parseInt(req.getParameter(PARAM_MATCH_ITEM_ID)));
+        matchItemSelected = Island.toRuntimeMatchItem(matchItemSelectedRow);
       }
 
       PatientCompare patientCompare = (PatientCompare) session
@@ -120,19 +124,26 @@ public class TestSetServlet extends HomeServlet {
           if (patientCompare != null) {
             updatePassStatus(matchItemSelected, patientCompare);
           }
-          matchItemSelected.setUser(user);
-          matchItemSelected.setUpdateDate(new Date());
-          dataSession.update(matchItemSelected);
+          matchItemSelectedRow.setExpectStatus(matchItemSelected.getExpectStatus());
+          matchItemSelectedRow.setUser(user);
+          matchItemSelectedRow.setUpdateDate(new Date());
+          dataSession.update(matchItemSelectedRow);
           transaction.commit();
           if (req.getParameter(PARAM_MATCH_ITEM_ID_NEXT) != null
               && !req.getParameter(PARAM_MATCH_ITEM_ID_NEXT).equals("")) {
-            matchItemSelected = (MatchItem) dataSession.get(MatchItem.class,
+            matchItemSelectedRow = (org.immregistries.mismo.trainer.model.MatchItem) dataSession.get(
+                org.immregistries.mismo.trainer.model.MatchItem.class,
                 Integer.parseInt(req.getParameter(PARAM_MATCH_ITEM_ID_NEXT)));
+            matchItemSelected = Island.toRuntimeMatchItem(matchItemSelectedRow);
           }
         } else if (action.equals(ACTION_SELECT)) {
           Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by label");
           query.setParameter(0, matchSetSelected);
-          List<MatchItem> matchItemList = query.list();
+          List<org.immregistries.mismo.trainer.model.MatchItem> matchItemRowList = query.list();
+          List<MatchItem> matchItemList = new ArrayList<MatchItem>();
+          for (org.immregistries.mismo.trainer.model.MatchItem matchItemRow : matchItemRowList) {
+            matchItemList.add(Island.toRuntimeMatchItem(matchItemRow));
+          }
           session.setAttribute(ATTRIBUTE_MATCH_ITEM_LIST, matchItemList);
           session.setAttribute(ATTRIBUTE_SIGNATURE_MAP, new HashMap<String, List<MatchItem>>());
         } else if (action.equals(ACTION_DOWNLOAD)) {
@@ -140,8 +151,8 @@ public class TestSetServlet extends HomeServlet {
           resp.setHeader("Content-Disposition", "attachment; filename=" + matchSetSelected.getLabel() + ".txt;");
           Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by label");
           query.setParameter(0, matchSetSelected);
-          List<MatchItem> matchItemList = query.list();
-          for (MatchItem matchItem : matchItemList) {
+          List<org.immregistries.mismo.trainer.model.MatchItem> matchItemList = query.list();
+          for (org.immregistries.mismo.trainer.model.MatchItem matchItem : matchItemList) {
             out.println("TEST: " + matchItem.getLabel());
             out.println("EXPECT: " + matchItem.getExpectStatus());
             out.println("PATIENT A: " + matchItem.getPatientDataA());
