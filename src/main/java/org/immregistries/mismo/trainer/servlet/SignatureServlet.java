@@ -38,6 +38,7 @@ public class SignatureServlet extends HomeServlet {
             } else {
                 signature = "";
             }
+            boolean showAllFields = "true".equals(req.getParameter("showAllFields"));
 
             HomeServlet.doHeader(out, req, user, null);
             out.println("    <div class=\"aira-container--wide aira-stack\">");
@@ -46,6 +47,9 @@ public class SignatureServlet extends HomeServlet {
             out.println("    Signature: <input type=\"text\" name=\"signature\" value=\""
                     + signature + "\" size=\"50\"/>");
             out.println("    <input type=\"submit\" name=\"action\" value=\"View\"/><br/>");
+            out.println("    <label><input type=\"checkbox\" name=\"showAllFields\" value=\"true\""
+                    + (showAllFields ? " checked" : "") + " onchange=\"this.form.submit()\"/>"
+                    + " Show all fields (including zero-score/disabled)</label>");
 
             if (!signature.equals("")) {
                 out.println("  <p>Signature: <strong>" + signature + "</strong>: ");
@@ -64,16 +68,20 @@ public class SignatureServlet extends HomeServlet {
             {
                 out.println("<table border=\"1\" cellspacing=\"0\">");
                 out.println("<tr><td valign=\"top\">Match</td>");
-                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getMatch(), "match");
+                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getMatch(), "match",
+                        showAllFields, true);
                 out.println("    </tr>");
                 out.println("<tr><td valign=\"top\">Not a Match</td>");
-                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getNotMatch(), "notmatch");
+                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getNotMatch(), "notmatch",
+                        showAllFields, false);
                 out.println("    </tr>");
                 out.println("<tr><td valign=\"top\">Twin</td>");
-                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getTwin(), "twin");
+                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getTwin(), "twin",
+                        showAllFields, false);
                 out.println("    </tr>");
                 out.println("<tr><td valign=\"top\">Missing</td>");
-                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getMissing(), "missing");
+                MatchTreeRenderer.printAggregateNodeFromSignature(out, patientCompare.getMissing(), "missing",
+                        showAllFields, true);
                 out.println("    </tr>");
                 out.println("    </table>");
             }

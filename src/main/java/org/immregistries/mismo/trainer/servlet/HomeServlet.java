@@ -3,7 +3,10 @@ package org.immregistries.mismo.trainer.servlet;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -84,55 +87,19 @@ public class HomeServlet extends HttpServlet {
         // login before any request reaches this servlet with no session user.
         out.println("      <p>You must log in via InteropHub to use Mismo Match.</p>");
       } else {
-        out.println("      <div class=\"aira-grid\">");
-        out.println("        <section class=\"aira-panel\">");
-        out.println("          <h2 class=\"aira-panel__title\">Primary Tools</h2>");
-        out.println("          <ul>");
-        out.println(
-            "            <li><a href=\"CentralServlet\">Central</a>: Shows the status of the central server"
-                + " that is responsible for listening to remote Island processes and reporting on"
-                + " the progress of these optimizations.</li>");
-        out.println(
-            "            <li><a href=\"WeightSetServlet\">Configuration</a>: Allows for viewing and updating the"
-                + " currently selected weight set.</li>");
-        out.println(
-            "            <li><a href=\"TestSetServlet\">Test Set</a>: Allows for entry and management of"
-                + " test sets.</li>");
-        out.println(
-            "            <li><a href=\"ReviewServlet\">Review</a>: Review tests that fail in context of"
-                + " similar tests. </li>");
-        out.println("            <li><a href=\"logout\">Logout</a></li>");
-        out.println("          </ul>");
-        out.println("        </section>");
-        out.println("        <section class=\"aira-panel\">");
-        out.println("          <h2 class=\"aira-panel__title\">Other Tools</h2>");
-        out.println("          <ul>");
-        out.println(
-            "            <li><a href=\"TestMatchingServlet\">Test Matching</a>: Shows the results of how"
-                + " well a particular matching set works.</li>");
-        out.println(
-            "            <li><a href=\"MatchPatientServlet\">Match Patient</a>: Shows how a single patient"
-                + " is matched using the weighting system.</li>");
-        out.println("            <li><a href=\"ConvertDataServlet\">Convert Data to Match Format</a></li>");
-        out.println(
-            "            <li><a href=\"AddressTestServlet\">Address Test</a>: Allows for looking at how"
-                + " addresses are read.</li>");
-        out.println(
-            "            <li><a href=\"RandomServlet\">Random</a>: Supports creating a set of three random"
-                + " patients, the second matching with the first and the third having similar"
-                + " characteristics but not being a match.</li>");
-        out.println(
-            "            <li><a href=\"RandomScriptServlet\">Random Script</a>: Creates script with lots of"
-                + " example data.</li>");
-        out.println(
-            "            <li><a href=\"RandomForCDCServlet\">Random for CDC Servlet</a>:  Creates data in a"
-                + " spreadsheet that was requested by the CDC deduplication project.</li>");
-        out.println(
-            "            <li><a href=\"ExampleServlet\">Example Servlet</a>:  Compares two inputs with JaroWinkler</li>");
-        out.println(
-            "            <li><a href=\"MatchNodeServlet\">Match Node Servlet</a>:  Shows operation of single match node</li>");
-        out.println("          </ul>");
-        out.println("        </section>");
+        out.println("      <div class=\"aira-card-grid\">");
+        for (NavArea area : NavArea.values()) {
+          out.println("        <section class=\"aira-panel\">");
+          out.println("          <h2 class=\"aira-panel__title\">" + escapeHtml(area.label) + "</h2>");
+          out.println("          <p>" + escapeHtml(area.description) + "</p>");
+          out.println("          <ul>");
+          for (NavPage navPage : area.pages) {
+            out.println("            <li><a href=\"" + navPage.path().substring(1) + "\">"
+                + escapeHtml(navPage.label()) + "</a></li>");
+          }
+          out.println("          </ul>");
+          out.println("        </section>");
+        }
         out.println("      </div>");
       }
       out.println("    </div>");
@@ -147,8 +114,13 @@ public class HomeServlet extends HttpServlet {
 
   /**
    * Writes the shared AIRA page shell (identity, account, contextual navigation) and opens
-   * &lt;main&gt;. Everything printed after this call until {@link #doFooter} stays hand-written
-   * HTML, same as v1.
+   * &lt;main&gt;. Row 1 (identity + account) and row 2 (the six {@link NavArea} entries, via
+   * {@link #buildPage}'s context config) come from {@link AiraPage} itself. When the active page
+   * belongs to a {@link NavArea}, this also opens the {@code aira-right-rail-layout} grid (the
+   * area's own sub-pages render into its right-hand rail in {@link #doFooter}); pages outside any
+   * area (e.g. Home) get a plain single-column container instead, since there is no per-area sub
+   * page list to show. Everything printed after this call until {@link #doFooter} stays
+   * hand-written HTML, same as v1.
    */
   public static void doHeader(PrintWriter out, HttpServletRequest req, User user, String message) {
     AiraPage page = buildPage(req, user).build();
@@ -158,6 +130,11 @@ public class HomeServlet extends HttpServlet {
       out.println("      <div class=\"aira-alert aira-alert--warning\" role=\"alert\"><p>"
           + escapeHtml(message) + "</p></div>");
       out.println("    </div>");
+    }
+    if (AREA_BY_PATH.get(req.getServletPath()) != null) {
+      out.println("    <div class=\"aira-container--wide aira-stack\">");
+      out.println("      <div class=\"aira-right-rail-layout\">");
+      out.println("        <div>");
     }
   }
 
@@ -178,23 +155,131 @@ public class HomeServlet extends HttpServlet {
         label = label + " · " + user.getOrganization().getName();
       }
       builder.account(new AiraAccountConfig(label, "Log out", "/logout"));
-      builder.context(new AiraContextConfig(APPLICATION_NAME, List.of(
-          new AiraNavigationItem("Central", "/CentralServlet", "/CentralServlet".equals(activePath)),
-          new AiraNavigationItem("Configuration", "/WeightSetServlet", "/WeightSetServlet".equals(activePath)),
-          new AiraNavigationItem("Test Set", "/TestSetServlet", "/TestSetServlet".equals(activePath)),
-          new AiraNavigationItem("Review", "/ReviewServlet", "/ReviewServlet".equals(activePath)),
-          new AiraNavigationItem("Signature", "/SignatureServlet", "/SignatureServlet".equals(activePath)))));
+
+      NavArea currentArea = AREA_BY_PATH.get(activePath);
+      List<AiraNavigationItem> areaNavItems = new ArrayList<>();
+      for (NavArea area : NavArea.values()) {
+        areaNavItems.add(new AiraNavigationItem(area.label, area.primaryPath(), area == currentArea));
+      }
+      builder.context(new AiraContextConfig(APPLICATION_NAME, areaNavItems));
     } else {
       builder.account(new AiraAccountConfig("", "Log in", "/login"));
     }
     return builder;
   }
 
+  /** One page/action listed in an area's right-side context navigation. */
+  private record NavPage(String label, String path) {
+  }
+
   /**
-   * Closes out any content that must render inside &lt;main&gt; (the loaded-configuration panel)
-   * and writes the shared AIRA footer/document end.
+   * The five analyst-facing top-level navigation areas from the functional model, plus a
+   * "Tools" catch-all for dev/diagnostic utility pages that don't fit any of the five
+   * (v2-roadmap.md §9, ui-changes-for-functional-model.md Track A). Every area is always listed
+   * in row 2's {@link AiraContextConfig} navigation (the active one highlighted); its
+   * {@link #pages} list becomes the right-hand rail rendered by {@link #doFooter} whenever the
+   * active page belongs to that area.
+   */
+  private enum NavArea {
+    TEST_SETS("Test Sets", "Manage test sets, review test cases, and compare individual patient pairs.",
+        List.of(
+            new NavPage("Test Sets", "/TestSetServlet"),
+            new NavPage("Compare a Pair", "/MatchPatientServlet"))),
+    CONFIGURATIONS("Configurations",
+        "View the current weight set or browse all configurations available to your organization.",
+        List.of(
+            new NavPage("Weight Set", "/WeightSetServlet"),
+            new NavPage("Browse All Configurations", "/CentralServlet"))),
+    EVALUATIONS("Evaluations", "Run test matching against a configuration and review the results.",
+        List.of(
+            new NavPage("Test Matching", "/TestMatchingServlet"),
+            new NavPage("Review", "/ReviewServlet"))),
+    SIGNATURES("Signatures", "Inspect how a match signature scores against a configuration.",
+        List.of(
+            new NavPage("Signature Inspector", "/SignatureServlet"))),
+    OPTIMIZATION("Optimization", "Monitor Island optimization processes and manage their credentials.",
+        List.of(
+            new NavPage("Central / Island Sync", "/CentralServlet"),
+            new NavPage("Island Credentials", "/IslandCredentialServlet"))),
+    TOOLS("Tools", "Dev and diagnostic utilities for addresses, data conversion, and example data.",
+        List.of(
+            new NavPage("Address Test", "/AddressTestServlet"),
+            new NavPage("Example", "/ExampleServlet"),
+            new NavPage("Convert Data", "/ConvertDataServlet"),
+            new NavPage("Match Node", "/MatchNodeServlet"),
+            new NavPage("Explore Test Script", "/TestScriptExploreServlet"),
+            new NavPage("Random", "/RandomServlet"),
+            new NavPage("Random Script", "/RandomScriptServlet"),
+            new NavPage("Random for CDC", "/RandomForCDCServlet")));
+
+    final String label;
+    final String description;
+    final List<NavPage> pages;
+
+    NavArea(String label, String description, List<NavPage> pages) {
+      this.label = label;
+      this.description = description;
+      this.pages = pages;
+    }
+
+    String primaryPath() {
+      return pages.get(0).path();
+    }
+  }
+
+  /**
+   * Reverse lookup from servlet path to the area whose top button/context title it activates.
+   * {@code CentralServlet} is reachable from both Configurations (browse/select/copy weight
+   * sets) and Optimization (Island sync monitoring) context navigation, but is only ever the
+   * active/highlighted area under Optimization, since the page itself is fundamentally the
+   * Island-facing infrastructure surface (v2-roadmap.md §9, functional model §2.9).
+   */
+  private static final Map<String, NavArea> AREA_BY_PATH = buildAreaByPath();
+
+  private static Map<String, NavArea> buildAreaByPath() {
+    Map<String, NavArea> map = new LinkedHashMap<>();
+    map.put("/TestSetServlet", NavArea.TEST_SETS);
+    map.put("/MatchPatientServlet", NavArea.TEST_SETS);
+    map.put("/WeightSetServlet", NavArea.CONFIGURATIONS);
+    map.put("/TestMatchingServlet", NavArea.EVALUATIONS);
+    map.put("/ReviewServlet", NavArea.EVALUATIONS);
+    map.put("/SignatureServlet", NavArea.SIGNATURES);
+    map.put("/CentralServlet", NavArea.OPTIMIZATION);
+    map.put("/IslandCredentialServlet", NavArea.OPTIMIZATION);
+    map.put("/AddressTestServlet", NavArea.TOOLS);
+    map.put("/ExampleServlet", NavArea.TOOLS);
+    map.put("/ConvertDataServlet", NavArea.TOOLS);
+    map.put("/MatchNodeServlet", NavArea.TOOLS);
+    map.put("/TestScriptExploreServlet", NavArea.TOOLS);
+    map.put("/RandomServlet", NavArea.TOOLS);
+    map.put("/RandomScriptServlet", NavArea.TOOLS);
+    map.put("/RandomForCDCServlet", NavArea.TOOLS);
+    return Map.copyOf(map);
+  }
+
+  /**
+   * Closes the right-rail-layout opened by {@link #doHeader} (rendering the current area's sub
+   * pages into the right-hand rail along the way), closes out any content that must render
+   * inside &lt;main&gt; (the loaded-configuration panel), and writes the shared AIRA
+   * footer/document end.
    */
   public static void doFooter(PrintWriter out, HttpServletRequest req) {
+    NavArea currentArea = AREA_BY_PATH.get(req.getServletPath());
+    if (currentArea != null) {
+      out.println("        </div>");
+      out.println("        <aside class=\"aira-panel aira-sidebar\" aria-label=\""
+          + escapeHtml(currentArea.label) + " navigation\">");
+      out.println("          <nav class=\"aira-sidebar-nav\">");
+      for (NavPage navPage : currentArea.pages) {
+        boolean active = navPage.path().equals(req.getServletPath());
+        out.println("            <a class=\"aira-sidebar-link\" href=\"" + navPage.path().substring(1) + "\""
+            + (active ? " aria-current=\"page\"" : "") + ">" + escapeHtml(navPage.label()) + "</a>");
+      }
+      out.println("          </nav>");
+      out.println("        </aside>");
+      out.println("      </div>");
+      out.println("    </div>");
+    }
     PatientCompare patientCompare = (PatientCompare) req.getSession().getAttribute(ATTRIBUTE_PATIENT_COMPARE);
     if (patientCompare != null && patientCompare.getConfiguration() != null) {
       DecimalFormat decimalFormat = new DecimalFormat("#0.0");

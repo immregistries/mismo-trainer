@@ -5,6 +5,16 @@
  * addLocalStylesheet call in HomeServlet.
  */
 
+/*
+ * This app has no global search box, so aira.css's own right-justification of the account
+ * area (a margin-left:auto on .aira-global-search, which pushes everything after it) never
+ * fires -- without it, identity and account pack together on the left. Confirmed by reading
+ * the shipped aira-web-theme 0.1.10 CSS directly (v2-roadmap.md §9 nav-layout fix).
+ */
+.aira-account-area {
+  margin-left: auto;
+}
+
 .pass {
   background: var(--aira-success-surface);
   color: var(--aira-success);
@@ -13,6 +23,33 @@
 .fail {
   background: var(--aira-error-surface);
   color: var(--aira-danger);
+}
+
+/* Test Case review page: Patient A/B field-diff highlighting (v2-roadmap.md §9). */
+.field-same {
+  background: var(--aira-success-surface);
+}
+
+.field-diff {
+  background: var(--aira-error-surface);
+  color: var(--aira-danger);
+}
+
+.field-partial {
+  background: var(--aira-warning-surface);
+  color: var(--aira-warning-text);
+}
+
+.field-missing {
+  background: var(--aira-surface-muted);
+  color: var(--aira-text-secondary);
+  font-style: italic;
+}
+
+/* Signature Inspector: emphasize non-zero Match/Missing network scores (v2-roadmap.md §9). */
+.score-emphasis {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 2px var(--aira-primary-action);
 }
 
 table {
