@@ -91,7 +91,7 @@ Do this **after Phase 1**, so the new `Filter`/`LoginServlet`/`LogoutServlet` co
 3. **Every human-facing page requires login — no anonymous mode.** This retires `TestMatchingServlet`'s and `TestScriptExploreServlet`'s current guest branches. The one exception is the Island machine API (Phase 5 below), which authenticates via `island_credential`, not InteropHub.
 4. Remove all application use of the legacy `user.password` field once the SSO path is confirmed working.
 
-**Out-of-band prerequisite:** register mismo-trainer's app code + callback URL with whoever administers InteropHub before this phase can go live — that pairing is InteropHub-side configuration, not something this repo controls. Also worth confirming directly with the Hub administrators that `hub_user_id` is stable and non-reused across a user's lifetime before treating it as a permanent key, since that's not verifiable from the client library alone.
+**Out-of-band prerequisite — done for local dev:** a local InteropHub instance is registered with app code `mismo`, pointing at `http://localhost:8080/mismo` (admin config: `http://localhost:8080/hub/admin/apps?appId=3`). This means the local WAR must actually deploy at context path `/mismo` for the callback to match — `pom.xml` has no `<finalName>` override today, so it packages as `mismo-trainer-1.1.war` (context `/mismo-trainer-1.1` by default); set `<finalName>mismo</finalName>` so local deploys land at the registered path. Production app registration (a separate InteropHub instance/environment) is still a separate out-of-band step when that time comes. Also still worth confirming directly with the Hub administrators that `hub_user_id` is stable and non-reused across a user's lifetime before treating it as a permanent key, since that's not verifiable from the client library alone.
 
 ---
 
@@ -120,6 +120,7 @@ Natural to fold into the same pass that rewrites `CentralServlet` for the jakart
 - Add authenticated Island sync using `island_credential` (§3.6 of the schema plan).
 - Disable the current unauthenticated `CentralServlet.doPost` path entirely — today, any network-reachable client can write arbitrary `configuration` rows for any `worldName`/`islandName`.
 - Scope all Island read/write operations to the credential's organization.
+- Fix `ACTION_UPDATE`'s missing `generatedDate` (`known-issues.md`): building a brand-new `Configuration` row for a never-before-seen `(worldName, islandName)` pair never sets `generatedDate` before `save()`, which fails against the `generated_date NOT NULL` constraint. Default it to the current date/time when not otherwise known.
 - While rewriting this servlet, also fix the two concrete GA bugs already found in `optimization-and-islands.md` (`World.lowerCutStart`'s bitwise-XOR-instead-of-squaring bug, and `Creature`'s clone constructor cloning `Missing` from the parent's `Twin` tree) if the evolutionary optimizer is being kept largely as-is.
 
 ---
@@ -163,6 +164,6 @@ Not scheduled in any phase above. Once the database is the authoritative home fo
 
 ## 10. Open items to resolve before implementation starts
 
-- **InteropHub app registration** — needs to happen with the Hub administrators before Phase 3 can go live; not something this repo can self-serve.
+- ~~**InteropHub app registration**~~ — done for local dev (app code `mismo`, see §4). Production registration is still a separate future step.
 - **`hub_user_id` stability guarantee** — confirm with InteropHub administrators that it's stable and non-reused, since the schema plan makes it the permanent identity key.
 - **Fate of the legacy `patientmatch`/`org.immregistries.pm` comparison path** — confirm with the maintainer whether the old-vs-new regression-comparison capability the "Original" servlets provide is still needed before deleting it in Phase 6.

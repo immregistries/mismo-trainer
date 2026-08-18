@@ -38,7 +38,13 @@
 			<artifactId>mismo-match</artifactId>
 			<version>1.1</version>
 		</dependency>
-		
+
+		<dependency>
+			<groupId>org.immregistries</groupId>
+			<artifactId>interophub-client</artifactId>
+			<version>1.1.0</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate</artifactId>
@@ -90,7 +96,8 @@
 	</dependencies>
 
 	<build>
-		<pluginManagement><!-- lock down plugins versions to avoid using Maven 
+		<finalName>mismo</finalName>
+		<pluginManagement><!-- lock down plugins versions to avoid using Maven
 				defaults (may be moved to parent pom) -->
 			<plugins>
 				<!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->

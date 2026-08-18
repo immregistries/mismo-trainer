@@ -119,3 +119,83 @@ ALTER TABLE configuration
     ADD KEY idx_configuration_organization_world (organization_id, world_name),
     ADD KEY idx_configuration_organization_world_island (organization_id, world_name, island_name),
     ADD KEY idx_configuration_island_credential_id (island_credential_id);
+
+-- =====================================================================
+-- Phase 3/4 (docs/v2-roadmap.md §4; database-schema-migration-plan.md §6
+-- Phase 2-4) -- InteropHub SSO switch-over.
+--
+-- Two independent pieces:
+--   (a) app_setting -- a minimal DB-driven runtime settings table holding
+--       the InteropHub base URL, following the "Clear" integration
+--       precedent in InteropHub-Client's docs/integration-clear.md (chosen
+--       over a build-time property since this app already has Hibernate/
+--       session-factory plumbing a settings table fits naturally into).
+--   (b) backfill DML -- create one organization representing the pre-v2
+--       data owner and assign the existing legacy user/match_set/
+--       configuration rows to it, and backfill match_item's user_id/
+--       update_date into the new attribution columns. All statements are
+--       idempotent (safe to re-run; no-ops once already applied).
+--
+-- This does NOT touch user.password or any application code path -- that
+-- removal is Phase 7 (schema plan §6 Phase 7); the application simply
+-- stops *using* the column once InteropHub login is live.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- app_setting (new) -- see InteropHub-Client docs/integration-clear.md's
+-- "system_settings" table. Currently holds only the Hub's base URL.
+-- ---------------------------------------------------------------------
+CREATE TABLE app_setting (
+    setting_key varchar(100) NOT NULL,
+    setting_value varchar(500) DEFAULT NULL,
+    PRIMARY KEY (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Local dev default -- update via the row itself (no redeploy needed) for
+-- other environments.
+INSERT INTO app_setting (setting_key, setting_value)
+VALUES ('hub.external.url', 'http://localhost:8080/hub');
+
+-- ---------------------------------------------------------------------
+-- Backfill -- database-schema-migration-plan.md §6 Phase 2/Phase 3.
+-- Creates one organization representing the pre-v2 data owner and assigns
+-- to it: the existing legacy user (any user row that predates InteropHub
+-- login, i.e. hub_user_id is still NULL), all existing match_set rows,
+-- and all existing configuration rows. match_item's legacy user_id/
+-- update_date are copied into the new attribution columns.
+--
+-- Note: this intentionally does NOT try to match/merge a legacy
+-- password-login user with a later InteropHub identity by email --
+-- hub_user_id is the sole identity key (§2.1); a person who both has a
+-- pre-v2 legacy row and later logs in via InteropHub gets a second,
+-- separate user row, exactly as the migration plan specifies.
+-- ---------------------------------------------------------------------
+INSERT INTO organization (name, domain, created_at, updated_at)
+SELECT 'Legacy Mismo-Trainer Data', NULL, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM organization WHERE name = 'Legacy Mismo-Trainer Data');
+
+UPDATE user
+SET organization_id = (SELECT organization_id FROM organization WHERE name = 'Legacy Mismo-Trainer Data')
+WHERE hub_user_id IS NULL AND organization_id IS NULL;
+
+UPDATE match_set
+SET organization_id = (SELECT organization_id FROM organization WHERE name = 'Legacy Mismo-Trainer Data'),
+    created_by_user_id = COALESCE(created_by_user_id,
+        (SELECT user_id FROM user WHERE hub_user_id IS NULL ORDER BY user_id LIMIT 1)),
+    updated_by_user_id = COALESCE(updated_by_user_id,
+        (SELECT user_id FROM user WHERE hub_user_id IS NULL ORDER BY user_id LIMIT 1)),
+    created_at = COALESCE(created_at, update_date),
+    updated_at = COALESCE(updated_at, update_date)
+WHERE organization_id IS NULL;
+
+UPDATE configuration
+SET organization_id = (SELECT organization_id FROM organization WHERE name = 'Legacy Mismo-Trainer Data')
+WHERE organization_id IS NULL;
+
+UPDATE match_item
+SET created_by_user_id = COALESCE(created_by_user_id, user_id),
+    updated_by_user_id = COALESCE(updated_by_user_id, user_id),
+    created_at = COALESCE(created_at, update_date),
+    updated_at = COALESCE(updated_at, update_date)
+WHERE created_by_user_id IS NULL OR updated_by_user_id IS NULL
+   OR created_at IS NULL OR updated_at IS NULL;

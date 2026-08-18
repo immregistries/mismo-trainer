@@ -9,7 +9,7 @@
     <property name="email" column="email" type="string"/>
     <property name="password" column="password" type="string"/>
     <property name="hubUserId" column="hub_user_id" type="string" unique="true"/>
-    <many-to-one name="organization" column="organization_id" class="Organization"/>
+    <many-to-one name="organization" column="organization_id" class="Organization" lazy="false"/>
     <property name="displayName" column="display_name" type="string"/>
     <property name="firstName" column="first_name" type="string"/>
     <property name="lastName" column="last_name" type="string"/>

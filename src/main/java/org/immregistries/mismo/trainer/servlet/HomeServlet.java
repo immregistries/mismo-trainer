@@ -4,13 +4,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.List;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.AnnotationConfiguration;
@@ -29,11 +27,6 @@ import org.immregistries.mismo.trainer.model.User;
  * @author Nathan Bunker
  */
 public class HomeServlet extends HttpServlet {
-  public static final String ACTION_LOGIN = "Login";
-  public static final String ACTION_LOGOUT = "Logout";
-
-  public static final String PARAM_NAME = "name";
-  public static final String PARAM_PASSWORD = "password";
   public static final String PARAM_MESSAGE = "message";
   public static final String PARAM_CONFIGURATION_ID = "configurationId";
 
@@ -71,65 +64,15 @@ public class HomeServlet extends HttpServlet {
       setup(req, resp);
       HttpSession session = req.getSession(true);
       User user = (User) session.getAttribute(ATTRIBUTE_USER);
-      Session dataSession = (Session) session.getAttribute(ATTRIBUTE_DATA_SESSION);
       String message = req.getParameter(PARAM_MESSAGE);
-
-      String action = req.getParameter(PARAM_ACTION);
-      if (action != null) {
-        if (action.equals(ACTION_LOGIN)) {
-          String name = req.getParameter(PARAM_NAME);
-          String password = req.getParameter(PARAM_PASSWORD);
-          Query query = dataSession.createQuery("from User where name = ? and password = ?");
-          query.setParameter(0, name);
-          query.setParameter(1, password);
-          List<User> userList = query.list();
-          if (userList.size() > 0) {
-            user = userList.get(0);
-            session.setAttribute(ATTRIBUTE_USER, user);
-            message = "Welcome " + user.getName() + "!";
-          } else {
-            message = "Unrecognized name or password, unable to login.";
-          }
-        } else if (action.equals(ACTION_LOGOUT)) {
-          dataSession.close();
-          session.invalidate();
-          user = null;
-          return;
-        }
-      }
 
       doHeader(out, user, message);
       out.println("  <h1>Mismo Match Toolset</h1>");
       if (user == null) {
+        // Unreachable in practice: AuthenticationFilter redirects to InteropHub
+        // login before any request reaches this servlet with no session user.
         out.println("    <div class=\"w3-container w3-half w3-margin-top\">");
-        out.println("    <div class=\"w3-container w3-card-4\">");
-        out.println("    <form action=\"HomeServlet\" method=\"POST\"> ");
-        out.println("    <table>");
-        out.println("      <tr>");
-        out.println("        <td>Name</td>");
-        out.println(
-            "        <td><input type=\"text\" size=\"20\" name=\""
-                + PARAM_NAME
-                + "\" value=\"\"/></td>");
-        out.println("      </tr>");
-        out.println("      <tr>");
-        out.println("        <td>Password</td>");
-        out.println(
-            "        <td><input type=\"password\" size=\"20\" name=\""
-                + PARAM_PASSWORD
-                + "\" value=\"\"/></td>");
-        out.println("      </tr>");
-        out.println("      <tr>");
-        out.println(
-            "        <td colspan=\"2\" align=\"right\"><input type=\"submit\" name=\""
-                + PARAM_ACTION
-                + "\" value=\""
-                + ACTION_LOGIN
-                + "\"/></td>");
-        out.println("      </tr>");
-        out.println("    </table>");
-        out.println("    </form>");
-        out.println("    </div>");
+        out.println("    <p>You must log in via InteropHub to use Mismo Match.</p>");
         out.println("    </div>");
       } else {
         out.println("    <div class=\"w3-container w3-half w3-margin-top\">");
@@ -148,12 +91,7 @@ public class HomeServlet extends HttpServlet {
         out.println(
             "    <li><a href=\"TestSetServlet\">Review</a>: Review tests that fail in context of"
                 + " similar tests. </li>");
-        out.println(
-            "    <li><a href=\"HomeServlet?"
-                + PARAM_ACTION
-                + "="
-                + ACTION_LOGOUT
-                + "\">Logout</a></li>");
+        out.println("    <li><a href=\"logout\">Logout</a></li>");
         out.println("  </ul>");
         out.println("  <h3>Other Tools</h3>");
         out.println("  <ul>");
@@ -309,7 +247,7 @@ public class HomeServlet extends HttpServlet {
         "        <a href=\"HomeServlet\" class=\"w3-bar-item w3-button w3-green\">Mismo"
             + " Match</a>");
     if (user == null) {
-      out.println("        <a href=\"\" class=\"w3-bar-item w3-button\">Login</a>");
+      out.println("        <a href=\"login\" class=\"w3-bar-item w3-button\">Login</a>");
     } else {
       out.println("        <a href=\"CentralServlet\" class=\"w3-bar-item w3-button\">Central</a>");
       out.println(
@@ -320,12 +258,7 @@ public class HomeServlet extends HttpServlet {
       out.println(
           "        <a href=\"SignatureServlet\" class=\"w3-bar-item w3-button\">Signature</a>");
 
-      out.println(
-          "        <a href=\"HomeServlet?"
-              + PARAM_ACTION
-              + "="
-              + ACTION_LOGOUT
-              + "\" class=\"w3-bar-item w3-button\">Logout</a>");
+      out.println("        <a href=\"logout\" class=\"w3-bar-item w3-button\">Logout</a>");
     }
     out.println("      </div>");
     out.println("    </header>");

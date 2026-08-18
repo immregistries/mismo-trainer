@@ -1,8 +1,6 @@
 package org.immregistries.mismo.trainer.servlet;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URLEncoder;
 import java.text.DecimalFormat;
@@ -41,8 +39,6 @@ public class TestMatchingServlet extends HomeServlet
 
   public static final String PARAM_CONFIGURATION_ID = "configurationId";
 
-  public static final String PARAM_TEST_SCRIPT = "testScript";
-
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     setup(req, resp);
@@ -53,27 +49,16 @@ public class TestMatchingServlet extends HomeServlet
     Session dataSession = (Session) session.getAttribute(TestSetServlet.ATTRIBUTE_DATA_SESSION);
     try {
       MatchSet matchSetSelected = null;
-      String testScript = null;
-      if (user != null) {
-        if (req.getParameter(TestSetServlet.PARAM_MATCH_SET_ID) != null) {
-          matchSetSelected = (MatchSet) dataSession.get(MatchSet.class,
-              Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_SET_ID)));
-        } else if (session.getAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET) != null) {
-          matchSetSelected = (MatchSet) session.getAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET);
-        }
-        session.setAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET, matchSetSelected);
-        testScript = "";
-      } else {
-        testScript = req.getParameter(PARAM_TEST_SCRIPT);
-        if (testScript == null) {
-          testScript = (String) session.getAttribute(PARAM_TEST_SCRIPT);
-          if (testScript == null) {
-            testScript = "";
-          }
-        }
+      if (req.getParameter(TestSetServlet.PARAM_MATCH_SET_ID) != null) {
+        matchSetSelected = (MatchSet) dataSession.get(MatchSet.class,
+            Integer.parseInt(req.getParameter(TestSetServlet.PARAM_MATCH_SET_ID)));
+      } else if (session.getAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET) != null) {
+        matchSetSelected = (MatchSet) session.getAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET);
       }
+      session.setAttribute(TestSetServlet.ATTRIBUTE_MATCH_SET, matchSetSelected);
+
       PatientCompare patientCompare = (PatientCompare) session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
-      
+
       List<MatchItem> matchItemList = new ArrayList<MatchItem>();
       session.setAttribute(ATTRIBUTE_MATCH_TEST_CASE_LIST, matchItemList);
       if (matchSetSelected != null) {
@@ -83,38 +68,6 @@ public class TestMatchingServlet extends HomeServlet
         for (org.immregistries.mismo.trainer.model.MatchItem matchItemRow : matchItemRowList) {
           matchItemList.add(Island.toRuntimeMatchItem(matchItemRow));
         }
-      } else if (!testScript.equals("")) {
-        MatchItem matchItem = null;
-        BufferedReader in = null;
-        for (String possibleScript : TEST_SCRIPTS) {
-          if (testScript.equals(possibleScript)) {
-            in = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream(possibleScript + ".txt")));
-            break;
-          }
-        }
-        String line = "";
-        while ((line = in.readLine()) != null) {
-          if (line.startsWith("TEST:")) {
-            if (matchItem != null) {
-              matchItemList.add(matchItem);
-            }
-            matchItem = new MatchItem();
-            matchItem.setLabel(readValue(line));
-          } else if (matchItem != null) {
-            if (line.startsWith("EXPECT:")) {
-              matchItem.setExpectStatus(readValue(line));
-            } else if (line.startsWith("PATIENT A:")) {
-              matchItem.setPatientDataA(readValue(line));
-            } else if (line.startsWith("PATIENT B:")) {
-              matchItem.setPatientDataB(readValue(line));
-            } else if (line.startsWith("DESCRIPTION:")) {
-              matchItem.setDescription(readValue(line));
-            }
-          }
-        }
-        if (matchItem != null) {
-          matchItemList.add(matchItem);
-        }
       }
 
       HomeServlet.doHeader(out, user, null);
@@ -122,30 +75,20 @@ public class TestMatchingServlet extends HomeServlet
       out.println("    <form action=\"TestMatchingServlet\" method=\"POST\"> ");
       out.println("    <table>");
       out.println("      <tr>");
-      if (user == null) {
-        out.println("        <td valign=\"top\">Test Script</td>");
-        out.println("        <td><select name=\"" + PARAM_TEST_SCRIPT + "\">");
-        for (String possibleScript : TEST_SCRIPTS) {
-          out.println("          <option value=\"" + possibleScript + "\">" + possibleScript + "</option>");
+      out.println("        <td valign=\"top\">Match Set</td>");
+      out.println("        <td><select name=\"" + TestSetServlet.PARAM_MATCH_SET_ID + "\">");
+      Query matchSetListQuery = dataSession.createQuery("from MatchSet order by updateDate");
+      List<MatchSet> matchSetList = matchSetListQuery.list();
+      for (MatchSet matchSet : matchSetList) {
+        if (matchSetSelected != null && matchSetSelected.equals(matchSet)) {
+          out.println("          <option value=\"" + matchSet.getMatchSetId() + "\" selected=\"true\">"
+              + matchSet.getLabel() + "</option>");
+        } else {
+          out.println("          <option value=\"" + matchSet.getMatchSetId() + "\">" + matchSet.getLabel()
+              + "</option>");
         }
-        out.println("           </select>");
-      } else {
-        out.println("        <td valign=\"top\">Match Set</td>");
-        out.println("        <td><select name=\"" + TestSetServlet.PARAM_MATCH_SET_ID + "\">");
-        Query query = dataSession.createQuery("from MatchSet order by updateDate");
-        List<MatchSet> matchSetList = query.list();
-        for (MatchSet matchSet : matchSetList) {
-          if (matchSetSelected != null && matchSetSelected.equals(matchSet)) {
-            out.println("          <option value=\"" + matchSet.getMatchSetId() + "\" selected=\"true\">"
-                + matchSet.getLabel() + "</option>");
-          } else {
-            out.println("          <option value=\"" + matchSet.getMatchSetId() + "\">" + matchSet.getLabel()
-                + "</option>");
-          }
-        }
-        out.println("           </select>");
-
       }
+      out.println("           </select>");
       out.println("        </td>");
       out.println("      </tr>");
       out.println("      <tr><td colspan=\"2\" align=\"right\"><input type=\"submit\" name=\"submit\" value=\"Submit\"></td></tr>");
@@ -280,15 +223,6 @@ public class TestMatchingServlet extends HomeServlet
       e.printStackTrace(out);
     }
     out.close();
-  }
-
-  private static String readValue(String s) {
-    int pos = s.indexOf(":");
-    if (pos == -1) {
-      return "";
-    } else {
-      return s.substring(pos + 1).trim();
-    }
   }
 
   @Override
