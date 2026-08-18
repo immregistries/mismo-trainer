@@ -166,16 +166,13 @@ public class CentralServlet extends HomeServlet {
       if (action.equals(ACTION_UPDATE)) {
         String configurationScript = req.getParameter(PARAM_CONFIGURATION_SCRIPT);
         lastConfigurationScriptReceived = configurationScript;
-        Configuration configuration = getLatestConfiguration(dataSession, worldName, islandName, organization);
-        if (configuration == null) {
-          // Never-before-seen (worldName, islandName) pair for this organization -- generated_date
-          // is NOT NULL, so it must be set here rather than left to its Java default.
-          // (known-issues.md; v2-roadmap.md §6)
-          configuration = new Configuration();
-          configuration.setGeneratedDate(new Date());
-          configuration.setCreatedAt(new Date());
-          configuration.setOrganization(organization);
-        }
+        // Insert-only: every update is a new row, so generation history is retained instead of
+        // overwriting the prior latest row for this (worldName, islandName, organization) triple.
+        // (known-issues.md; v2-roadmap.md §7)
+        Configuration configuration = new Configuration();
+        configuration.setGeneratedDate(new Date());
+        configuration.setCreatedAt(new Date());
+        configuration.setOrganization(organization);
         org.immregistries.mismo.match.model.Configuration matchConfiguration =
             new org.immregistries.mismo.match.model.Configuration();
         matchConfiguration.setConfigurationScript(configurationScript);
@@ -214,7 +211,7 @@ public class CentralServlet extends HomeServlet {
           // from any sibling island in this worldName, still scoped to this credential's org.
           Query query = dataSession.createQuery(
               "from Configuration where worldName = :worldName and organization = :organization"
-                  + " order by generation desc");
+                  + " order by generation desc, createdAt desc");
           query.setParameter("worldName", worldName);
           query.setParameter("organization", organization);
           List<Configuration> configurationList = query.list();
@@ -239,7 +236,7 @@ public class CentralServlet extends HomeServlet {
     Configuration configuration = null;
     Query query = dataSession.createQuery(
         "from Configuration where worldName = :worldName and islandName = :islandName"
-            + " and organization = :organization order by generation desc");
+            + " and organization = :organization order by generation desc, createdAt desc");
     query.setParameter("worldName", worldName);
     query.setParameter("islandName", islandName);
     query.setParameter("organization", organization);

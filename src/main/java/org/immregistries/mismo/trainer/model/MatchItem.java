@@ -5,9 +5,6 @@ import java.util.Date;
 /**
  * Trainer-owned persistence replacement for the mismo-match-jar
  * {@code MatchItem} mapping (see database-schema-migration-plan.md §2.7).
- * {@code user}/{@code updateDate} are the legacy v1 attribution columns,
- * retained alongside the new created/updated-by columns until the Phase 7
- * cleanup drops them.
  */
 public class MatchItem {
 
@@ -18,8 +15,6 @@ public class MatchItem {
   private String patientDataA;
   private String patientDataB;
   private String expectStatus;
-  private User user;
-  private Date updateDate;
   private String dataSource;
   private User createdByUser;
   private User updatedByUser;
@@ -80,22 +75,6 @@ public class MatchItem {
 
   public void setExpectStatus(String expectStatus) {
     this.expectStatus = expectStatus;
-  }
-
-  public User getUser() {
-    return user;
-  }
-
-  public void setUser(User user) {
-    this.user = user;
-  }
-
-  public Date getUpdateDate() {
-    return updateDate;
-  }
-
-  public void setUpdateDate(Date updateDate) {
-    this.updateDate = updateDate;
   }
 
   public String getDataSource() {

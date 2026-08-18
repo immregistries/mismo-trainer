@@ -65,7 +65,7 @@ public final class OrgScope {
 
   @SuppressWarnings("unchecked")
   public static List<MatchSet> listMatchSets(Session dataSession, User user) {
-    Query query = dataSession.createQuery("from MatchSet where organization = ? order by updateDate desc");
+    Query query = dataSession.createQuery("from MatchSet where organization = ? order by updatedAt desc");
     query.setParameter(0, user.getOrganization());
     return query.list();
   }
@@ -86,7 +86,6 @@ public final class OrgScope {
     matchSet.setOrganization(user.getOrganization());
     matchSet.setCreatedByUser(user);
     matchSet.setUpdatedByUser(user);
-    matchSet.setUpdateDate(now);
     matchSet.setCreatedAt(now);
     matchSet.setUpdatedAt(now);
     dataSession.save(matchSet);

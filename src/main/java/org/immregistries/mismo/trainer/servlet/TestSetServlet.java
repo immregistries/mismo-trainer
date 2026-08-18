@@ -124,8 +124,6 @@ public class TestSetServlet extends HomeServlet {
           }
           Date now = new Date();
           matchItemSelectedRow.setExpectStatus(matchItemSelected.getExpectStatus());
-          matchItemSelectedRow.setUser(user);
-          matchItemSelectedRow.setUpdateDate(now);
           matchItemSelectedRow.setUpdatedByUser(user);
           matchItemSelectedRow.setUpdatedAt(now);
           dataSession.update(matchItemSelectedRow);
@@ -525,7 +523,7 @@ public class TestSetServlet extends HomeServlet {
         for (MatchSet matchSet : matchSetList) {
           out.println("      <tr>");
           out.println("        <td>" + matchSet.getLabel() + "</td>");
-          out.println("        <td>" + sdf.format(matchSet.getUpdateDate()) + "</td>");
+          out.println("        <td>" + sdf.format(matchSet.getUpdatedAt()) + "</td>");
           out.println("        <td>");
           out.println("          <form action=\"TestSetServlet\" method=\"POST\"> ");
           out.println("    <input type=\"hidden\" name=\"" + PARAM_MATCH_SET_ID + "\" value=\""
@@ -554,7 +552,6 @@ public class TestSetServlet extends HomeServlet {
       out.println("    </table>");
       out.println("    </form>");
 
-      out.println("<a href=\"TestSetOriginalServlet\">Original Test Comparison</a>");
       out.println("    </div>");
 
       HomeServlet.doFooter(out, req);

@@ -4,25 +4,23 @@ import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.MatchItem;
 
 /**
- * A convenience class that supports scoring the matches. Currently this scoring
- * table is hard coded
- * but can be modified during run time.
+ * A convenience class that supports scoring the matches. These weights are used to "steer" the
+ * optimization towards a better fit. Creatures will receive a total score that indicates how well
+ * their solution fits. Ideally a creature would always get positive scores and never negative
+ * scores.
  * <p>
- * These weights are used to "steer" the optimization towards a better fit.
- * Creatures will be receive
- * a total score that indicates how well their solution fits. Ideally a creature
- * would always
- * get positive scores and never negative scores.
- * 
+ * The default weights below are read from the loaded {@code Configuration} (the same 3x3
+ * {@code scoringWeights} block documented in {@code Configuration.yml}, mismo-match's canonical
+ * source) rather than a separate hardcoded copy here -- see docs/known-issues.md and
+ * docs/optimization-and-islands.md §3 for the history of the four previously-disagreeing copies
+ * of these numbers.
+ *
  * @author Nathan Bunker
  *
  */
 public class Scorer {
   private int[][] countTable = new int[3][3];
-  /* Match */
-  private static int[][] weights = { /* Should Match */ { 20, 0, -5 },
-      /* Possible */ { -20, 10, 0 },
-      /* Not Match */ { -40, -10, 10 } };
+  private static int[][] weights = defaultWeights();
 
   public Scorer() {
     // default
@@ -36,34 +34,23 @@ public class Scorer {
   }
 
   /**
-   * Returns an array, 3 x 3, of weights.
-   * <table>
-   * <tr>
-   * <th></th>
-   * <th>Matched [0]</th>
-   * <th>Possible [1]</th>
-   * <th>Not Matched [2]</th>
-   * </tr>
-   * <tr>
-   * <th>Should Match [0]</th>
-   * <td>20</td>
-   * <td>-5</td>
-   * <td>-20</td>
-   * </tr>
-   * <tr>
-   * <th>Possible [1]</th>
-   * <td>-5</td>
-   * <td>20</td>
-   * <td>-5</td>
-   * </tr>
-   * <tr>
-   * <th>Not Match [2]</th>
-   * <td>-10</td>
-   * <td>-5</td>
-   * <td>10</td>
-   * </tr>
-   * </table>
-   * 
+   * Builds a default {@code Configuration} (no explicit script) purely to read its
+   * {@code scoringWeights} -- this is the same defaulting path {@code World}/{@code Creature} use
+   * when no seed script is available, so this class never maintains its own separate copy of the
+   * default numbers.
+   */
+  private static int[][] defaultWeights() {
+    org.immregistries.mismo.match.model.Configuration configuration =
+        new org.immregistries.mismo.match.model.Configuration();
+    configuration.setup();
+    return configuration.getScoringWeights();
+  }
+
+  /**
+   * Returns an array, 3 x 3, of weights: rows are the expected status (Should Match/Possible/Not
+   * Match), columns are the actual status (Matched/Possible/Not Matched). See
+   * {@code Configuration.yml}'s {@code scoringWeights} block for the canonical default values.
+   *
    * @return
    */
   public static int[][] getWeights() {

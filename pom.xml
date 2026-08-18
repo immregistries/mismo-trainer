@@ -92,13 +92,6 @@
     		<version>1.29</version>
 		</dependency>
 
-		<dependency>
-		    <groupId>org.immregistries</groupId>
-		    <artifactId>patientmatch</artifactId>
-    		<version>1.6.03</version>
-			<classifier>embed</classifier>
-		</dependency>
-
 	</dependencies>
 
 	<build>

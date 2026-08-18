@@ -359,13 +359,14 @@ public class Island {
     runtimeMatchItem.setExpectStatus(matchItem.getExpectStatus());
     runtimeMatchItem.setPatientA(new Patient(matchItem.getPatientDataA()));
     runtimeMatchItem.setPatientB(new Patient(matchItem.getPatientDataB()));
-    runtimeMatchItem.setUpdateDate(matchItem.getUpdateDate());
-    if (matchItem.getUser() != null) {
+    runtimeMatchItem.setUpdateDate(matchItem.getUpdatedAt());
+    if (matchItem.getUpdatedByUser() != null) {
       org.immregistries.mismo.match.model.User runtimeUser = new org.immregistries.mismo.match.model.User();
-      runtimeUser.setUserId(matchItem.getUser().getUserId());
-      runtimeUser.setName(matchItem.getUser().getDisplayName() != null ? matchItem.getUser().getDisplayName()
-          : matchItem.getUser().getEmail());
-      runtimeUser.setEmail(matchItem.getUser().getEmail());
+      runtimeUser.setUserId(matchItem.getUpdatedByUser().getUserId());
+      runtimeUser.setName(matchItem.getUpdatedByUser().getDisplayName() != null
+          ? matchItem.getUpdatedByUser().getDisplayName()
+          : matchItem.getUpdatedByUser().getEmail());
+      runtimeUser.setEmail(matchItem.getUpdatedByUser().getEmail());
       runtimeMatchItem.setUser(runtimeUser);
     }
     return runtimeMatchItem;

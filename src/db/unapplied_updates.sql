@@ -199,3 +199,110 @@ SET created_by_user_id = COALESCE(created_by_user_id, user_id),
     updated_at = COALESCE(updated_at, update_date)
 WHERE created_by_user_id IS NULL OR updated_by_user_id IS NULL
    OR created_at IS NULL OR updated_at IS NULL;
+
+-- =====================================================================
+-- Phase 7 (docs/v2-roadmap.md §7; docs/database-schema-migration-plan.md
+-- §6 Phase 7) -- constraint tightening and legacy column/table cleanup.
+--
+-- DESTRUCTIVE / IRREVERSIBLE -- kept as its own clearly-delineated block
+-- per v2-roadmap.md §8, applied only after confirming every row already
+-- has a populated organization_id and no orphaned foreign keys. Verified
+-- directly (queried, not assumed) against the local matching_validation
+-- database on 2026-08-18 before writing this block:
+--   * user (2 rows) / match_set (9 rows) / configuration (15 rows) /
+--     island_credential (1 row): zero NULL organization_id rows.
+--   * Zero orphans: match_item.match_set_id -> match_set;
+--     match_set/configuration/island_credential.organization_id ->
+--     organization; match_set/match_item.created_by_user_id/
+--     updated_by_user_id -> user; configuration.created_by_user_id ->
+--     user; configuration.island_credential_id -> island_credential;
+--     island_credential.created_by_user_id -> user.
+--   * Zero duplicate values in user.hub_user_id, organization.domain,
+--     island_credential.credential_hash.
+-- Re-run the equivalent checks against production data before applying
+-- this block there -- do not assume the same result holds.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- organization_id -> NOT NULL (database-schema-migration-plan.md §6
+-- Phase 7 step 1). island_credential.organization_id is included here
+-- too even though the roadmap phase prose only names user/match_set/
+-- configuration -- schema plan §3.6 defines it NOT NULL as well, and the
+-- verification above confirms local data already satisfies it.
+-- ---------------------------------------------------------------------
+ALTER TABLE user MODIFY COLUMN organization_id int NOT NULL;
+ALTER TABLE match_set MODIFY COLUMN organization_id int NOT NULL;
+ALTER TABLE configuration MODIFY COLUMN organization_id int NOT NULL;
+ALTER TABLE island_credential MODIFY COLUMN organization_id int NOT NULL;
+
+-- ---------------------------------------------------------------------
+-- Real foreign-key constraints (database-schema-migration-plan.md §6
+-- Phase 7 step 2, and the full relationship diagram in §7 of that doc).
+-- ---------------------------------------------------------------------
+ALTER TABLE user
+    ADD CONSTRAINT fk_user_organization
+        FOREIGN KEY (organization_id) REFERENCES organization (organization_id);
+
+ALTER TABLE match_set
+    ADD CONSTRAINT fk_match_set_organization
+        FOREIGN KEY (organization_id) REFERENCES organization (organization_id),
+    ADD CONSTRAINT fk_match_set_created_by_user
+        FOREIGN KEY (created_by_user_id) REFERENCES user (user_id),
+    ADD CONSTRAINT fk_match_set_updated_by_user
+        FOREIGN KEY (updated_by_user_id) REFERENCES user (user_id);
+
+ALTER TABLE match_item
+    ADD CONSTRAINT fk_match_item_match_set
+        FOREIGN KEY (match_set_id) REFERENCES match_set (match_set_id),
+    ADD CONSTRAINT fk_match_item_created_by_user
+        FOREIGN KEY (created_by_user_id) REFERENCES user (user_id),
+    ADD CONSTRAINT fk_match_item_updated_by_user
+        FOREIGN KEY (updated_by_user_id) REFERENCES user (user_id);
+
+ALTER TABLE configuration
+    ADD CONSTRAINT fk_configuration_organization
+        FOREIGN KEY (organization_id) REFERENCES organization (organization_id),
+    ADD CONSTRAINT fk_configuration_created_by_user
+        FOREIGN KEY (created_by_user_id) REFERENCES user (user_id),
+    ADD CONSTRAINT fk_configuration_island_credential
+        FOREIGN KEY (island_credential_id) REFERENCES island_credential (island_credential_id);
+
+ALTER TABLE island_credential
+    ADD CONSTRAINT fk_island_credential_organization
+        FOREIGN KEY (organization_id) REFERENCES organization (organization_id),
+    ADD CONSTRAINT fk_island_credential_created_by_user
+        FOREIGN KEY (created_by_user_id) REFERENCES user (user_id);
+
+-- ---------------------------------------------------------------------
+-- Uniqueness constraints (database-schema-migration-plan.md §3.1/§3.2/
+-- §3.6) -- all three were already added back in the Phase 2 block above:
+-- user.hub_user_id (uq_user_hub_user_id), organization.domain
+-- (uq_organization_domain), island_credential.credential_hash
+-- (uq_island_credential_hash). Nothing further to add here; MySQL UNIQUE
+-- indexes already permit multiple NULLs, which is what makes "domain
+-- unique where populated" and a still-nullable legacy hub_user_id work.
+-- ---------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------
+-- Drop legacy columns (database-schema-migration-plan.md §6 Phase 7
+-- steps 4-7). Application code no longer reads or writes these -- see
+-- User.hbm.xml/MatchSet.hbm.xml/MatchItem.hbm.xml and the corresponding
+-- trainer model classes, updated in this same phase.
+-- ---------------------------------------------------------------------
+ALTER TABLE user
+    DROP COLUMN password,
+    DROP COLUMN name;
+
+ALTER TABLE match_item
+    DROP COLUMN user_id,
+    DROP COLUMN update_date;
+
+ALTER TABLE match_set
+    DROP COLUMN update_date;
+
+-- ---------------------------------------------------------------------
+-- Retire the dead patient table (database-schema-migration-plan.md
+-- §3.7). Unused in production; match_item.patient_data_a/patient_data_b
+-- remain the authoritative persisted patient-pair representation.
+-- ---------------------------------------------------------------------
+DROP TABLE patient;

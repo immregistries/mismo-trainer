@@ -124,7 +124,32 @@ The one exception is machine-to-machine access: the Island optimization API (`Ce
 
 ### 2.9 The bundled flat-file test corpora remain global and unscoped for now
 
-The `MIIS-*.txt`/`AIRA-*.txt` classpath resource files (the bulk of the historical labeled test corpus, as documented in `data-model.md` §4) are not being brought into the organization-ownership model in this migration. They remain visible to any logged-in user regardless of organization, exactly as they are today, just without the anonymous-access path (§2.8). The intent is to remove these files entirely in a later phase rather than to formalize their ownership now — organization-scoping in this plan applies to database-backed resources (`match_set`/`match_item`/`configuration`), not to these static files.
+**Superseded by §2.10.** This section originally deferred the bundled `MIIS-*.txt`/`AIRA-*.txt` files' removal to "a later phase." That phase is now — §2.10 below moves the one starter test set and starter configuration Mismo-Trainer actually needs out of the classpath and into the database, and retires the files.
+
+### 2.10 A real organization is the source of shared starter data — "templates"
+
+Every new organization should be able to see and use a starting point (a labeled test set and a weight-set configuration) without needing production data pulled in from anywhere, and without every organization getting its own redundant private copy of the same starter material. The mechanism is a **template**: a `match_set` or `configuration` row that any organization can read and copy, but only its owning organization can edit.
+
+**There is no synthetic "system" organization.** The templating organization is a real one — AIRA (`*@immregistries.org`), the same organization Phase 3's email-domain auto-provisioning already creates the first time someone from that domain logs in. Two flags realize this:
+
+- **`organization.is_template_org`** (boolean, default `false`) — marks which organization's content is *eligible* to be published as a template. Set `true` on the AIRA organization only.
+- **`match_set.is_template`** / **`configuration.is_template`** (boolean, default `false`) — the actual publish switch, set row by row. The application must enforce that this can only be set `true` on a row whose owning organization has `is_template_org = true` — this is what "AIRA controls the template" means concretely: they choose, row by row, what becomes a public starting point. Nothing is exposed just by being AIRA's data.
+
+**Access rules (extends §4's tenant enforcement):**
+
+- **Read:** an organization can read/browse/score against a row belonging to its own organization, **or** any row with `is_template = true`, regardless of which organization owns it.
+- **Write:** unchanged — only the *owning* organization can edit or delete a row, template or not. AIRA keeps full ongoing control over its own template data, including continuing to refine it after publishing; no other organization gets write access to it under any circumstance.
+- **Copy:** any organization can copy a template `match_set` (and all of its `match_item` rows) or a template `configuration` into a brand-new row owned by its own organization. This is the only way a non-owning organization gets an editable version — there is no in-place "fork" that retains a link back to the template.
+
+**Migration off the bundled classpath files:**
+
+1. Move `src/main/resources/{AIRA-A,AIRA-B,AIRA-C,AIRA-D,AIRA-2026-A,AIRA-2026-B}.txt`, `{MIIS-B,MIIS-C,MIIS-D,MIIS-E,MIIS-E2,MIIS-E3,MIIS-F1,MIIS-F2}.txt`, and `Configuration.yml` to a new top-level `legacy-test-data/` folder (sibling to `src/`). Maven only packages `src/main/resources`/`src/main/webapp` into the WAR, so this alone removes them from the deployed application. Kept there for reference and as the one-time import source, not shipped.
+2. A one-time, idempotent (check-before-insert, matching `LoginServlet`'s org-resolution style) bootstrap loads `AIRA-D.txt` into a new AIRA-owned, `is_template=true` `match_set` — reusing `TestSetUploadServlet`'s existing `TEST:`/`EXPECT:`/`PATIENT A:`/`PATIENT B:` parser — and loads `Configuration.yml` into a new AIRA-owned, `is_template=true` `configuration` row, reusing `mismo-match`'s `Configuration(InputStream)` + `.setup()` (the same canonicalization `CentralServlet` already performs on Island-submitted scripts).
+3. Remove the code that becomes dead once the files are gone rather than repointing it at the new file location:
+   - `TestMatchingServlet`'s and `ReviewServlet`'s `MIIS-*` flat-file dropdown — redundant with match-set browsing from the database, which is already the primary path.
+   - `GenerateWeightsServlet` entirely — already a `modernization-notes.md` deletion candidate (superseded by the CLI `Island` process; carries the static-`Scorer.weights`/shared-`ServletContext`-scoped-`World` hazards flagged in the v1 review) and its only remaining reason to exist was its hardcoded `MIIS-E2.txt` load.
+   - `island.yml`'s `testCaseFileName` is different — it's a genuinely-still-needed local input for the CLI `Island` optimizer's own training corpus, not redundant with anything. Just update the path to point at `legacy-test-data/`. Whether `Island` should eventually read its training set from the database instead of a local file is a separate, bigger question, left alone here.
+4. Delete `Configuration.yml` and the flat-file corpus from `src/main/resources` once the bootstrap has run and been verified against the real database (see §2's note in the "Recommended v2 Migration Principle," §9 — this development database is becoming production, so this is a real, one-time data-loading event, not a repeatable seed script).
 
 ---
 
@@ -138,6 +163,7 @@ organization
 organization_id      int/bigint PK AUTO_INCREMENT
 name                 varchar(250) NOT NULL
 domain               varchar(250) NULL
+is_template_org      boolean NOT NULL DEFAULT false
 created_at           datetime NOT NULL
 updated_at           datetime NOT NULL
 ```
@@ -150,6 +176,7 @@ updated_at           datetime NOT NULL
 - Public email domains should normally not be stored as reusable organization domains.
 - The schema intentionally supports only one domain per organization for now.
 - If InteropHub later provides an authoritative organization ID, an `interop_hub_organization_id` column can be added without changing the basic ownership model.
+- `is_template_org` (§2.10) marks an organization whose `match_set`/`configuration` rows are eligible to be published as templates. Set `true` on the AIRA organization only; ordinary organizations leave this `false`.
 
 Recommended indexes:
 
@@ -229,6 +256,7 @@ match_set
 match_set_id           int/bigint PK AUTO_INCREMENT
 organization_id        int/bigint NOT NULL FK -> organization.organization_id
 label                  varchar(250) NOT NULL
+is_template            boolean NOT NULL DEFAULT false
 created_by_user_id     int/bigint NULL FK -> user.user_id
 updated_by_user_id     int/bigint NULL FK -> user.user_id
 created_at             datetime NOT NULL
@@ -236,6 +264,8 @@ updated_at             datetime NOT NULL
 ```
 
 The organization belongs on `match_set` because it is the container for its test cases.
+
+`is_template` (§2.10) may only be `true` when `organization_id` refers to an `is_template_org` organization — enforced by the application, not a database constraint. A template `match_set` is readable and copyable by every organization but remains editable only by its owner.
 
 `match_item` does not need its own `organization_id`; organization ownership can be derived through:
 
@@ -344,10 +374,13 @@ generation_score        double NOT NULL
 generated_date          datetime NOT NULL
 hash_for_signature      varchar(250) NOT NULL
 configuration_script    text NOT NULL
+is_template             boolean NOT NULL DEFAULT false
 created_by_user_id      int/bigint NULL FK -> user.user_id
 island_credential_id    int/bigint NULL FK -> island_credential.island_credential_id
 created_at              datetime NOT NULL
 ```
+
+`is_template` (§2.10) follows the same rule as `match_set.is_template`: only settable `true` for a row owned by an `is_template_org` organization, enforced by the application. Readable/copyable by every organization; editable only by its owner.
 
 `created_by_user_id` is used when a configuration is created or imported by a human.
 
@@ -476,6 +509,19 @@ The same rule applies to:
 - Island synchronization.
 
 Client-supplied `organization_id` values must never determine access. The active organization always comes from the authenticated Mismo-Trainer user or authenticated Island credential.
+
+### 4.1 Template rows widen read access only (§2.10)
+
+`match_set` and `configuration` reads must match a row belonging to the session's own `organization_id`, **or** a row with `is_template = true` regardless of owner:
+
+```sql
+SELECT *
+FROM match_set
+WHERE match_set_id = :matchSetId
+  AND (organization_id = :organizationId OR is_template = true);
+```
+
+This applies only to reads (including listing, browsing, and scoring against a template) and to the copy action. Every write path — create, edit, delete, and setting `is_template` itself — keeps the unmodified rule above: `organization_id = :organizationId`, with no exception for template rows. Copying a template creates a brand-new row owned by the copying organization; it never grants write access to the original.
 
 ---
 
@@ -612,6 +658,15 @@ After all rows have been backfilled successfully:
 7. remove obsolete `match_set.update_date` after migration;
 8. stop overwriting historical `configuration` rows.
 
+## Phase 8 — Template organization and starter data (§2.10)
+
+1. Add `organization.is_template_org`, `match_set.is_template`, `configuration.is_template` (all `boolean NOT NULL DEFAULT false`).
+2. Set `is_template_org = true` on the AIRA organization.
+3. Move the bundled flat-file corpus and `Configuration.yml` out of `src/main/resources` into `legacy-test-data/`, per §2.10's migration steps.
+4. Run the one-time bootstrap that loads `AIRA-D.txt` and `Configuration.yml` into an AIRA-owned, `is_template=true` `match_set` and `configuration`; verify against the real database before deleting the source files.
+5. Remove the now-dead `MIIS-*` dropdown code in `TestMatchingServlet`/`ReviewServlet`, delete `GenerateWeightsServlet`, and update `island.yml`'s `testCaseFileName` to the new `legacy-test-data/` path.
+6. Extend `OrgScope`'s read/list methods per §4.1; add the copy action for `match_set` and `configuration`; enforce the "`is_template` only settable by an `is_template_org` owner" rule wherever it's set.
+
 ---
 
 # 7. Foreign-Key Relationships
@@ -662,7 +717,8 @@ The following are intentionally not required for the initial access/schema migra
 - JSON replacement for the existing serialized patient strings;
 - richer Island/run/job modeling;
 - full schema migration framework beyond the migration scripts needed for v2;
-- formal ownership/organization-scoping of the bundled `MIIS-*`/`AIRA-*` flat-file test corpora — the plan is to remove these files entirely in a later phase (§2.9) rather than to model their ownership now.
+- ~~formal ownership/organization-scoping of the bundled `MIIS-*`/`AIRA-*` flat-file test corpora~~ — resolved by §2.10/Phase 8: the one starter test set actually needed moves into the database as an AIRA-owned template; the rest of the files are archived out of the WAR rather than modeled.
+- a general-purpose template/marketplace model (multiple template-eligible organizations, template categories, versioning of published templates) — §2.10 intentionally supports exactly one template-eligible organization (AIRA) publishing individual rows; broaden this only if a real second case appears.
 
 These may be added later without changing the core `organization -> user/resources` ownership model.
 
@@ -672,6 +728,6 @@ These may be added later without changing the core `organization -> user/resourc
 
 The migration should establish one rule consistently throughout the application:
 
-> **InteropHub determines who the human user is. Mismo-Trainer determines which organization that user belongs to. All persisted Trainer work belongs to an organization. Human activity is attributed to the local Mismo user, while Island activity is authenticated and attributed separately. Every human-facing page requires a login; there is no anonymous path.**
+> **InteropHub determines who the human user is. Mismo-Trainer determines which organization that user belongs to. All persisted Trainer work belongs to an organization. Human activity is attributed to the local Mismo user, while Island activity is authenticated and attributed separately. Every human-facing page requires a login; there is no anonymous path. One organization's work may be published as a template — visible and copyable by every other organization, but never editable by them.**
 
 This provides the access boundary needed to make Mismo-Trainer available to additional InteropHub users without exposing one organization's training work to another, while keeping the initial implementation small enough to support the current modernization effort.

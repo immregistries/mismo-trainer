@@ -5,16 +5,11 @@ import java.util.Date;
 /**
  * Trainer-owned local user record. Attribution/session data lives here;
  * identity itself is authenticated by InteropHub via {@link #hubUserId}.
- * <p>
- * {@code name} and {@code password} are the legacy v1 login columns; they
- * remain mapped (unused by v2 logic) until the Phase 7 cleanup drops them.
  */
 public class User {
 
   private int userId;
-  private String name;
   private String email;
-  private String password;
   private String hubUserId;
   private Organization organization;
   private String displayName;
@@ -33,28 +28,12 @@ public class User {
     this.userId = userId;
   }
 
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
   public String getEmail() {
     return email;
   }
 
   public void setEmail(String email) {
     this.email = email;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword(String password) {
-    this.password = password;
   }
 
   public String getHubUserId() {

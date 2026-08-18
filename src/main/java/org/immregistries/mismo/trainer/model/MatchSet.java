@@ -5,14 +5,11 @@ import java.util.Date;
 /**
  * Trainer-owned persistence replacement for the mismo-match-jar
  * {@code MatchSet} mapping (see database-schema-migration-plan.md §2.7).
- * {@code updateDate} is the legacy v1 timestamp column, retained until the
- * Phase 7 cleanup drops it in favor of {@code createdAt}/{@code updatedAt}.
  */
 public class MatchSet {
 
   private int matchSetId;
   private String label;
-  private Date updateDate;
   private Organization organization;
   private User createdByUser;
   private User updatedByUser;
@@ -33,14 +30,6 @@ public class MatchSet {
 
   public void setLabel(String label) {
     this.label = label;
-  }
-
-  public Date getUpdateDate() {
-    return updateDate;
-  }
-
-  public void setUpdateDate(Date updateDate) {
-    this.updateDate = updateDate;
   }
 
   public Organization getOrganization() {

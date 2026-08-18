@@ -20,7 +20,6 @@
     <mapping resource="MatchItem.hbm.xml"/>
     <mapping resource="MatchSet.hbm.xml"/>
     <mapping resource="Organization.hbm.xml"/>
-    <mapping resource="Patient.hbm.xml"/>
     <mapping resource="User.hbm.xml"/>
 
   </session-factory>

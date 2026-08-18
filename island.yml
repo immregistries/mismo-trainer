@@ -4,14 +4,17 @@ worldName: Jacob Lake
 islandName: Twix Bar
 credential: REPLACE_WITH_ISLAND_CREDENTIAL_TOKEN
 populationSize: 1000
-scoringWeights: 
+# Matches Configuration.yml's scoringWeights block -- the one canonical source for these
+# defaults (docs/known-issues.md; docs/optimization-and-islands.md §3). Override only if this
+# island's optimization run intentionally needs a different fitness function.
+scoringWeights:
   shouldMatch_Matches: 12
   shouldMatch_Possible: 10
   shouldMatch_NoMatch: -10
-  shouldPossible_Matches: 10
-  shouldPossible_Possible: 12
+  shouldPossible_Matches: 8
+  shouldPossible_Possible: 10
   shouldPossible_NoMatch: -8
-  shouldNoMatch_Matches: -4
-  shouldNoMatch_Possible: -2
+  shouldNoMatch_Matches: -10
+  shouldNoMatch_Possible: -8
   shouldNoMatch_NoMatch: 10
 

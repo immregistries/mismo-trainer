@@ -101,7 +101,6 @@ public class TestSetUploadServlet extends TestSetServlet {
       in.close();
       Transaction transaction = dataSession.beginTransaction();
       Date updateDate = new Date();
-      matchSetSelected.setUpdateDate(updateDate);
       matchSetSelected.setUpdatedByUser(user);
       matchSetSelected.setUpdatedAt(updateDate);
       dataSession.update(matchSetSelected);
@@ -122,8 +121,6 @@ public class TestSetUploadServlet extends TestSetServlet {
           dataSession.update(saveMatchItem);
         } else {
           matchItem.setMatchSet(matchSetSelected);
-          matchItem.setUser(user);
-          matchItem.setUpdateDate(updateDate);
           matchItem.setDataSource(dataSource);
           matchItem.setCreatedByUser(user);
           matchItem.setUpdatedByUser(user);

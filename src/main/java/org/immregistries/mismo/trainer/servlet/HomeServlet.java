@@ -117,7 +117,6 @@ public class HomeServlet extends HttpServlet {
         out.println(
             "            <li><a href=\"AddressTestServlet\">Address Test</a>: Allows for looking at how"
                 + " addresses are read.</li>");
-        out.println("            <li><a href=\"DownloadHl7Servlet\">Download HL7</a></li>");
         out.println(
             "            <li><a href=\"GenerateWeightsServlet\">Generate Weights</a>: Starts evolutionary"
                 + " algorithm that hunts for best weights. Do not click unless you are ready for"

@@ -62,7 +62,7 @@ public class TestMatchingServlet extends HomeServlet
       List<MatchItem> matchItemList = new ArrayList<MatchItem>();
       session.setAttribute(ATTRIBUTE_MATCH_TEST_CASE_LIST, matchItemList);
       if (matchSetSelected != null) {
-        Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by dataSource, updateDate");
+        Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by dataSource, updatedAt");
         query.setParameter(0, matchSetSelected);
         List<org.immregistries.mismo.trainer.model.MatchItem> matchItemRowList = query.list();
         for (org.immregistries.mismo.trainer.model.MatchItem matchItemRow : matchItemRowList) {
