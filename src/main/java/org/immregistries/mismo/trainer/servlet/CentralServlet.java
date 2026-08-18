@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -24,15 +25,20 @@ import org.immregistries.mismo.match.StringUtils;
 import org.immregistries.mismo.trainer.Island;
 import org.immregistries.mismo.trainer.model.Configuration;
 import org.immregistries.mismo.trainer.model.Creature;
+import org.immregistries.mismo.trainer.model.IslandCredential;
+import org.immregistries.mismo.trainer.model.Organization;
 import org.immregistries.mismo.trainer.model.User;
 import org.immregistries.mismo.trainer.model.World;
 
 /**
  * This is the central servlet that the remote island threads access to read and
- * store their data and report on progress.
- * 
+ * store their data and report on progress. {@code doPost} is the machine-to-machine Island
+ * sync API (database-schema-migration-plan.md §2.6/§3.6): every request must present a valid,
+ * non-revoked {@code island_credential} token, which determines the organization all reads and
+ * writes are scoped to -- never a client-supplied parameter.
+ *
  * @author Nathan Bunker
- * 
+ *
  */
 public class CentralServlet extends HomeServlet {
 
@@ -40,12 +46,14 @@ public class CentralServlet extends HomeServlet {
   public static final String PARAM_CONFIGURATION_SCRIPT = "configurationScript";
   public static final String PARAM_WORLD_NAME = "worldName";
   public static final String PARAM_ISLAND_NAME = "islandName";
+  public static final String PARAM_CREDENTIAL = "credential";
 
   public static final String ACTION_UPDATE = "update";
   public static final String ACTION_QUERY = "query";
   public static final String ACTION_REQUEST_START_SCRIPT = "requestStartScript";
 
   public static final String RESULT_NOT_FOUND = "Not Found";
+  public static final String RESULT_UNAUTHORIZED = "Unauthorized";
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -66,6 +74,9 @@ public class CentralServlet extends HomeServlet {
       HomeServlet.doHeader(out, req, user, null);
       out.println("    <div class=\"aira-container--wide aira-stack\">");
       out.println("    <h1 class=\"aira-page-title\">Central Servlet</h1>");
+      out.println(
+          "    <p><a href=\"IslandCredentialServlet\">Manage Island Credentials</a> -- Island processes need one"
+              + " of these to sync with this server.</p>");
 
       DecimalFormat decimalFormat = new DecimalFormat("#0.0");
 
@@ -130,14 +141,24 @@ public class CentralServlet extends HomeServlet {
 
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    String responseMessage = "Problem";
-
     getSessionFactory();
     Session dataSession = factory.openSession();
 
     String worldName = req.getParameter(PARAM_WORLD_NAME);
     String islandName = req.getParameter(PARAM_ISLAND_NAME);
     try {
+      IslandCredential credential = IslandCredentialSupport.resolve(dataSession, req.getParameter(PARAM_CREDENTIAL));
+      if (credential == null) {
+        resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        resp.setContentType("text/plain");
+        PrintWriter out = new PrintWriter(resp.getOutputStream());
+        out.println(RESULT_UNAUTHORIZED);
+        out.close();
+        return;
+      }
+      Organization organization = credential.getOrganization();
+      IslandCredentialSupport.touchLastUsed(dataSession, credential);
+
       String action = req.getParameter(PARAM_ACTION);
       if (action == null) {
         action = ACTION_UPDATE;
@@ -145,9 +166,15 @@ public class CentralServlet extends HomeServlet {
       if (action.equals(ACTION_UPDATE)) {
         String configurationScript = req.getParameter(PARAM_CONFIGURATION_SCRIPT);
         lastConfigurationScriptReceived = configurationScript;
-        Configuration configuration = getConfigurationList(dataSession, worldName, islandName);
+        Configuration configuration = getLatestConfiguration(dataSession, worldName, islandName, organization);
         if (configuration == null) {
+          // Never-before-seen (worldName, islandName) pair for this organization -- generated_date
+          // is NOT NULL, so it must be set here rather than left to its Java default.
+          // (known-issues.md; v2-roadmap.md §6)
           configuration = new Configuration();
+          configuration.setGeneratedDate(new Date());
+          configuration.setCreatedAt(new Date());
+          configuration.setOrganization(organization);
         }
         org.immregistries.mismo.match.model.Configuration matchConfiguration =
             new org.immregistries.mismo.match.model.Configuration();
@@ -157,18 +184,18 @@ public class CentralServlet extends HomeServlet {
         configuration.setHashForSignature(matchConfiguration.getHashForSignature());
         configuration.setWorldName(worldName);
         configuration.setIslandName(islandName);
+        configuration.setIslandCredential(credential);
 
         Transaction transaction = dataSession.beginTransaction();
         dataSession.save(configuration);
         transaction.commit();
 
-        responseMessage = "OK";
         resp.setContentType("text/plain");
         PrintWriter out = new PrintWriter(resp.getOutputStream());
-        out.println(responseMessage);
+        out.println("OK");
         out.close();
       } else if (action.equals(ACTION_QUERY)) {
-        Configuration configuration = getConfigurationList(dataSession, worldName, islandName);
+        Configuration configuration = getLatestConfiguration(dataSession, worldName, islandName, organization);
         resp.setContentType("text/plain");
         PrintWriter out = new PrintWriter(resp.getOutputStream());
         if (configuration == null) {
@@ -180,12 +207,16 @@ public class CentralServlet extends HomeServlet {
       } else if (action.equals(ACTION_REQUEST_START_SCRIPT)) {
         Configuration configuration = null;
         if (StringUtils.isNotEmpty(islandName)) {
-          configuration = getConfigurationList(dataSession, worldName, islandName);
+          configuration = getLatestConfiguration(dataSession, worldName, islandName, organization);
         }
         if (configuration == null) {
-          Query query = dataSession
-              .createQuery("from Configuration where worldName = :worldName order by generation desc");
+          // Cross-island seeding within the same organization: fall back to the best result
+          // from any sibling island in this worldName, still scoped to this credential's org.
+          Query query = dataSession.createQuery(
+              "from Configuration where worldName = :worldName and organization = :organization"
+                  + " order by generation desc");
           query.setParameter("worldName", worldName);
+          query.setParameter("organization", organization);
           List<Configuration> configurationList = query.list();
           if (configurationList.size() > 0) {
             configuration = configurationList.get(0);
@@ -203,12 +234,15 @@ public class CentralServlet extends HomeServlet {
     }
   }
 
-  private Configuration getConfigurationList(Session dataSession, String worldName, String islandName) {
+  private Configuration getLatestConfiguration(Session dataSession, String worldName, String islandName,
+      Organization organization) {
     Configuration configuration = null;
     Query query = dataSession.createQuery(
-        "from Configuration where worldName = :worldName and islandName = :islandName order by generation desc");
+        "from Configuration where worldName = :worldName and islandName = :islandName"
+            + " and organization = :organization order by generation desc");
     query.setParameter("worldName", worldName);
     query.setParameter("islandName", islandName);
+    query.setParameter("organization", organization);
     List<Configuration> configurationList = query.list();
     if (configurationList.size() > 0) {
       configuration = configurationList.get(0);

@@ -5,6 +5,7 @@ import static org.immregistries.mismo.trainer.servlet.CentralServlet.ACTION_REQU
 import static org.immregistries.mismo.trainer.servlet.CentralServlet.ACTION_UPDATE;
 import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_ACTION;
 import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_CONFIGURATION_SCRIPT;
+import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_CREDENTIAL;
 import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_ISLAND_NAME;
 import static org.immregistries.mismo.trainer.servlet.CentralServlet.PARAM_WORLD_NAME;
 
@@ -33,18 +34,23 @@ import org.immregistries.mismo.trainer.servlet.CentralServlet;
 public class IslandSync extends Thread {
   private World world = null;
   private URL centralUrl = null;
+  private String credential = null;
   private int lastSyncedGeneration = 0;
 
   /**
    * Initializes the IslandSync with the central URL to connect to and the World object
    * that will be used in this interaction. Within a single JVM there is always just one
-   * world running representing a single island. 
+   * world running representing a single island.
    * @param world
    * @param centralUrl
+   * @param credential raw Island credential token (island.yml's {@code credential}), sent on
+   *          every request so the central server can authenticate and scope this island to its
+   *          organization (database-schema-migration-plan.md §2.6/§3.6)
    */
- public IslandSync(World world, URL centralUrl) {
+ public IslandSync(World world, URL centralUrl, String credential) {
     this.world = world;
     this.centralUrl = centralUrl;
+    this.credential = credential;
   }
 
   @Override
@@ -151,6 +157,7 @@ public class IslandSync extends Thread {
     sb.append(PARAM_ACTION + "=" + ACTION_UPDATE + "&");
     sb.append(PARAM_WORLD_NAME + "=" + URLEncoder.encode(world.getWorldName(), "UTF-8") + "&");
     sb.append(PARAM_ISLAND_NAME + "=" + URLEncoder.encode(world.getIslandName(), "UTF-8") + "&");
+    sb.append(PARAM_CREDENTIAL + "=" + URLEncoder.encode(credential, "UTF-8") + "&");
     sb.append(PARAM_CONFIGURATION_SCRIPT + "=");
     sb.append(URLEncoder.encode(configurationScript, "UTF-8"));
     printout.writeBytes(sb.toString());
@@ -185,7 +192,8 @@ public class IslandSync extends Thread {
     StringBuilder sb = new StringBuilder();
     sb.append(PARAM_ACTION + "=" + ACTION_QUERY + "&");
     sb.append(PARAM_WORLD_NAME + "=" + URLEncoder.encode(world.getWorldName(), "UTF-8") + "&");
-    sb.append(PARAM_ISLAND_NAME + "=" + URLEncoder.encode(world.getIslandName(), "UTF-8"));
+    sb.append(PARAM_ISLAND_NAME + "=" + URLEncoder.encode(world.getIslandName(), "UTF-8") + "&");
+    sb.append(PARAM_CREDENTIAL + "=" + URLEncoder.encode(credential, "UTF-8"));
     printout.writeBytes(sb.toString());
     printout.flush();
     printout.close();
@@ -211,10 +219,12 @@ public class IslandSync extends Thread {
    * creatures. 
    * @param worldName name of the world to pull from
    * @param centralUrl points to where the central server is
+   * @param credential raw Island credential token used to authenticate to the central server
    * @return a creature script
    * @throws IOException
    */
-  public static String requestStartScript(String worldName, String islandName, URL centralUrl) throws IOException {
+  public static String requestStartScript(String worldName, String islandName, URL centralUrl, String credential)
+      throws IOException {
     URLConnection urlConn;
     DataOutputStream printout;
     InputStreamReader input = null;
@@ -227,7 +237,8 @@ public class IslandSync extends Thread {
     StringBuilder sb = new StringBuilder();
     sb.append(PARAM_ACTION + "=" + ACTION_REQUEST_START_SCRIPT + "&");
     sb.append(PARAM_WORLD_NAME + "=" + URLEncoder.encode(worldName, "UTF-8") + "&");
-    sb.append(PARAM_ISLAND_NAME + "=" + URLEncoder.encode(islandName, "UTF-8"));
+    sb.append(PARAM_ISLAND_NAME + "=" + URLEncoder.encode(islandName, "UTF-8") + "&");
+    sb.append(PARAM_CREDENTIAL + "=" + URLEncoder.encode(credential, "UTF-8"));
     printout.writeBytes(sb.toString());
     printout.flush();
     printout.close();

@@ -111,7 +111,7 @@ public class World extends Thread
     this.worldName = worldName;
     this.islandName = islandName;
     this.lowerCut = (int) Math.sqrt(0.5 * size);
-    lowerCutStart = size - (lowerCut ^ 2);
+    lowerCutStart = size - (lowerCut * lowerCut);
     upperCut = (size - lowerCut) * 0.3;
     creatures = new Creature[size];
     for (int i = 0; i < creatures.length; i++) {

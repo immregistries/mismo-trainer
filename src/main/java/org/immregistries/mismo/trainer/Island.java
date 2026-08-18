@@ -48,6 +48,7 @@ public class Island {
     int worldSize;
     String islandName;
     String worldName;
+    String credential;
     int[][] weights = null;
     {
       String configFileName = "island.yml";
@@ -62,6 +63,7 @@ public class Island {
         testCasesFilename = (String) data.get("testCaseFileName");
         worldName = (String) data.get("worldName");
         islandName = (String) data.get("islandName");
+        credential = (String) data.get("credential");
         worldSize = (Integer) data.get("populationSize");
         Map<String, Integer> scoringWeights = (Map<String, Integer>) data.get("scoringWeights");
         if (scoringWeights != null) {
@@ -89,6 +91,11 @@ public class Island {
       System.out.println("Not starting world without island name.");
       System.exit(0);
     }
+    if (credential == null || credential.isBlank()) {
+      System.out.println("Not starting without an Island credential -- set 'credential' in island.yml"
+          + " (create one from the Mismo Trainer Central page's \"Manage Island Credentials\" link).");
+      System.exit(0);
+    }
     System.out.println("Starting patient match optimization island '" + islandName + "' in world '" + worldName
         + "' with " + worldSize + " creatures.");
     System.out.println("Central repository location: " + centralUrlString);
@@ -97,7 +104,7 @@ public class Island {
     System.out.println("Asking central server for best configuration to start with.");
     String configurationScript = null;
     try {
-      configurationScript = IslandSync.requestStartScript(worldName, islandName, centralUrl);
+      configurationScript = IslandSync.requestStartScript(worldName, islandName, centralUrl, credential);
     } catch (Exception e) {
       System.out.println("Unable to query central server");
       e.printStackTrace(System.err);
@@ -134,7 +141,7 @@ public class Island {
     world.setMatchItemList(matchItemList);
 
     System.out.println("Syncing with central server");
-    IslandSync islandSync = new IslandSync(world, centralUrl);
+    IslandSync islandSync = new IslandSync(world, centralUrl, credential);
     islandSync.start();
     System.out.println("  + Regular island sync started");
     world.start();

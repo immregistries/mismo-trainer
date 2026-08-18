@@ -5,6 +5,7 @@ import java.util.List;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.immregistries.mismo.trainer.model.Configuration;
+import org.immregistries.mismo.trainer.model.IslandCredential;
 import org.immregistries.mismo.trainer.model.MatchItem;
 import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.Organization;
@@ -12,10 +13,12 @@ import org.immregistries.mismo.trainer.model.User;
 
 /**
  * Enforces database-schema-migration-plan.md §4 (Tenant Enforcement Rules): every read or write
- * of {@code match_set}, {@code match_item}, or {@code configuration} is filtered by the
- * authenticated session's organization, never by a client-supplied id alone. {@code match_item}
- * is scoped through its parent {@code match_set}. The bundled MIIS- / AIRA- .txt flat-file
- * corpora are outside this class entirely (section 2.9) -- they stay global/unscoped.
+ * of {@code match_set}, {@code match_item}, {@code configuration}, or {@code island_credential}
+ * is filtered by the authenticated session's organization, never by a client-supplied id alone.
+ * {@code match_item} is scoped through its parent {@code match_set}. The bundled MIIS- / AIRA-
+ * .txt flat-file corpora are outside this class entirely (section 2.9) -- they stay
+ * global/unscoped. Resolving an Island machine credential by its raw token (not by a logged-in
+ * user's organization) is handled separately by {@link IslandCredentialSupport}.
  */
 public final class OrgScope {
 
@@ -88,5 +91,44 @@ public final class OrgScope {
     matchSet.setUpdatedAt(now);
     dataSession.save(matchSet);
     return matchSet;
+  }
+
+  @SuppressWarnings("unchecked")
+  public static List<IslandCredential> listIslandCredentials(Session dataSession, User user) {
+    Query query = dataSession.createQuery("from IslandCredential where organization = ? order by createdAt desc");
+    query.setParameter(0, user.getOrganization());
+    return query.list();
+  }
+
+  /** Creates and saves a new, organization-owned {@code IslandCredential}, attributed to {@code user}. */
+  public static IslandCredential createIslandCredential(Session dataSession, String name, String credentialHash,
+      User user) {
+    IslandCredential credential = new IslandCredential();
+    credential.setName(name);
+    credential.setCredentialHash(credentialHash);
+    credential.setOrganization(user.getOrganization());
+    credential.setCreatedByUser(user);
+    credential.setCreatedAt(new Date());
+    dataSession.save(credential);
+    return credential;
+  }
+
+  /**
+   * Revokes an {@code IslandCredential} if it belongs to {@code user}'s organization.
+   *
+   * @return {@code true} if the credential was found (in this organization) and is now revoked
+   *         (whether just now or already), {@code false} if it doesn't exist or belongs to
+   *         another organization
+   */
+  public static boolean revokeIslandCredential(Session dataSession, int islandCredentialId, User user) {
+    IslandCredential credential = (IslandCredential) dataSession.get(IslandCredential.class, islandCredentialId);
+    if (!sameOrganization(credential == null ? null : credential.getOrganization(), user)) {
+      return false;
+    }
+    if (credential.getRevokedAt() == null) {
+      credential.setRevokedAt(new Date());
+      dataSession.update(credential);
+    }
+    return true;
   }
 }

@@ -170,7 +170,7 @@ public class Creature {
     patientCompare.getMatch().clone(clone.patientCompare.getMatch());
     patientCompare.getNotMatch().clone(clone.patientCompare.getNotMatch());
     patientCompare.getTwin().clone(clone.patientCompare.getTwin());
-    patientCompare.getMissing().clone(clone.patientCompare.getTwin());
+    patientCompare.getMissing().clone(clone.patientCompare.getMissing());
     scorer = new Scorer();
   }
 

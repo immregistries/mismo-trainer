@@ -1,7 +1,8 @@
-centralURL: http://localhost:8080/mismo-trainer-1.0/CentralServlet
+centralURL: http://localhost:8080/mismo/CentralServlet
 testCaseFileName: src/main/resources/AIRA-2026-B.txt
 worldName: Jacob Lake
 islandName: Twix Bar
+credential: REPLACE_WITH_ISLAND_CREDENTIAL_TOKEN
 populationSize: 1000
 scoringWeights: 
   shouldMatch_Matches: 12

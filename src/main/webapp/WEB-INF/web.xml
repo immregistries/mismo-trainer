@@ -93,6 +93,10 @@
 		<servlet-name>SignatureServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.SignatureServlet</servlet-class>
 	</servlet>
+	<servlet>
+		<servlet-name>IslandCredentialServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.IslandCredentialServlet</servlet-class>
+	</servlet>
 	
 	
 	<servlet>
@@ -204,5 +208,9 @@
 	<servlet-mapping>
 		<servlet-name>SignatureServlet</servlet-name>
 		<url-pattern>/SignatureServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>IslandCredentialServlet</servlet-name>
+		<url-pattern>/IslandCredentialServlet</url-pattern>
 	</servlet-mapping>
 </web-app>
