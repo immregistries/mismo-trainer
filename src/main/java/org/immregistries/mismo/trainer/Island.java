@@ -345,6 +345,26 @@ public class Island {
    * {@code patientDataA}/{@code patientDataB} are read by {@code PatientCompare.setMatchItem},
    * but the rest are copied too since callers also display label/description/expectStatus.
    *
+   * <p><b>Root cause of three Phase 8 NPEs</b> (v2-roadmap.md §10): the runtime
+   * {@code org.immregistries.mismo.match.model.MatchItem} class defaults every String field
+   * (including {@code description}) to {@code ""} in its own constructor, and every caller of
+   * this class -- {@code TestMatchingServlet}, {@code ReviewServlet}, etc. -- relies on that
+   * guarantee, calling {@code .getDescription().equals("")} directly rather than null-checking.
+   * That guarantee held under the old v1 flow, which read flat files straight into this same
+   * class. It broke once persistence moved to a separate, Hibernate-mapped trainer entity
+   * (Phase 2): {@code description} is a nullable column, genuinely {@code NULL} for roughly 13%
+   * of live rows (all 3,398 items of the AIRA-D template, which have no {@code DESCRIPTION:}
+   * line in the source file) -- and this method was copying that raw, possibly-null value
+   * straight across, silently overwriting the runtime class's own safe {@code ""} default. This
+   * fixes it at the one place the invariant is supposed to be established, instead of
+   * null-guarding every downstream caller individually. The same defaulting applies to every
+   * other String field this method copies, for the same reason.
+   *
+   * <p>Separately: this method never set {@code matchSet} on the runtime object at all (the
+   * runtime class defaults it to {@code null}), which is what made {@code ReviewServlet}'s
+   * {@code matchItem.getMatchSet().getMatchSetId()} NPE unconditionally, on every row, not just
+   * ones with missing data. Now populated from the trainer entity's parent.
+   *
    * @param matchItem
    *          the Hibernate-loaded trainer entity
    * @return an equivalent mismo-match runtime object, safe to hand to PatientCompare/Scorer
@@ -352,14 +372,20 @@ public class Island {
   public static MatchItem toRuntimeMatchItem(org.immregistries.mismo.trainer.model.MatchItem matchItem) {
     MatchItem runtimeMatchItem = new MatchItem();
     runtimeMatchItem.setMatchItemId(matchItem.getMatchItemId());
-    runtimeMatchItem.setLabel(matchItem.getLabel());
-    runtimeMatchItem.setDescription(matchItem.getDescription());
-    runtimeMatchItem.setPatientDataA(matchItem.getPatientDataA());
-    runtimeMatchItem.setPatientDataB(matchItem.getPatientDataB());
-    runtimeMatchItem.setExpectStatus(matchItem.getExpectStatus());
+    runtimeMatchItem.setLabel(nullToEmpty(matchItem.getLabel()));
+    runtimeMatchItem.setDescription(nullToEmpty(matchItem.getDescription()));
+    runtimeMatchItem.setPatientDataA(nullToEmpty(matchItem.getPatientDataA()));
+    runtimeMatchItem.setPatientDataB(nullToEmpty(matchItem.getPatientDataB()));
+    runtimeMatchItem.setExpectStatus(nullToEmpty(matchItem.getExpectStatus()));
     runtimeMatchItem.setPatientA(new Patient(matchItem.getPatientDataA()));
     runtimeMatchItem.setPatientB(new Patient(matchItem.getPatientDataB()));
     runtimeMatchItem.setUpdateDate(matchItem.getUpdatedAt());
+    if (matchItem.getMatchSet() != null) {
+      org.immregistries.mismo.match.model.MatchSet runtimeMatchSet = new org.immregistries.mismo.match.model.MatchSet();
+      runtimeMatchSet.setMatchSetId(matchItem.getMatchSet().getMatchSetId());
+      runtimeMatchSet.setLabel(nullToEmpty(matchItem.getMatchSet().getLabel()));
+      runtimeMatchItem.setMatchSet(runtimeMatchSet);
+    }
     if (matchItem.getUpdatedByUser() != null) {
       org.immregistries.mismo.match.model.User runtimeUser = new org.immregistries.mismo.match.model.User();
       runtimeUser.setUserId(matchItem.getUpdatedByUser().getUserId());
@@ -370,5 +396,9 @@ public class Island {
       runtimeMatchItem.setUser(runtimeUser);
     }
     return runtimeMatchItem;
+  }
+
+  private static String nullToEmpty(String value) {
+    return value == null ? "" : value;
   }
 }

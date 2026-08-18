@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
+  <class name="MatchItemReview" table="match_item_review">
+    <id name="matchItemReviewId" column="match_item_review_id">
+      <generator class="native"/>
+    </id>
+    <many-to-one name="matchItem" column="match_item_id" class="MatchItem" not-null="true"/>
+    <many-to-one name="reviewerUser" column="reviewer_user_id" class="User" not-null="true"/>
+    <property name="classification" column="classification" type="string" not-null="true"/>
+    <property name="notes" column="notes" type="text"/>
+    <property name="reviewedAt" column="reviewed_at" type="timestamp" not-null="true"/>
+  </class>
+</hibernate-mapping>

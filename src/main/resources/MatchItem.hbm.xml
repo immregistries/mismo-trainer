@@ -16,5 +16,12 @@
     <many-to-one name="updatedByUser" column="updated_by_user_id" class="User"/>
     <property name="createdAt" column="created_at" type="timestamp"/>
     <property name="updatedAt" column="updated_at" type="timestamp"/>
+    <property name="originalExpectStatus" column="original_expect_status" type="string"/>
+    <property name="reviewed" column="is_reviewed" type="boolean" not-null="true"/>
+    <property name="needsReview" column="needs_review" type="boolean" not-null="true"/>
+    <property name="provenanceType" column="provenance_type" type="string" not-null="true"/>
+    <property name="copiedFromMatchItemId" column="copied_from_match_item_id" type="java.lang.Integer"/>
+    <property name="sourceSignature" column="source_signature" type="string"/>
+    <property name="reviewNotes" column="review_notes" type="text"/>
   </class>
 </hibernate-mapping>

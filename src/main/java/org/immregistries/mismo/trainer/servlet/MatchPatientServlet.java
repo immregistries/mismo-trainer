@@ -47,7 +47,25 @@ public class MatchPatientServlet extends HomeServlet {
           .getAttribute(TestMatchingServlet.ATTRIBUTE_MATCH_TEST_CASE_LIST);
           
       PatientCompare patientCompare = (PatientCompare) session.getAttribute(ATTRIBUTE_PATIENT_COMPARE);
-      
+      if (patientCompare == null) {
+        // Root cause (v2-roadmap.md §10): ATTRIBUTE_PATIENT_COMPARE is only ever populated by
+        // HomeServlet.setup() when a configurationId request param has been supplied at some
+        // point this session (i.e. a Configuration was selected via WeightSetServlet/
+        // CentralServlet) -- there is no default/fallback configuration auto-loaded. Reaching
+        // this page directly (e.g. from the Test Sets rail or the Home directory) without ever
+        // having selected one is a normal, legitimate navigation path, not stale/bad data -- so
+        // this is a real missing-precondition guard, not a null-guard band-aid around a data bug.
+        HomeServlet.doHeader(out, req, user, null);
+        out.println("    <div class=\"aira-container--wide aira-stack\">");
+        out.println("    <h1 class=\"aira-page-title\">Match Patient</h1>");
+        out.println("    <div class=\"aira-alert aira-alert--warning\" role=\"alert\"><p>No configuration is"
+            + " currently loaded. <a href=\"WeightSetServlet\">Select a Configuration</a> first, then"
+            + " return to Compare a Pair.</p></div>");
+        out.println("    </div>");
+        HomeServlet.doFooter(out, req);
+        return;
+      }
+
       String testId = req.getParameter("testId");
       if (testId == null) {
         testId = "";

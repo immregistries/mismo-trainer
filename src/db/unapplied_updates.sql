@@ -338,3 +338,95 @@ ALTER TABLE configuration
 UPDATE organization
 SET is_template_org = true
 WHERE domain = 'immregistries.org';
+
+-- =====================================================================
+-- Phase 9 (docs/v2-roadmap.md §10; docs/database-changes-for-functional-
+-- model.md §2-4, §9) -- Test Set lifecycle/versioning and Test Case
+-- review workflow.
+--
+-- Purely additive: new nullable/defaulted columns on match_set/match_item
+-- plus one new table (match_item_review). No drops, no NOT NULL
+-- tightening of any *existing* column.
+--
+-- root_match_set_id is declared NOT NULL (per the design: always
+-- populated, a root set points at its own id) but a brand-new row's own
+-- id isn't known until after its INSERT, so the application writes 0 on
+-- insert and immediately self-corrects it to the just-generated id in the
+-- same transaction (OrgScope.createMatchSet/copyMatchSet) -- 0 is never a
+-- real match_set_id (AUTO_INCREMENT starts at 1), so it only ever exists
+-- as a same-transaction transient value, never a committed one. Existing
+-- rows are backfilled the same way: every pre-Phase-9 match_set is the
+-- root of its own one-row family.
+--
+-- No FOREIGN KEY constraints are added for the new self-referential
+-- columns (root_match_set_id, copied_from_match_set_id,
+-- copied_from_match_item_id) or match_item_review's match_item_id/
+-- reviewer_user_id -- consistent with this file's existing pattern
+-- (e.g. island_credential's FKs were likewise deferred to the Phase 7
+-- constraint-tightening block above, even though it was a brand-new,
+-- empty table at the time). A future constraint-tightening pass can add
+-- them once there's confidence no orphaned values exist.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- match_set -- database-changes-for-functional-model.md §2.
+-- ---------------------------------------------------------------------
+ALTER TABLE match_set
+    ADD COLUMN lifecycle_status varchar(20) NOT NULL DEFAULT 'DRAFT',
+    ADD COLUMN version varchar(50) DEFAULT NULL,
+    ADD COLUMN copied_from_match_set_id int DEFAULT NULL,
+    ADD COLUMN root_match_set_id int NOT NULL DEFAULT 0,
+    ADD COLUMN archived_at datetime DEFAULT NULL;
+
+-- Every match_set that exists before this migration is the root of its
+-- own family (none of them are copies yet -- copying is introduced by
+-- this same phase).
+UPDATE match_set
+SET root_match_set_id = match_set_id
+WHERE root_match_set_id = 0;
+
+ALTER TABLE match_set
+    ADD KEY idx_match_set_root_match_set_id (root_match_set_id),
+    ADD KEY idx_match_set_copied_from_match_set_id (copied_from_match_set_id);
+
+-- ---------------------------------------------------------------------
+-- match_item -- database-changes-for-functional-model.md §3 (folding in
+-- the original_expect_status/is_reviewed/needs_review trio that the
+-- older, never-built schema-plan Phase 9 had already documented).
+-- ---------------------------------------------------------------------
+ALTER TABLE match_item
+    ADD COLUMN original_expect_status varchar(20) DEFAULT NULL,
+    ADD COLUMN is_reviewed boolean NOT NULL DEFAULT false,
+    ADD COLUMN needs_review boolean NOT NULL DEFAULT false,
+    ADD COLUMN provenance_type varchar(30) NOT NULL DEFAULT 'MANUAL',
+    ADD COLUMN copied_from_match_item_id int DEFAULT NULL,
+    ADD COLUMN source_signature varchar(500) DEFAULT NULL,
+    ADD COLUMN review_notes text DEFAULT NULL;
+
+-- Snapshot every pre-existing row's current expectation as its "original"
+-- one, since no snapshot was ever taken for rows created before this
+-- column existed.
+UPDATE match_item
+SET original_expect_status = expect_status
+WHERE original_expect_status IS NULL;
+
+ALTER TABLE match_item
+    ADD KEY idx_match_item_copied_from_match_item_id (copied_from_match_item_id);
+
+-- ---------------------------------------------------------------------
+-- match_item_review (new) -- database-changes-for-functional-model.md
+-- §4. Append-only: rows are only ever inserted, never updated or
+-- deleted. Inserting a row is what updates match_item.expect_status and
+-- sets match_item.is_reviewed = true; the row itself is immutable
+-- history.
+-- ---------------------------------------------------------------------
+CREATE TABLE match_item_review (
+    match_item_review_id int NOT NULL AUTO_INCREMENT,
+    match_item_id int NOT NULL,
+    reviewer_user_id int NOT NULL,
+    classification varchar(20) NOT NULL,
+    notes text DEFAULT NULL,
+    reviewed_at datetime NOT NULL,
+    PRIMARY KEY (match_item_review_id),
+    KEY idx_match_item_review_match_item_id (match_item_id, reviewed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

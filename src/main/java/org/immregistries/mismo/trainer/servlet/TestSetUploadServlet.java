@@ -65,12 +65,15 @@ public class TestSetUploadServlet extends TestSetServlet {
 
     if (matchSetSelected == null) {
       message = "Match set not found";
-    } else if (!OrgScope.isEditable(matchSetSelected, user)) {
+    } else if (!OrgScope.canEditCases(matchSetSelected, user)) {
       // matchSetSelected is readable (possibly a template owned by another organization,
       // §4.1) but not editable -- uploading to it would silently write into another
-      // organization's data. Copy it to this organization first.
-      message = "Cannot upload data to a template match set you do not own. Copy it to your"
-          + " organization first.";
+      // organization's data. Copy it to this organization first. It may also be editable but
+      // currently Approved (v2-roadmap.md §10) -- move it out of that status first.
+      message = OrgScope.isEditable(matchSetSelected, user)
+          ? "Cannot upload data while this Test Set is Approved. Change its status first."
+          : "Cannot upload data to a template match set you do not own. Copy it to your"
+              + " organization first.";
     } else if (dataSource.equals("")) {
       message = "Data source is required";
     } else {
@@ -106,6 +109,8 @@ public class TestSetUploadServlet extends TestSetServlet {
           matchItem.setUpdatedByUser(user);
           matchItem.setCreatedAt(updateDate);
           matchItem.setUpdatedAt(updateDate);
+          matchItem.setOriginalExpectStatus(matchItem.getExpectStatus());
+          matchItem.setProvenanceType(MatchItem.PROVENANCE_IMPORTED);
           dataSession.save(matchItem);
         }
       }

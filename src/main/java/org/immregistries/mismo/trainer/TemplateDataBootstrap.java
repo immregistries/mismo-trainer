@@ -106,6 +106,9 @@ public class TemplateDataBootstrap {
     matchSet.setCreatedAt(now);
     matchSet.setUpdatedAt(now);
     dataSession.save(matchSet);
+    // root_match_set_id is NOT NULL and self-referential -- see OrgScope.createMatchSet for why
+    // this has to happen as a post-save correction rather than before it.
+    matchSet.setRootMatchSetId(matchSet.getMatchSetId());
 
     List<MatchItem> matchItemList;
     try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(TEST_SET_FILE)))) {
@@ -118,6 +121,8 @@ public class TemplateDataBootstrap {
       matchItem.setDataSource(TEST_SET_LABEL);
       matchItem.setCreatedAt(now);
       matchItem.setUpdatedAt(now);
+      matchItem.setOriginalExpectStatus(matchItem.getExpectStatus());
+      matchItem.setProvenanceType(MatchItem.PROVENANCE_IMPORTED);
       dataSession.save(matchItem);
     }
     System.out.println("Created template match set \"" + TEST_SET_LABEL + "\" (match_set_id="

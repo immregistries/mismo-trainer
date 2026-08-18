@@ -7,6 +7,7 @@ import org.hibernate.Session;
 import org.immregistries.mismo.trainer.model.Configuration;
 import org.immregistries.mismo.trainer.model.IslandCredential;
 import org.immregistries.mismo.trainer.model.MatchItem;
+import org.immregistries.mismo.trainer.model.MatchItemReview;
 import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.Organization;
 import org.immregistries.mismo.trainer.model.User;
@@ -48,6 +49,18 @@ public final class OrgScope {
    */
   public static boolean isEditable(MatchSet matchSet, User user) {
     return matchSet != null && sameOrganization(matchSet.getOrganization(), user);
+  }
+
+  /**
+   * True if {@code matchSet}'s cases (patient data, classifications) may be added, uploaded, or
+   * reclassified right now -- {@link #isEditable} plus not currently {@code APPROVED}
+   * (v2-roadmap.md §10: "an Approved match_set rejects case-level edits until moved out of that
+   * state"). The lifecycle status itself may still be changed regardless of this check -- moving
+   * *out* of Approved is exactly how a set becomes case-editable again. Notes and the
+   * needs-review flag are review-process metadata, not case content, and are not gated by this.
+   */
+  public static boolean canEditCases(MatchSet matchSet, User user) {
+    return isEditable(matchSet, user) && !MatchSet.LIFECYCLE_APPROVED.equals(matchSet.getLifecycleStatus());
   }
 
   /** Write-access check for a {@code MatchItem}, verified through its parent {@code MatchSet}. */
@@ -112,12 +125,42 @@ public final class OrgScope {
     return configuration;
   }
 
-  /** Lists every {@code MatchSet} belonging to {@code user}'s organization, plus every template. */
-  @SuppressWarnings("unchecked")
+  /**
+   * Lists every {@code MatchSet} belonging to {@code user}'s organization, plus every template,
+   * excluding archived sets.
+   */
   public static List<MatchSet> listMatchSets(Session dataSession, User user) {
-    Query query = dataSession
-        .createQuery("from MatchSet where organization = ? or template = true order by updatedAt desc");
+    return listMatchSets(dataSession, user, false);
+  }
+
+  /**
+   * Lists every {@code MatchSet} belonging to {@code user}'s organization, plus every template.
+   *
+   * @param includeArchived when {@code false} (the default view), sets with a non-null
+   *     {@code archivedAt} are left out
+   */
+  @SuppressWarnings("unchecked")
+  public static List<MatchSet> listMatchSets(Session dataSession, User user, boolean includeArchived) {
+    String hql = "from MatchSet where (organization = ? or template = true)";
+    if (!includeArchived) {
+      hql += " and archivedAt is null";
+    }
+    hql += " order by updatedAt desc";
+    Query query = dataSession.createQuery(hql);
     query.setParameter(0, user.getOrganization());
+    return query.list();
+  }
+
+  /**
+   * Lists every readable {@code MatchSet} sharing {@code rootMatchSetId} -- "all versions of
+   * this Test Set" (v2-roadmap.md §10), oldest first.
+   */
+  @SuppressWarnings("unchecked")
+  public static List<MatchSet> listVersionFamily(Session dataSession, int rootMatchSetId, User user) {
+    Query query = dataSession.createQuery(
+        "from MatchSet where rootMatchSetId = ? and (organization = ? or template = true) order by createdAt");
+    query.setParameter(0, rootMatchSetId);
+    query.setParameter(1, user.getOrganization());
     return query.list();
   }
 
@@ -142,17 +185,30 @@ public final class OrgScope {
     matchSet.setCreatedAt(now);
     matchSet.setUpdatedAt(now);
     dataSession.save(matchSet);
+    // rootMatchSetId is NOT NULL and self-referential: a freshly-created (non-copied) set is the
+    // root of its own family, but its id isn't known until after the INSERT above. Correcting it
+    // on the still-managed instance lets Hibernate's own dirty-checking issue the follow-up
+    // UPDATE at flush time (v2-roadmap.md §10; database-changes-for-functional-model.md §2).
+    matchSet.setRootMatchSetId(matchSet.getMatchSetId());
     return matchSet;
   }
 
   /**
    * Copies a template (or any readable) {@code MatchSet} -- including every one of its
    * {@code MatchItem} rows -- into a brand-new row owned by {@code user}'s organization (§2.10's
-   * "copy" action). The copy is never itself a template; it starts out as an ordinary,
-   * fully-editable row owned by the copying organization, with no link back to the source beyond
-   * this call.
+   * "copy" action, and v2-roadmap.md §10's "create new version"). The copy is never itself a
+   * template; it starts out as an ordinary, {@code DRAFT}, fully-editable row owned by the
+   * copying organization. Deep-copy behavior (database-changes-for-functional-model.md §4,
+   * decided): every copied {@code MatchItem} gets a completely clean review history -- no
+   * {@code MatchItemReview} rows are carried over, {@code isReviewed}/{@code needsReview} both
+   * reset to {@code false}, and {@code originalExpectStatus} snapshots the source item's
+   * <em>current</em> {@code expectStatus} at copy time (not the source's own original).
+   *
+   * @param versionLabel the new copy's {@link MatchSet#getVersion()}, or {@code null} to leave
+   *     it unset (used by the plain "Copy to My Organization" template-adoption action, as
+   *     opposed to an explicit "Create New Version" action which does supply one)
    */
-  public static MatchSet copyMatchSet(Session dataSession, MatchSet source, User user) {
+  public static MatchSet copyMatchSet(Session dataSession, MatchSet source, User user, String versionLabel) {
     Date now = new Date();
     MatchSet copy = new MatchSet();
     copy.setLabel(source.getLabel());
@@ -162,6 +218,10 @@ public final class OrgScope {
     copy.setUpdatedByUser(user);
     copy.setCreatedAt(now);
     copy.setUpdatedAt(now);
+    copy.setLifecycleStatus(MatchSet.LIFECYCLE_DRAFT);
+    copy.setVersion(versionLabel);
+    copy.setCopiedFromMatchSetId(source.getMatchSetId());
+    copy.setRootMatchSetId(source.getRootMatchSetId());
     dataSession.save(copy);
 
     Query query = dataSession.createQuery("from MatchItem where matchSet = ? order by matchItemId");
@@ -181,9 +241,52 @@ public final class OrgScope {
       itemCopy.setUpdatedByUser(user);
       itemCopy.setCreatedAt(now);
       itemCopy.setUpdatedAt(now);
+      itemCopy.setOriginalExpectStatus(sourceItem.getExpectStatus());
+      itemCopy.setReviewed(false);
+      itemCopy.setNeedsReview(false);
+      itemCopy.setProvenanceType(MatchItem.PROVENANCE_COPIED);
+      itemCopy.setCopiedFromMatchItemId(sourceItem.getMatchItemId());
       dataSession.save(itemCopy);
     }
     return copy;
+  }
+
+  /**
+   * Changes {@code matchSet}'s lifecycle status (Draft/Reviewed/Approved, reversible either
+   * direction). Unlike case-level edits, this is never gated by the current status -- moving
+   * *out* of Approved is how a set becomes case-editable again.
+   *
+   * @return {@code true} if {@code matchSet} is owned by {@code user}'s organization and the
+   *     status was set, {@code false} if it belongs to another organization
+   */
+  public static boolean setLifecycleStatus(Session dataSession, MatchSet matchSet, String lifecycleStatus,
+      User user) {
+    if (!isEditable(matchSet, user)) {
+      return false;
+    }
+    matchSet.setLifecycleStatus(lifecycleStatus);
+    matchSet.setUpdatedByUser(user);
+    matchSet.setUpdatedAt(new Date());
+    dataSession.update(matchSet);
+    return true;
+  }
+
+  /**
+   * Archives or restores {@code matchSet} (independent of {@link MatchSet#getLifecycleStatus()}
+   * -- an Approved set doesn't have to pass back through Draft to be archived).
+   *
+   * @return {@code true} if {@code matchSet} is owned by {@code user}'s organization and the
+   *     archive state was set, {@code false} if it belongs to another organization
+   */
+  public static boolean setArchived(Session dataSession, MatchSet matchSet, boolean archived, User user) {
+    if (!isEditable(matchSet, user)) {
+      return false;
+    }
+    matchSet.setArchivedAt(archived ? new Date() : null);
+    matchSet.setUpdatedByUser(user);
+    matchSet.setUpdatedAt(new Date());
+    dataSession.update(matchSet);
+    return true;
   }
 
   /**
@@ -205,6 +308,82 @@ public final class OrgScope {
     copy.setCreatedAt(new Date());
     dataSession.save(copy);
     return copy;
+  }
+
+  /**
+   * Records a review event for {@code matchItem}: inserts an immutable {@code MatchItemReview}
+   * history row, and updates the live {@code expectStatus}/{@code isReviewed} on the item itself
+   * (database-changes-for-functional-model.md §4 -- "the most recent accepted review becomes the
+   * current expectation"). {@code isReviewed} is set {@code true} unconditionally, even if
+   * {@code classification} equals the item's current {@code expectStatus} -- confirming an
+   * already-correct classification still counts as reviewed.
+   *
+   * @return {@code false} without writing anything if {@code matchItem} isn't case-editable
+   *     right now ({@link #canEditCases}), {@code true} once the review is recorded
+   */
+  public static boolean recordReview(Session dataSession, MatchItem matchItem, User user, String classification,
+      String notes) {
+    if (!canEditCases(matchItem.getMatchSet(), user)) {
+      return false;
+    }
+    Date now = new Date();
+    MatchItemReview review = new MatchItemReview();
+    review.setMatchItem(matchItem);
+    review.setReviewerUser(user);
+    review.setClassification(classification);
+    review.setNotes(notes);
+    review.setReviewedAt(now);
+    dataSession.save(review);
+
+    matchItem.setExpectStatus(classification);
+    matchItem.setReviewed(true);
+    matchItem.setUpdatedByUser(user);
+    matchItem.setUpdatedAt(now);
+    dataSession.update(matchItem);
+    return true;
+  }
+
+  /** Every {@code MatchItemReview} for {@code matchItem}, newest first. */
+  @SuppressWarnings("unchecked")
+  public static List<MatchItemReview> listMatchItemReviews(Session dataSession, MatchItem matchItem) {
+    Query query = dataSession.createQuery("from MatchItemReview where matchItem = ? order by reviewedAt desc");
+    query.setParameter(0, matchItem);
+    return query.list();
+  }
+
+  /**
+   * Updates {@code matchItem}'s free-text review notes -- independently of any classify action.
+   *
+   * @return {@code false} without writing anything if {@code matchItem} isn't case-editable
+   *     right now ({@link #canEditCases}), {@code true} once saved
+   */
+  public static boolean setReviewNotes(Session dataSession, MatchItem matchItem, String notes, User user) {
+    if (!canEditCases(matchItem.getMatchSet(), user)) {
+      return false;
+    }
+    matchItem.setReviewNotes(notes);
+    matchItem.setUpdatedByUser(user);
+    matchItem.setUpdatedAt(new Date());
+    dataSession.update(matchItem);
+    return true;
+  }
+
+  /**
+   * Toggles {@code matchItem}'s "needs further review" flag -- independently of
+   * {@link MatchItem#isReviewed()} and of any classify action.
+   *
+   * @return {@code false} without writing anything if {@code matchItem} isn't case-editable
+   *     right now ({@link #canEditCases}), {@code true} once saved
+   */
+  public static boolean setNeedsReview(Session dataSession, MatchItem matchItem, boolean needsReview, User user) {
+    if (!canEditCases(matchItem.getMatchSet(), user)) {
+      return false;
+    }
+    matchItem.setNeedsReview(needsReview);
+    matchItem.setUpdatedByUser(user);
+    matchItem.setUpdatedAt(new Date());
+    dataSession.update(matchItem);
+    return true;
   }
 
   @SuppressWarnings("unchecked")

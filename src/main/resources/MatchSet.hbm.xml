@@ -12,5 +12,10 @@
     <many-to-one name="updatedByUser" column="updated_by_user_id" class="User"/>
     <property name="createdAt" column="created_at" type="timestamp"/>
     <property name="updatedAt" column="updated_at" type="timestamp"/>
+    <property name="lifecycleStatus" column="lifecycle_status" type="string" not-null="true"/>
+    <property name="version" column="version" type="string"/>
+    <property name="copiedFromMatchSetId" column="copied_from_match_set_id" type="java.lang.Integer"/>
+    <property name="rootMatchSetId" column="root_match_set_id" type="int" not-null="true"/>
+    <property name="archivedAt" column="archived_at" type="timestamp"/>
   </class>
 </hibernate-mapping>
