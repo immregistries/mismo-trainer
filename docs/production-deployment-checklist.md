@@ -30,9 +30,6 @@ importing).
   - `MISMO_DB_PASSWORD=<the password you generated>`
   - Only if MySQL isn't reachable at `localhost:3306` from this box: `MISMO_DB_URL=jdbc:mysql://<host>/mismo`
 - [ ] Deploy `mismo.war`, confirm it comes up at `/mismo`.
-- [ ] Deploy the `legacy-test-data/` folder (from the repo root) alongside the app — **not** inside
-  the WAR, it's deliberately excluded from packaging. Used at runtime by the Test Set explore/upload
-  pages, not just one-time setup.
 
 ## Engineer: InteropHub registration
 
