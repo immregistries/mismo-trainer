@@ -10,7 +10,6 @@ import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
-import org.hibernate.cfg.AnnotationConfiguration;
 import org.immregistries.mismo.trainer.model.MatchItem;
 import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.Organization;
@@ -39,6 +38,10 @@ import org.immregistries.mismo.trainer.servlet.TestSetUploadServlet;
  * {@code mvn exec:java} does <em>not</em> work for this: {@code pom.xml}'s {@code exec-maven-plugin}
  * configuration hardcodes {@code <mainClass>org.immregistries.mismo.trainer.Island</mainClass>},
  * which silently overrides any {@code -Dexec.mainClass=...} passed on the command line.
+ *
+ * <p>{@code MISMO_DB_USER}/{@code MISMO_DB_PASSWORD} must be set in the environment before running
+ * this -- {@link HibernateSessionFactorySupport} requires them and fails fast if either is missing
+ * (docs/production-deployment-plan.md).
  */
 public class TemplateDataBootstrap {
 
@@ -50,7 +53,7 @@ public class TemplateDataBootstrap {
   private static final String CONFIGURATION_ISLAND_NAME = "Configuration.yml";
 
   public static void main(String[] args) throws Exception {
-    SessionFactory factory = new AnnotationConfiguration().configure().buildSessionFactory();
+    SessionFactory factory = HibernateSessionFactorySupport.build();
     Session dataSession = factory.openSession();
     try {
       Organization aira = findTemplateOrganization(dataSession);

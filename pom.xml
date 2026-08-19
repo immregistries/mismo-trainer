@@ -8,7 +8,7 @@
 	<groupId>org.immregistries</groupId>
 	<artifactId>mismo-trainer</artifactId>
 	<packaging>war</packaging>
-	<version>1.1</version>
+	<version>2.0</version>
 
 	<name>mismo-trainer</name>
 	<!-- FIXME change it to the project's website -->
@@ -16,6 +16,10 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!-- Filtered into mismo-version.properties at build time; read at runtime by
+		     SoftwareVersion so the footer's displayed version always matches this pom,
+		     copying InteropHub's own pattern (see docs). -->
+		<software.version>${project.version}</software.version>
 	</properties>
 
 	<dependencies>
@@ -96,6 +100,22 @@
 
 	<build>
 		<finalName>mismo</finalName>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+				<excludes>
+					<exclude>mismo-version.properties</exclude>
+				</excludes>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>mismo-version.properties</include>
+				</includes>
+			</resource>
+		</resources>
 		<pluginManagement><!-- lock down plugins versions to avoid using Maven
 				defaults (may be moved to parent pom) -->
 			<plugins>

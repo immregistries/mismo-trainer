@@ -2,11 +2,14 @@
 <!DOCTYPE hibernate-configuration SYSTEM "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
 <hibernate-configuration>
   <session-factory>
+    <!-- No username/password here, and none should ever be added. Both are required
+         environment variables (MISMO_DB_USER/MISMO_DB_PASSWORD), applied by
+         HibernateSessionFactorySupport, never a checked-in default. See
+         docs/production-deployment-plan.md. -->
     <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
     <property name="hibernate.connection.url">jdbc:mysql://localhost/matching_validation</property>
-    <property name="hibernate.connection.username">mv_web</property>
     <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
-    <property name="connection.password">cArn88r0w</property>
+    <property name="hibernate.hbm2ddl.auto">validate</property>
     <property name="show_sql">false</property>
     <property name="hibernate.c3p0.acquire_increment">1</property>
     <property name="hibernate.c3p0.idle_test_period">100</property><!--  seconds -->

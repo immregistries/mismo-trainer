@@ -14,7 +14,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.cfg.AnnotationConfiguration;
 import org.immregistries.aira.web.AiraAccountConfig;
 import org.immregistries.aira.web.AiraContextConfig;
 import org.immregistries.aira.web.AiraDefaults;
@@ -329,7 +328,7 @@ public class HomeServlet extends HttpServlet {
    */
   public static SessionFactory getSessionFactory() {
     if (factory == null) {
-      factory = new AnnotationConfiguration().configure().buildSessionFactory();
+      factory = org.immregistries.mismo.trainer.HibernateSessionFactorySupport.build();
     }
     return factory;
   }

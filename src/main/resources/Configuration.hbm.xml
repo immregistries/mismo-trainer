@@ -9,9 +9,9 @@
     <property name="islandName" column="island_name" type="string"/>
     <property name="generation" column="generation" type="integer"/>
     <property name="generationScore" column="generation_score" type="double"/>
-    <property name="generatedDate" column="generated_date" type="date"/>
+    <property name="generatedDate" column="generated_date" type="timestamp"/>
     <property name="hashForSignature" column="hash_for_signature" type="string"/>
-    <property name="configurationScript" column="configuration_script" type="string"/>
+    <property name="configurationScript" column="configuration_script" type="text"/>
     <many-to-one name="organization" column="organization_id" class="Organization"/>
     <property name="template" column="is_template" type="boolean" not-null="true"/>
     <many-to-one name="createdByUser" column="created_by_user_id" class="User"/>
