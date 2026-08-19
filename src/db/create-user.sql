@@ -6,6 +6,6 @@
 -- caching_sha2_password (MySQL 8's default auth plugin) is used here rather than the legacy
 -- mysql_native_password this file used to specify.
 
-CREATE USER 'mv_web'@'localhost' IDENTIFIED WITH caching_sha2_password BY '<REPLACE_WITH_A_FRESH_GENERATED_PASSWORD>';
+CREATE USER 'mismo_web'@'localhost' IDENTIFIED WITH caching_sha2_password BY '<REPLACE_WITH_A_FRESH_GENERATED_PASSWORD>';
 
-GRANT ALL PRIVILEGES ON matching_validation.* TO 'mv_web'@'localhost' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON mismo.* TO 'mismo_web'@'localhost';
