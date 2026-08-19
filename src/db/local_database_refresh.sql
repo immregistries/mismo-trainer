@@ -9,3 +9,7 @@
 UPDATE app_setting
 SET setting_value = 'http://localhost:8080/hub'
 WHERE setting_key = 'hub.external.url';
+
+UPDATE app_setting
+SET setting_value = 'http://localhost:8080/mismo'
+WHERE setting_key = 'mismo.external.url';

@@ -7,8 +7,9 @@ if anything here needs more context than a checklist gives.
 
 **Provided out of band, not in the repo:** `mismo20260819.sql` (full dump of the current dev database
 — this *is* the initial data, not an empty schema. It already contains the AIRA organization row
-and its template Test Set/Configuration, and already has `app_setting.hub.external.url` set to
-production's InteropHub URL — nothing to edit in it before importing).
+and its template Test Set/Configuration, and already has `app_setting.hub.external.url` and
+`app_setting.mismo.external.url` set to their production values — nothing to edit in it before
+importing).
 
 ---
 
@@ -28,13 +29,6 @@ production's InteropHub URL — nothing to edit in it before importing).
   - `MISMO_DB_USER=mismo_web`
   - `MISMO_DB_PASSWORD=<the password you generated>`
   - Only if MySQL isn't reachable at `localhost:3306` from this box: `MISMO_DB_URL=jdbc:mysql://<host>/mismo`
-- [ ] Also set as a JVM system property on Tomcat's startup command (e.g. `CATALINA_OPTS`, or the
-  "Java Options" field if Tomcat runs as a Windows service) — **not an env var, a `-D` flag**:
-  - `-Dmismo.external.url=https://informatics.immregistries.org/mismo`
-
-  This is this app's own externally-reachable base URL (`HubClientSupport.MISMO_EXTERNAL_URL`), used
-  to build the InteropHub login redirect/callback. It defaults to `http://localhost:8080/mismo` if
-  left unset — SSO login will silently redirect to the wrong host if this is missed.
 - [ ] Deploy `mismo.war`, confirm it comes up at `/mismo`.
 - [ ] Deploy the `legacy-test-data/` folder (from the repo root) alongside the app — **not** inside
   the WAR, it's deliberately excluded from packaging. Used at runtime by the Test Set explore/upload
