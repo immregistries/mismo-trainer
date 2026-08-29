@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,7 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+
+import org.immregistries.mismo.match.matchers.SimilarMatchNode;
 import org.immregistries.mismo.match.model.Patient;
+import org.immregistries.mismo.match.util.ReverseSignatureUtil;
 
 /**
  * @author nathan
@@ -1315,5 +1321,140 @@ public class Transformer
     private SpecificityType(String text) {
       this.text = text;
     }
+  }
+  public static void main(String[] args) throws Exception {
+    String exampleSig = "CighvC0g1qGhA2U:hKBAQA:hKBAQA:hKBAQA:hKBAQA";
+    //String exampleSig = "CighvC0g1qGhA2U:Qoziao:AI7ye4:QoTi6o:AITiao";
+    if(args.length == 1){
+        exampleSig = args[0];
+    }
+    System.out.println("STARTING");
+    List<String> stuff = ReverseSignatureUtil.reverseSignatureIntoHexScores(exampleSig);
+    System.out.println(stuff);
+
+    Transformer t = new Transformer();
+    t.init();
+    double d = -1.0;
+    HashMap<String, String> resultMap = new HashMap<>();
+    Patient patA = new Patient();
+    Patient patB = new Patient();
+    if(stuff.get(0).equals("f")){
+        String value1 = t.getValue("LAST_NAME");
+        patA.setNameLast(value1);
+        patB.setNameLast(value1);
+    } else{
+        for(int i=0; i<10000; i++){
+            String value1 = t.getValue("LAST_NAME");
+            String value2 = t.getValue("LAST_NAME");
+            patA.setNameLast(value1);
+            patB.setNameLast(value2);
+            SimilarMatchNode smn = new SimilarMatchNode();
+            smn.setFieldName("nameLast");
+            d = smn.score(patA, patB);
+            int i1 = (int) (d * 15.0);
+            String hexScore = Integer.toHexString(i1);
+            //L-simiar is [1]
+            if(hexScore.equals(stuff.get(1))){
+                System.out.println("LAST NAME");
+                System.out.println(hexScore);
+                break;
+            }
+        } 
+    }
+    if(stuff.get(5).equals("f")){
+        String value1 = t.getValue("GIRL");
+        patA.setNameFirst(value1);
+        patB.setNameFirst(value1);
+    } else{
+        for(int i=0; i<10000; i++){
+            String value1 = t.getValue("GIRL");
+            String value2 = t.getValue("GIRL");
+            patA.setNameFirst(value1);
+            patB.setNameFirst(value2);
+            SimilarMatchNode smn = new SimilarMatchNode();
+            smn.setFieldName("nameFirst");
+            d = smn.score(patA, patB);
+            int i1 = (int) (d * 15.0);
+            String hexScore = Integer.toHexString(i1);
+            //F-similar is [6]
+            if(hexScore.equals(stuff.get(6))){
+                System.out.println("FIRST NAME");
+                System.out.println(hexScore);
+                break;
+            }
+        }
+    }
+    if(stuff.get(10).equals("f")){
+        String value1 = t.getValue("GIRL");
+        patA.setNameMiddle(value1);
+        patB.setNameMiddle(value1);
+    } else{
+        for(int i=0; i<10000; i++){
+            String value1 = t.getValue("GIRL");
+            String value2 = t.getValue("GIRL");
+            patA.setNameMiddle(value1);
+            patB.setNameMiddle(value2);
+            SimilarMatchNode smn = new SimilarMatchNode();
+            smn.setFieldName("nameMiddle");
+            d = smn.score(patA, patB);
+            int i1 = (int) (d * 15.0);
+            String hexScore = Integer.toHexString(i1);
+            //M-similar is [12]
+            if(hexScore.equals(stuff.get(12))){
+                System.out.println("MIDDLE NAME");
+                System.out.println(hexScore);
+                break;
+            }
+        }
+    }
+    String phoneArea = t.getValue("ADDRESS", 3);
+    String phoneLocal = "" + random.nextInt(10) + random.nextInt(10) + random.nextInt(10) + "-" + random.nextInt(10)
+        + random.nextInt(10) + random.nextInt(10) + random.nextInt(10);
+    String phone = "(" + phoneArea + ")" + phoneLocal;
+    patA.setPhone(phone);
+    patB.setPhone(phone);
+    if(stuff.get(3).equals("0")){
+        phoneArea = t.getValue("ADDRESS", 3);
+        phoneLocal = "" + random.nextInt(10) + random.nextInt(10) + random.nextInt(10) + "-" + random.nextInt(10)
+            + random.nextInt(10) + random.nextInt(10) + random.nextInt(10);
+        phone = "(" + phoneArea + ")" + phoneLocal;
+        patB.setPhone(phone);
+    }
+
+    String street = (random.nextInt(400) + 1) + " " + t.getValue(LAST_NAME) + " " + t.getValue("STREET_ABBREVIATION");
+    patA.setAddressStreet1(street);
+    patB.setAddressStreet1(street);
+    String addressState = t.getValue("ADDRESS", 1);
+    patA.setAddressState(addressState);
+    patB.setAddressState(addressState);
+    String addressZip = t.getValue("ADDRESS", 2);
+    patA.setAddressZip(addressZip);
+    patB.setAddressZip(addressZip);
+    if(stuff.get(4).equals("0")){
+        street = (random.nextInt(400) + 1) + " " + t.getValue(LAST_NAME) + " " + t.getValue("STREET_ABBREVIATION");
+        addressState = t.getValue("ADDRESS", 1);
+        addressZip = t.getValue("ADDRESS", 2);
+        patB.setAddressStreet1(street);
+        patB.setAddressState(addressState);
+        patB.setAddressZip(addressZip);
+    }
+
+    long minDay = LocalDate.of(1970, 1, 1).toEpochDay();
+    long maxDay = LocalDate.of(2015, 12, 31).toEpochDay();
+    long randomDay = random.nextLong(minDay, maxDay);
+    LocalDate randomDate = LocalDate.ofEpochDay(randomDay);
+    String birthDate = randomDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+    patA.setBirthDate(birthDate);
+    patB.setBirthDate(birthDate);
+    if(stuff.get(8).equals("0")){
+        randomDay = random.nextLong(minDay, maxDay);
+        randomDate = LocalDate.ofEpochDay(randomDay);
+        birthDate = randomDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        patB.setBirthDate(birthDate);
+    }
+    
+
+    System.out.println(patA);
+    System.out.println(patB);
   }
 }
