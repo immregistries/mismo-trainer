@@ -50,7 +50,12 @@ public class LoginServlet extends HttpServlet {
 
     String code = req.getParameter("code");
     if (code == null || code.trim().isEmpty()) {
-      showMessage(resp, "Login was cancelled or no authorization code was received.");
+      // /login is meant to only ever be hit as InteropHub's redirect back
+      // after a login it just completed. Reaching it with no code means
+      // the browser landed here some other way (a stale bookmark, a link
+      // that pointed straight at /login, etc.) rather than a real login
+      // having been cancelled -- so restart the flow instead of dead-ending.
+      HubClientSupport.redirectToHubLogin(req, resp, HubClientSupport.getAbsoluteMismoUrl("/HomeServlet"));
       return;
     }
 
