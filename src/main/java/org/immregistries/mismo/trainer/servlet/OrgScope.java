@@ -22,6 +22,7 @@ import org.immregistries.mismo.trainer.model.Scorer;
 import org.immregistries.mismo.trainer.model.SignatureBatch;
 import org.immregistries.mismo.trainer.model.SignatureBatchEntry;
 import org.immregistries.mismo.trainer.model.User;
+import org.immregistries.mismo.trainer.model.UserConfigurationRecent;
 
 /**
  * Enforces database-schema-migration-plan.md §4 (Tenant Enforcement Rules): every read or write
@@ -775,6 +776,125 @@ public final class OrgScope {
     query.setMaxResults(1);
     List<Configuration> list = query.list();
     return list.isEmpty() ? null : list.get(0);
+  }
+
+  /** Lists every template {@code Configuration} (readable by every organization), newest first. */
+  @SuppressWarnings("unchecked")
+  public static List<Configuration> listTemplateConfigurations(Session dataSession) {
+    Query query = dataSession.createQuery(
+        "from Configuration where template = true order by worldName, islandName, generation desc");
+    return query.list();
+  }
+
+  /**
+   * Finds readable configurations whose hash, world name, or island name contains {@code text}
+   * (case-insensitive). A full signature ({@code hash:level1:level2...}) is cut back to its hash
+   * first, so pasting one straight from QDAR output finds the configuration that produced it.
+   */
+  @SuppressWarnings("unchecked")
+  public static List<Configuration> searchConfigurations(Session dataSession, String text, User user) {
+    String term = text == null ? "" : text.trim();
+    int colon = term.indexOf(':');
+    if (colon > 0) {
+      term = term.substring(0, colon);
+    }
+    if (term.isEmpty()) {
+      return new ArrayList<Configuration>();
+    }
+    String like = "%" + term.toLowerCase().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+    Query query = dataSession.createQuery(
+        "from Configuration where (organization = ? or template = true)"
+            + " and (lower(hashForSignature) like ? or lower(worldName) like ? or lower(islandName) like ?)"
+            + " order by worldName, islandName, generation desc");
+    query.setParameter(0, user.getOrganization());
+    query.setParameter(1, like);
+    query.setParameter(2, like);
+    query.setParameter(3, like);
+    return query.list();
+  }
+
+  /**
+   * Records that {@code user} just loaded {@code configuration}: moves the existing recent row
+   * forward, or adds one. Caller owns the transaction.
+   */
+  @SuppressWarnings("unchecked")
+  public static void recordConfigurationSelected(Session dataSession, Configuration configuration, User user) {
+    Query query = dataSession.createQuery("from UserConfigurationRecent where user = ? and configuration = ?");
+    query.setParameter(0, user);
+    query.setParameter(1, configuration);
+    List<UserConfigurationRecent> list = query.list();
+    UserConfigurationRecent recent = list.isEmpty() ? new UserConfigurationRecent() : list.get(0);
+    recent.setUser(user);
+    recent.setConfiguration(configuration);
+    recent.setSelectedAt(new Date());
+    dataSession.saveOrUpdate(recent);
+  }
+
+  /**
+   * The configurations {@code user} loaded most recently, newest first, at most {@code limit}.
+   * Anything no longer readable (e.g. a template that was un-flagged) is skipped.
+   */
+  @SuppressWarnings("unchecked")
+  public static List<Configuration> listRecentConfigurations(Session dataSession, User user, int limit) {
+    Query query = dataSession.createQuery(
+        "select r.configuration from UserConfigurationRecent r where r.user = ?"
+            + " order by r.selectedAt desc, r.userConfigurationRecentId desc");
+    query.setParameter(0, user);
+    query.setMaxResults(limit * 4);
+    List<Configuration> recent = new ArrayList<Configuration>();
+    for (Configuration configuration : (List<Configuration>) query.list()) {
+      if (readable(configuration.getOrganization(), configuration.isTemplate(), user)) {
+        recent.add(configuration);
+        if (recent.size() == limit) {
+          break;
+        }
+      }
+    }
+    return recent;
+  }
+
+  /**
+   * Saves a pasted or uploaded configuration script as a {@code Configuration} owned by
+   * {@code user}'s organization, keeping the World / Island / generation / score written in the
+   * script itself. If a readable configuration with the same hash already exists (in this
+   * organization or as a template), that one is returned instead of adding a duplicate. Caller
+   * owns the transaction.
+   *
+   * @throws RuntimeException if the script can't be read as a Mismo configuration
+   */
+  public static ImportedConfiguration importConfiguration(Session dataSession, String configurationScript,
+      User user) {
+    if (configurationScript == null || configurationScript.trim().isEmpty()) {
+      // mismo-match silently falls back to its bundled default configuration on an empty script.
+      throw new IllegalArgumentException("No configuration script was given.");
+    }
+    org.immregistries.mismo.match.model.Configuration matchConfiguration =
+        new org.immregistries.mismo.match.model.Configuration();
+    matchConfiguration.setConfigurationScript(configurationScript);
+    matchConfiguration.setup();
+    Configuration existing = findConfigurationByHash(dataSession, matchConfiguration.getHashForSignature(), user);
+    if (existing != null) {
+      return new ImportedConfiguration(existing, false);
+    }
+    Configuration configuration = new Configuration();
+    configuration.setWorldName(matchConfiguration.getWorldName() == null ? "" : matchConfiguration.getWorldName());
+    configuration.setIslandName(matchConfiguration.getIslandName() == null ? "" : matchConfiguration.getIslandName());
+    configuration.setGeneration(matchConfiguration.getGeneration());
+    configuration.setGenerationScore(matchConfiguration.getGenerationScore());
+    configuration.setGeneratedDate(
+        matchConfiguration.getGeneratedDate() == null ? new Date() : matchConfiguration.getGeneratedDate());
+    configuration.setHashForSignature(matchConfiguration.getHashForSignature());
+    configuration.setConfigurationScript(matchConfiguration.getConfigurationScript());
+    configuration.setOrganization(user.getOrganization());
+    configuration.setTemplate(false);
+    configuration.setCreatedByUser(user);
+    configuration.setCreatedAt(new Date());
+    dataSession.save(configuration);
+    return new ImportedConfiguration(configuration, true);
+  }
+
+  /** What {@link #importConfiguration} loaded, and whether it had to add a new row for it. */
+  public record ImportedConfiguration(Configuration configuration, boolean added) {
   }
 
   /**

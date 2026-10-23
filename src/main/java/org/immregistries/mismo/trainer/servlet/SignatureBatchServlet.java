@@ -3,6 +3,7 @@ package org.immregistries.mismo.trainer.servlet;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.net.URLEncoder;
@@ -367,32 +368,28 @@ public class SignatureBatchServlet extends HomeServlet {
     resp.setCharacterEncoding("UTF-8");
     resp.setHeader("Content-Disposition", "attachment; filename=\"signature_batch_"
         + batch.getSignatureBatchId() + ".csv\"");
-    PrintWriter out = new PrintWriter(resp.getOutputStream());
+    PrintWriter out = new PrintWriter(new OutputStreamWriter(resp.getOutputStream(), StandardCharsets.UTF_8));
     try {
-      out.println(configurationSelected != null ? "Signature,Count,Classification" : "Signature,Count");
-      for (DecodedEntry d : decoded) {
-        out.print(csv(d.entry.getSignature()));
-        out.print(",");
-        out.print(d.entry.getCount());
-        if (configurationSelected != null) {
-          out.print(",");
-          out.print(csv(d.classification));
+      if (configurationSelected != null) {
+        // Decoded: same matrix as the Signature page's Compare Signatures -- one column per node,
+        // each holding the node's score from the signature.
+        List<SignatureMatrix.Line> lines = new ArrayList<SignatureMatrix.Line>();
+        for (DecodedEntry d : decoded) {
+          lines.add(new SignatureMatrix.Line(d.entry.getSignature(), d.entry.getCount()));
         }
-        out.println();
+        PatientCompare patientCompare = new PatientCompare(configurationSelected.getConfigurationScript());
+        SignatureMatrix.writeCsv(out, configurationSelected, SignatureMatrix.columns(patientCompare),
+            SignatureMatrix.decode(configurationSelected, patientCompare, lines));
+      } else {
+        out.print('﻿');
+        out.println("Signature,Count");
+        for (DecodedEntry d : decoded) {
+          out.println(SignatureMatrix.csv(d.entry.getSignature()) + "," + d.entry.getCount());
+        }
       }
     } finally {
       out.close();
     }
-  }
-
-  private static String csv(String value) {
-    if (value == null) {
-      return "";
-    }
-    if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-      return "\"" + value.replace("\"", "\"\"") + "\"";
-    }
-    return value;
   }
 
   @Override

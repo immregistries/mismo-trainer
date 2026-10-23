@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.immregistries.aira.web.AiraAccountConfig;
 import org.immregistries.aira.web.AiraContextConfig;
 import org.immregistries.aira.web.AiraDefaults;
@@ -41,6 +42,9 @@ public class HomeServlet extends HttpServlet {
   public static final String ATTRIBUTE_DATA_SESSION = "dataSession";
 
   public static final String ATTRIBUTE_PATIENT_COMPARE = "patientCompare";
+  /** {@code configuration_id} of the row behind {@link #ATTRIBUTE_PATIENT_COMPARE}. */
+  public static final String ATTRIBUTE_CONFIGURATION_LOADED_ID = "configurationLoadedId";
+  private static final String ATTRIBUTE_CONFIGURATION_RESTORED = "configurationRestored";
   public static final String ATTRIBUTE_MATCH_TEST_CASE_LIST = "matchTestCaseList";
 
   private static final String APPLICATION_NAME = "Mismo Trainer";
@@ -55,16 +59,43 @@ public class HomeServlet extends HttpServlet {
     getSessionFactory();
     dataSession = factory.openSession();
     session.setAttribute(ATTRIBUTE_DATA_SESSION, dataSession);
-    if (req.getParameter(PARAM_CONFIGURATION_ID) != null) {
-      User user = (User) session.getAttribute(ATTRIBUTE_USER);
+    User user = (User) session.getAttribute(ATTRIBUTE_USER);
+    // Empty means "none" -- e.g. Batch Signature Analysis's "(raw -- no decode)" choice.
+    String configurationIdParam = req.getParameter(PARAM_CONFIGURATION_ID);
+    if (configurationIdParam != null && !configurationIdParam.isEmpty()) {
       Configuration configuration = OrgScope.loadConfiguration(dataSession,
-          Integer.parseInt(req.getParameter(PARAM_CONFIGURATION_ID)), user);
+          Integer.parseInt(configurationIdParam), user);
       if (configuration != null) {
-        PatientCompare patientCompare = new PatientCompare(configuration.getConfigurationScript());
-        session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, patientCompare);
+        selectConfiguration(session, dataSession, configuration, user);
+      }
+    } else if (user != null && session.getAttribute(ATTRIBUTE_CONFIGURATION_RESTORED) == null) {
+      // First request of a new session: put back whatever this user had loaded last time, so a
+      // configuration someone works with for weeks stays selected across logins.
+      session.setAttribute(ATTRIBUTE_CONFIGURATION_RESTORED, Boolean.TRUE);
+      if (session.getAttribute(ATTRIBUTE_PATIENT_COMPARE) == null) {
+        List<Configuration> recent = OrgScope.listRecentConfigurations(dataSession, user, 1);
+        if (!recent.isEmpty()) {
+          Configuration configuration = recent.get(0);
+          session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, new PatientCompare(configuration.getConfigurationScript()));
+          session.setAttribute(ATTRIBUTE_CONFIGURATION_LOADED_ID, configuration.getConfigurationId());
+        }
       }
     }
+  }
 
+  /**
+   * Makes {@code configuration} the session's loaded configuration and remembers it as
+   * {@code user}'s most recent selection (when there is a user to remember it for).
+   */
+  protected static void selectConfiguration(HttpSession session, Session dataSession, Configuration configuration,
+      User user) {
+    session.setAttribute(ATTRIBUTE_PATIENT_COMPARE, new PatientCompare(configuration.getConfigurationScript()));
+    session.setAttribute(ATTRIBUTE_CONFIGURATION_LOADED_ID, configuration.getConfigurationId());
+    if (user != null) {
+      Transaction transaction = dataSession.beginTransaction();
+      OrgScope.recordConfigurationSelected(dataSession, configuration, user);
+      transaction.commit();
+    }
   }
 
   @Override
@@ -185,9 +216,9 @@ public class HomeServlet extends HttpServlet {
             new NavPage("Test Sets", "/TestSetServlet"),
             new NavPage("Compare a Pair", "/MatchPatientServlet"))),
     CONFIGURATIONS("Configurations",
-        "View the current weight set or browse all configurations available to your organization.",
+        "Select the configuration to work with, or browse all configurations available to your organization.",
         List.of(
-            new NavPage("Weight Set", "/WeightSetServlet"),
+            new NavPage("Select Configuration", "/WeightSetServlet"),
             new NavPage("Browse All Configurations", "/CentralServlet"))),
     EVALUATIONS("Evaluations", "Run test matching against a configuration and review the results.",
         List.of(
@@ -286,7 +317,9 @@ public class HomeServlet extends HttpServlet {
       out.println("    </div>");
     }
     PatientCompare patientCompare = (PatientCompare) req.getSession().getAttribute(ATTRIBUTE_PATIENT_COMPARE);
-    if (patientCompare != null && patientCompare.getConfiguration() != null) {
+    // The Select Configuration page shows the loaded configuration at the top already.
+    if (patientCompare != null && patientCompare.getConfiguration() != null
+        && !"/WeightSetServlet".equals(req.getServletPath())) {
       DecimalFormat decimalFormat = new DecimalFormat("#0.0");
       org.immregistries.mismo.match.model.Configuration c = patientCompare.getConfiguration();
       out.println("    <div class=\"aira-container--wide\">");

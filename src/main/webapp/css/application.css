@@ -91,3 +91,112 @@ a.navMenuLink {
 a.navMenuLink:hover {
   background-color: var(--aira-surface-selected);
 }
+
+/* Select Configuration page (WeightSetServlet): one-click template / recent lists. */
+.config-pick-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: var(--aira-space-4);
+}
+
+.config-pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--aira-space-2);
+}
+
+.config-pick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 var(--aira-space-3);
+  align-items: center;
+  padding: var(--aira-space-2) var(--aira-space-3);
+  border: 1px solid var(--aira-border);
+  border-radius: var(--aira-radius-card);
+  background: var(--aira-surface);
+  color: inherit;
+  text-decoration: none;
+}
+
+a.config-pick:hover,
+a.config-pick:focus-visible {
+  border-color: var(--aira-primary-action);
+}
+
+.config-pick--loaded {
+  border-color: var(--aira-primary-action);
+  box-shadow: inset 3px 0 0 var(--aira-primary-action);
+}
+
+.config-pick__name {
+  font-weight: 600;
+}
+
+.config-pick__meta {
+  grid-column: 1;
+  font-size: 0.85rem;
+  color: var(--aira-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.config-pick__action {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-weight: 600;
+  color: var(--aira-primary-action);
+}
+
+.config-pick--loaded .config-pick__action {
+  color: var(--aira-text-secondary);
+}
+
+.config-loaded__name {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.config-search {
+  display: flex;
+  gap: var(--aira-space-2);
+  max-width: 40rem;
+}
+
+.config-search .aira-input {
+  flex: 1;
+}
+
+.config-script,
+.config-script-input {
+  max-height: 24rem;
+  overflow: auto;
+  font-family: monospace;
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+details.aira-panel > summary {
+  cursor: pointer;
+}
+
+/* Signature page, Compare Signatures: wide node-score matrix. */
+.signature-compare-input {
+  width: 100%;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.signature-compare-table {
+  overflow-x: auto;
+  max-height: 32rem;
+}
+
+.signature-compare-table th {
+  white-space: nowrap;
+}
+
+.signature-compare-nonzero {
+  font-weight: 700;
+  background: var(--aira-success-surface);
+}
