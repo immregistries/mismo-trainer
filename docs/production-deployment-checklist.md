@@ -95,6 +95,10 @@ allows.
 
 **Webapp:**
 
+- [ ] On the build machine, pull `mismo-match` and run `mvn install` there first. This release uses
+  methods added to mismo-match on 2026-10-24 (`Patient.prepareForSharing`,
+  `PatientCompare.setPatients`) without a version bump (still 1.1). An older 1.1 jar in the local
+  Maven repository fails to compile mismo-optimizer.
 - [ ] `mvn clean package` from the repository root; deploy `mismo-trainer-web/target/mismo.war`.
 - [ ] Optimization > Runners and Optimization > Scoring Profiles load, and the national
   measurement profile is listed.
