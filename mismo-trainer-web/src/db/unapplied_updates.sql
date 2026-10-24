@@ -1072,3 +1072,15 @@ UPDATE scoring_profile SET root_scoring_profile_id = scoring_profile_id WHERE ro
 INSERT INTO app_setting (setting_key, setting_value)
 SELECT 'runner.min.client.version', '2.0'
  WHERE NOT EXISTS (SELECT 1 FROM app_setting WHERE setting_key = 'runner.min.client.version');
+
+-- Island Runner, Slice 4: where the Runners page sends people to download the
+-- Mismo Runner (a GitHub Release asset), and the zip's SHA-256 shown next to
+-- the link. Update both rows for each new runner release; no redeploy needed.
+-- An empty SHA-256 hides the line. See docs/production-deployment-checklist.md.
+INSERT INTO app_setting (setting_key, setting_value)
+SELECT 'runner.download.url',
+       'https://github.com/immregistries/mismo-trainer/releases/download/runner-v2.0/Mismo-Runner-2.0-windows.zip'
+ WHERE NOT EXISTS (SELECT 1 FROM app_setting WHERE setting_key = 'runner.download.url');
+INSERT INTO app_setting (setting_key, setting_value)
+SELECT 'runner.download.sha256', ''
+ WHERE NOT EXISTS (SELECT 1 FROM app_setting WHERE setting_key = 'runner.download.sha256');

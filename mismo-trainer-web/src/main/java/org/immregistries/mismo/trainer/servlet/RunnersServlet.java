@@ -18,6 +18,7 @@ import org.hibernate.Transaction;
 import org.immregistries.mismo.optimizer.protocol.Protocol;
 import org.immregistries.mismo.optimizer.protocol.ScoringWeights;
 import org.immregistries.mismo.trainer.auth.HubClientSupport;
+import org.immregistries.mismo.trainer.model.AppSetting;
 import org.immregistries.mismo.trainer.model.Configuration;
 import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.OptimizationRun;
@@ -51,6 +52,11 @@ public class RunnersServlet extends HomeServlet {
   public static final String ACTION_NEW_PAIRING_CODE = "New Pairing Code";
   public static final String ACTION_SAVE_ASSIGNMENT = "Save Assignment";
   public static final String ACTION_REVOKE_CREDENTIAL = "Revoke Credential";
+
+  /** {@code app_setting} keys for the runner download (a GitHub Release asset; plan D7, Slice 4). */
+  public static final String SETTING_DOWNLOAD_URL = "runner.download.url";
+  public static final String SETTING_DOWNLOAD_SHA256 = "runner.download.sha256";
+  private static final String DEFAULT_DOWNLOAD_URL = "https://github.com/immregistries/mismo-trainer/releases/latest";
 
   private static final int DEFAULT_POPULATION_SIZE = 1000;
   private static final int MIN_POPULATION_SIZE = 10;
@@ -187,6 +193,7 @@ public class RunnersServlet extends HomeServlet {
       }
       out.println("    </table>");
     }
+    printDownload(out, dataSession);
     out.println("    <section class=\"aira-panel\">");
     out.println("      <h2 class=\"aira-panel__title\">Create Runner</h2>");
     out.println("      <form action=\"RunnersServlet\" method=\"POST\">");
@@ -214,8 +221,9 @@ public class RunnersServlet extends HomeServlet {
       out.println("      <p>Valid until " + sdf.format(runner.getPairingExpiresAt()) + ". It is shown only now;"
           + " if it expires, create a new one below.</p>");
       out.println("      <ol>");
-      out.println("        <li>On the computer that will run optimization, start the runner:"
-          + " <code>java -jar mismo-runner.jar</code> (Java 17 or later).</li>");
+      out.println("        <li>On the computer that will run optimization, " + downloadLink(dataSession)
+          + ", unzip it, and double-click <code>Mismo Runner.exe</code>. Java is included; nothing needs to be"
+          + " installed. (Developers can also run <code>java -jar mismo-runner.jar</code> with Java 17 or later.)</li>");
       out.println("        <li>Type <code>pair</code>.</li>");
       out.println("        <li>Enter the server address <code>" + escapeHtml(serverUrl) + "</code> and this code.</li>");
       out.println("      </ol>");
@@ -457,6 +465,31 @@ public class RunnersServlet extends HomeServlet {
 
   private static String who(User user) {
     return user.getDisplayName() != null ? user.getDisplayName() : user.getEmail();
+  }
+
+  private static String setting(Session dataSession, String key, String fallback) {
+    AppSetting setting = (AppSetting) dataSession.get(AppSetting.class, key);
+    String value = setting == null ? null : setting.getSettingValue();
+    return value == null || value.isBlank() ? fallback : value.trim();
+  }
+
+  private static String downloadLink(Session dataSession) {
+    return "<a href=\"" + escapeHtml(setting(dataSession, SETTING_DOWNLOAD_URL, DEFAULT_DOWNLOAD_URL))
+        + "\">download the Mismo Runner for Windows</a>";
+  }
+
+  private void printDownload(PrintWriter out, Session dataSession) {
+    String sha256 = setting(dataSession, SETTING_DOWNLOAD_SHA256, null);
+    out.println("    <section class=\"aira-panel\">");
+    out.println("      <h2 class=\"aira-panel__title\">Get the Mismo Runner</h2>");
+    out.println("      <p>To set up a computer, " + downloadLink(dataSession) + " (a zip of about 30 MB), unzip it"
+        + " anywhere, and double-click <code>Mismo Runner.exe</code>. Java is included and no administrator rights"
+        + " are needed. Then create a runner below and pair it with the code shown. README.txt in the zip walks"
+        + " through it.</p>");
+    if (sha256 != null) {
+      out.println("      <p><small>SHA-256 of the zip: <code>" + escapeHtml(sha256) + "</code></small></p>");
+    }
+    out.println("    </section>");
   }
 
   private static String percent(Double score) {

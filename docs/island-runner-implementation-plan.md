@@ -377,6 +377,15 @@ Findings:
 
 **Slice 4: Distribution.** `jpackage` app-image zip, `README.txt`/`VERSION.txt`, SHA-256, GitHub Release, download link on the pairing page. Test on a clean Windows machine with no Java installed (acceptance criterion 2).
 
+*Slice 4 notes (2026-10-24).*
+- **`mismo-runner/package-windows.ps1`** builds the jpackage app-image (`Mismo Runner.exe`, console) with a jlink-trimmed runtime. It adds `README.txt` (analyst instructions) and `VERSION.txt` (version, build time, commit, runtime), zips the result with Windows' `tar.exe`, and writes the zip's SHA-256.
+- **The zip is about 28 MB with Java 25 bundled,** about half of D7's estimate.
+- **The module list** is `jdeps` output plus `java.logging`, `jdk.crypto.ec` and `jdk.charsets`, which `jdeps` can't see. A runtime with exactly that list made an HTTP/2 https request successfully.
+- **Tested on the development machine:** the packaged exe ran a real optimization against localhost Tomcat (run 28: 22 generations, about 245 creatures/second, clean stop).
+- **The Runners page links to the download.** The URL and SHA-256 come from `app_setting` (`runner.download.url`, `runner.download.sha256`), so a new release needs no redeploy.
+- **The exe isn't code-signed,** so Windows SmartScreen will warn on first launch. The README says how to get past it. Signing is a possible later step.
+- **Testing changed (Nathan, 2026-10-24):** instead of a clean-machine test before release, this goes to production and Shelby tests it there (acceptance criterion 2 included), feeding back changes as time allows. Mismo Trainer is not a critical application. The steps are in `production-deployment-checklist.md`, "Island Runner release".
+
 **Slice 5 (optional): Throughput.** Cached creature hashes / `HashSet` dedup check, then parallel scoring if `PatientCompare` proves safe for it. Benchmark generations/minute before and after on the AIRA set.
 
 *Parallel scoring and shared patients done early (2026-10-24), before Slice 2.* `PatientCompare` holds no shared mutable state during scoring: each creature has its own matcher tree (including its own `JaroWinkler` instances), and `MatchNode`'s static `Random` is used only for randomize, tweak, mate and mutate. `World` now parses each case's two patients once (`Patient.prepareForSharing()`, then `PatientCompare.setPatients`, both new in mismo-match), and `scoreAndSort` scores unscored creatures on a pool of one thread fewer than the processor count. Scores are identical to sequential scoring (unit tests compare both). One generation of AIRA-D at population 100 on a 20-processor workstation took 12.1 s before, 8.8 s with shared patients on one thread, and 1.0 s with shared patients on 19 threads (8.3 vs 101 creatures/second). The cached-hash dedup check is still open.
