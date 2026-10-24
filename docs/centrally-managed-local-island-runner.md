@@ -1,6 +1,6 @@
 # Centrally Managed Local Island Runner
 
-**Status:** Proposed architecture
+**Status:** Proposed architecture. Implementation decisions are in [`island-runner-implementation-plan.md`](island-runner-implementation-plan.md). In particular, "scoring settings" below are implemented as named, versioned Scoring Profiles (plan D6; see [`optimization-objectives-and-scoring-profiles.md`](optimization-objectives-and-scoring-profiles.md)).
 
 **Purpose:** Define a simple, modern way for a configuration specialist to install a local Mismo optimization runner, manage it through the Mismo Trainer website, and return optimization results to the central application.
 

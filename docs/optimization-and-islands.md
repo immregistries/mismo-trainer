@@ -2,6 +2,8 @@
 
 **Status:** Verified by direct reading of `Island.java`, `IslandSync.java`, `model/Creature.java`, `model/Scorer.java`, `model/World.java`, `random/Transform.java`, `random/Transformer.java`, `random/Typest.java`, `CentralServlet.java`, `GenerateWeightsServlet.java`, `island.yml`, and `pom.xml`'s `exec-maven-plugin` config. This resolves conceptual doc §19–§21.
 
+**Update (2026-10-24):** this is a v1 snapshot. Since it was written: the XOR and `Missing`/`Twin` clone bugs (§4) were fixed on 2026-08-18; the four disagreeing default weight matrices (§3) were unified on `mismo-matcher.yml`; and the Island CLI and `CentralServlet` protocol (§5–§6) are being replaced by the centrally managed runner ([`island-runner-implementation-plan.md`](island-runner-implementation-plan.md)). The default scoring matrix is a **deliberate national-measurement objective**, not an error. See [`optimization-objectives-and-scoring-profiles.md`](optimization-objectives-and-scoring-profiles.md).
+
 This is the evolutionary/genetic-algorithm engine that searches for better `Configuration` weight sets (see `matching-engine.md` §10) by scoring candidates against a labeled training set and breeding the best performers. It can run two ways: as a standalone CLI process (`Island`, the current recommended path) or embedded in the webapp (`GenerateWeightsServlet`, explicitly marked deprecated in its own javadoc).
 
 ## 1. Core vocabulary, precisely

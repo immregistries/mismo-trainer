@@ -1,0 +1,343 @@
+# Island Runner Implementation Plan
+
+**Status:** Draft for review (2026-10-23)
+
+**Implements:** [`centrally-managed-local-island-runner.md`](centrally-managed-local-island-runner.md) (the architecture). That document says *what* to build; this one records the implementation decisions, the module and schema layout, and the order of work.
+
+**Starting assumptions (confirmed by Nathan):** no current users of the Island stack, so everything legacy can be removed rather than migrated; schema changes go in `src/db/unapplied_updates.sql` and are applied after the daily backup; big structural changes to this repository are acceptable.
+
+---
+
+## 1. Decisions
+
+### D1. REST/JSON stack: one hand-routed servlet + Gson
+
+The API is about a dozen endpoints with one client. A framework (JAX-RS/Jersey, Spring) would be larger than the API itself and would sit awkwardly next to the Hibernate 3 / plain-servlet stack.
+
+- **Server:** one `RunnerApiServlet` mapped to `/api/v1/*`. It splits `getPathInfo()` into segments and dispatches with a small `switch` to handler methods. Handlers take a Hibernate `Session`, the authenticated `Runner`, and a request DTO; they return a response DTO or throw an `ApiException(status, code, message)`. Keeping handlers as plain methods makes them testable without Tomcat.
+- **JSON:** **Gson 2.11.0** — a single ~300 KB jar with no transitive dependencies, and it handles Java 17 records. DTOs are records in the shared module (D2), so client and server serialize the identical types.
+- **Client HTTP:** the JDK's `java.net.http.HttpClient`. No dependency.
+- **Errors:** every non-2xx response has body `{"error": "<CODE>", "message": "<human text>"}`. Codes are a fixed enum (`UNAUTHORIZED`, `NOT_FOUND`, `NO_ASSIGNMENT`, `HASH_MISMATCH`, `CLIENT_UNSUPPORTED`, `RUN_NOT_ACTIVE`, …) so the runner can print a clear message without parsing prose.
+- **Auth:** `AuthenticationFilter` stops exempting `POST /CentralServlet` and instead lets `/api/v1/*` through; `RunnerApiServlet` does bearer-token auth itself (every route except `POST /api/v1/runner-pairings`).
+- **Org scoping:** `OrgScope`'s read rules are expressed against a `User`. Add overloads that take an `Organization` (the runner's) so the same "owned or template" rule applies to configurations and Test Sets fetched by a runner.
+
+Website pages for runners are ordinary session-authenticated servlets, not API consumers.
+
+### D2. Modules: turn `mismo-trainer` into a three-module Maven build
+
+`mismo-match` stays its own repository and library. The optimizer is trainer-specific, so it moves into a new module in *this* repository:
+
+```text
+mismo-trainer/                    parent pom (packaging: pom), shared versions/plugins
+  mismo-optimizer/                jar  -- no servlet, no Hibernate
+    org.immregistries.mismo.optimizer.engine     World, Creature, Scorer, TestCaseLoader
+    org.immregistries.mismo.optimizer.protocol   API DTO records, Gson setup, hashing helper
+  mismo-trainer-web/              war  -- today's src/ moves here (finalName stays "mismo")
+  mismo-runner/                   jar  -- console app; shaded jar + jpackage image
+```
+
+- `mismo-optimizer` depends on `mismo-match` and Gson only. Both other modules depend on it.
+- The webapp already uses `Scorer` (in `OrgScope`, `TestSetServlet`, `TestMatchingServlet`), so having it in the shared module is natural rather than a forced split.
+- One shared module rather than separate `engine`/`protocol` modules: they are small, released together, and always consumed together.
+- Consequence: the WAR moves from `target/mismo.war` to `mismo-trainer-web/target/mismo.war`. Update `production-deployment-plan.md`/checklist and any deploy script.
+
+### D3. Test Set immutability: content-addressed snapshots
+
+`match_set` already has versioning (`root_match_set_id` families, copies) and a lifecycle (`DRAFT`/`REVIEWED`/`APPROVED`), but `APPROVED` is reversible and cases are editable in non-approved sets, so neither can guarantee a run's inputs never change. Rather than locking Test Sets, the server **copies** what a run needs:
+
+- New table `test_set_snapshot`: an immutable serialized copy of one `match_set`'s scoreable cases, stored as the exact JSON bytes served, plus its SHA-256.
+- The snapshot is made when the runner calls `GET /runners/me/assignment` (i.e. at `start` time, so the run gets the Test Set as it is *now*). If the newest snapshot for that `match_set` has the same hash, it is reused instead of inserting a duplicate.
+- Only cases with an expected status of Match / Possible Match / Not a Match are included (what `MatchItem.isExpectedStatusSet()` already filters on). `caseCount` is the count of those.
+- Case JSON carries the stored strings as-is (`label`, `description`, `expectStatus`, `patientDataA`, `patientDataB`). The runner converts them with the existing `Island.toRuntimeMatchItem` logic, moved into `TestCaseLoader`. No new patient representation.
+- Any lifecycle status may be assigned; the assignment form and run summary show the status, with a warning for `DRAFT`. (Easy to tighten to approved-only later.)
+- Size is not a concern: ~1,700 cases of a few KB each is a few MB of `LONGTEXT`, and snapshots are only made when content changes.
+
+Configurations need no snapshot table: with `CentralServlet` removed, nothing overwrites `configuration` rows in place any more, so rows become insert-only. Their content hash is SHA-256 of `configuration_script`, stored in a new `content_sha256` column (backfilled in SQL with `SHA2(configuration_script, 256)`).
+
+**Hashing rule (both content types):** SHA-256 over the exact UTF-8 bytes served. The client hashes the response body before parsing. No canonical-JSON rules needed.
+
+### D4. Remove the legacy Island stack outright
+
+Deleted in the first slice, not ported:
+
+- `Island.java`, `IslandSync.java`, `island.yml`, and the `exec-maven-plugin` block in `pom.xml`
+- `CentralServlet` (its `doGet` "Central" page is replaced by the Runners pages), `IslandCredentialServlet`, `IslandCredentialSupport` (its token generation and SHA-256 code moves into `RunnerCredentialSupport`), `IslandCredential` + `IslandCredential.hbm.xml`
+- `island_credential` table and `configuration.island_credential_id`
+- The `AuthenticationFilter` exemption and nav links to the Central / Island credential pages
+
+`configuration.world_name`/`island_name` stay (existing pages list and filter on them). New candidates fill them with the assignment name and the runner display name. `optimization-and-islands.md` §5–§6 get a "superseded" note pointing here.
+
+### D5. Engine bugs
+
+Re-checked against current code:
+
+| Item | Status | Action |
+|---|---|---|
+| `lowerCutStart` XOR bug | **Already fixed** (`World.java:114` now `lowerCut * lowerCut`; known-issues.md, 2026-08-18) | Update `optimization-and-islands.md` §4, which still describes it as live |
+| Clone copies `Missing` from `Twin` | **Already fixed** (`Creature` clone constructor now clones `getMissing()`) | Same doc update |
+| `Scorer.weights` is a mutable `static` | **Open, and live in the webapp today**: `OrgScope.java:462` calls `new Scorer(weights)`, which overwrites the weights for every concurrent user and request | Make weights an instance field. `World` holds the run's weights, and `Creature.score()` passes them in. Remove `Scorer.getWeights()`. |
+| `scoreRate` uses integer math | Open. `(end-start)/1000` truncates, so any scoring pass under 1 s reports 0, and the division is integer | Compute a `double` creatures/second from milliseconds |
+| Dedup guard cost | Open. Each new creature's `hashCode()` (string-building across four trees) is compared against all 1,000 creatures: about 500k tree hashes per generation | Cache each creature's hash once its DNA is final and check against a `HashSet`. Measure before and after. |
+| `Scorer.registerMatch` buckets Research/Not Sure as "Should Not Match" | Open (known-issues.md). Does **not** affect optimization, because `Creature.score()` already filters with `isExpectedStatusSet()`, but webapp callers are exposed | Have `registerMatch` ignore cases whose status isn't scoreable |
+| A configuration script with no `scoringWeights` block throws an NPE in `mismo-match` `Configuration.setup()` | Open (`Configuration.java` ~line 268 dereferences the map unguarded) | Runner always writes the block (D6). Optionally guard it in `mismo-match` (separate repo). |
+| Unseeded `static Random` in `World` and `MatchNode` (`mismo-match`) | Open. Runs are not reproducible | **Defer.** Making them seedable needs a `mismo-match` change. Drop "random seed" from the checkpoint contents for now. |
+
+**Optional, after the main work:** parallel scoring. Scoring one creature is independent of the others, and a local workstation has idle cores, so this is likely the biggest throughput gain available. First confirm that `PatientCompare`/matchers keep no shared mutable state during scoring.
+
+### D6. Scoring weights: named, versioned Scoring Profiles
+
+**Read [`optimization-objectives-and-scoring-profiles.md`](optimization-objectives-and-scoring-profiles.md) first.** The default matrix is a deliberate *national measurement* objective: Match and Possible are treated as one "potential match" signal. It is not a production-calibration matrix, and the software must allow steering toward other objectives without hiding that it happened.
+
+What the code does today:
+
+- The defaults are already unified. `mismo-matcher.yml` in `mismo-match` is the canonical source (12, 10, −10 / 8, 10, −8 / −10, −8, 10), and `Scorer` reads its default from it. The one leftover is `mismo-match`'s `Configuration` field initializer, which still holds the old 20/0/−5 values. `setup()` always overwrites them, but they should be deleted to avoid confusion.
+- Every configuration script **embeds** a `scoringWeights` block. The old Island used `island.yml`'s weights if present, otherwise the seed configuration's embedded weights. Nothing named or explained the choice.
+
+Decision:
+
+1. **A Scoring Profile is a first-class record:** name, purpose (`MEASUREMENT` / `PRODUCTION_CALIBRATION` / `EXPERIMENTAL`), a required description of intent, and the 3×3 weights. Profiles are versioned like assignments: editing inserts a new version, and old runs keep theirs. Profiles follow the existing template rules (an AIRA-owned template profile is readable by every organization).
+2. **Seed one template profile**, "National measurement (potential match)", purpose `MEASUREMENT`, with the canonical weights and a description taken from the objectives document. No production profile is seeded; the illustrative matrix in that document is not validated.
+3. **The assignment selects a profile** (default: national measurement). There are no free-form weights on the assignment. Steering differently means creating or choosing a profile with a stated purpose, which is the visibility the objectives document requires.
+4. The run snapshots the profile id, version and weights (`optimization_run.scoring_weights_json` stays as the frozen copy).
+5. The runner overwrites the `scoringWeights` block of the seed and every candidate with the run's weights, so every uploaded candidate records the fitness function it was trained under.
+6. **Visibility everywhere a score appears:** the runner's start summary, dashboard, and `weights` command show the profile name, purpose and matrix. The website shows the profile name next to every run and candidate score. Run lists only compare runs with the same profile version and Test Set snapshot.
+7. **Seed mismatch warning:** if the chosen seed configuration's embedded weights differ from the selected profile, the assignment form and the runner summary say so ("seed was trained under different weights"). This is allowed, because re-steering an existing configuration is a legitimate use.
+8. **Measurement view (Slice 3):** run and candidate pages also show the 3×3 table collapsed to 2×2 (potential match vs not), since that is the quantity the national program actually uses.
+9. **Field scope is shown alongside the profile.** The seed configuration, not the profile, decides which patient fields the result can use: the optimizer can disable detectors but never re-enable them (objectives document, "Mechanical note"). Add `FieldScope.of(configuration)` to `mismo-optimizer`, which walks the enabled leaf detectors and returns their `fieldName`/`fieldNameOther` set. The assignment form, runner start summary, and run page list the seed's enabled fields. When the profile's purpose is `MEASUREMENT` and the seed enables any field outside the measurement core (the fields enabled in the shipped `mismo-matcher.yml`; `matching-engine.md` §10a), show a warning. Like the seed-weights warning, it is allowed but visible.
+
+### D7. Distribution: shaded JAR first, `jpackage` app-image at the end
+
+- Through development and testing, `mismo-runner` builds a shaded `mismo-runner.jar` (`java -jar`, Java 17+).
+- For the analyst, the recommended release is **`jpackage --type app-image --win-console`**: a folder with `Mismo Runner.exe` and a trimmed (jlink) runtime, zipped. It needs no installer, no WiX (WiX is only required for `.msi`/`.exe` *installers*), and no admin rights. The zip is roughly 50–70 MB.
+- **Why it's worth doing even though Java could be installed:** it removes the most likely support problem, which is the wrong Java on `PATH`. An older JRE fails with `UnsupportedClassVersionError`, which means nothing to an analyst. The cost is about a day, and `jpackage` must run on Windows. It's the last slice, so it's easy to drop if not wanted.
+- **Hosting:** a GitHub Release asset on `immregistries/mismo-trainer`, linked from the website's pairing instructions with its SHA-256. Too large to put inside the WAR.
+
+### D8. Database migration
+
+All DDL goes in `src/db/unapplied_updates.sql`, applied after the daily backup. See §3.
+
+---
+
+## 2. Domain behavior details
+
+These are decisions the architecture document leaves to implementation.
+
+- **Pairing:** "Create Runner" inserts a `runner` row with a pairing code (format `XXXX-XXXX` from an unambiguous 31-character alphabet, valid for 15 minutes; only its hash is stored). `POST /runner-pairings` exchanges the code for a durable credential (`mrn_` + 32 random bytes, base64url) and clears the code. **Re-pair / replace credential** issues a new pairing code; the old credential stays valid until the new pairing succeeds, then is replaced. **Revoke** sets `credential_revoked_at`.
+- **Pairing brute-force protection:** the pairing endpoint is unauthenticated. The code space (~8×10¹¹) plus the 15-minute expiry is adequate. Add a simple in-memory limit of 10 failed pairing attempts per IP per 15 minutes.
+- **Assignment revisions:** `runner_assignment` rows are never updated. Saving the form inserts a new row with `revision = previous + 1`. The runner's current assignment is its highest revision. Saving is allowed while a run is active.
+- **Run lifecycle:** `POST /runs` creates the run as `RUNNING` (the `STARTING` state collapses into the request itself). `stop` sets `STOPPED`, `fail` sets `FAILED`. A runner may have only one `RUNNING` run. Creating a new run while one is still marked `RUNNING` (e.g. after a crash) marks the old one `ABANDONED` with `stop_reason = 'superseded'`. Add `ABANDONED` to the status list. The website can also mark a run `ABANDONED`.
+- **Reporting cadence:** progress every 60 s (small payload). The best candidate is uploaded when it changes, at most once every 5 minutes, plus immediately on `sync`, `stop`, and `exit`. The reporter keeps only the *latest* pending progress and candidate, so a long outage doesn't build up a queue. Retry uses exponential backoff capped at 5 minutes.
+- **Candidate idempotency:** unique key `(optimization_run_id, content_sha256)` on `configuration`. A re-sent candidate returns the existing row's id with `200`.
+- **Runner state on the website:** derived, not stored. *Running* = has a `RUNNING` run and was seen within 3 minutes. *Idle* = seen within 3 minutes with no running run. *Offline* = otherwise, showing "last seen".
+- **Version check:** each request sends `X-Mismo-Client-Version` and `X-Mismo-Protocol: 1`. The server returns `CLIENT_UNSUPPORTED` (HTTP 426) below a configured minimum client version.
+
+---
+
+## 3. Schema (sketch for `unapplied_updates.sql`)
+
+```sql
+CREATE TABLE runner (
+  runner_id               int NOT NULL AUTO_INCREMENT,
+  organization_id         int NOT NULL,
+  display_name            varchar(100) NOT NULL,
+  pairing_code_hash       char(64) NULL,
+  pairing_expires_at      datetime NULL,
+  credential_hash         char(64) NULL,            -- NULL until paired
+  credential_created_at   datetime NULL,
+  credential_last_used_at datetime NULL,
+  credential_revoked_at   datetime NULL,
+  client_version          varchar(30) NULL,
+  protocol_version        varchar(10) NULL,
+  runtime_info            varchar(255) NULL,        -- Java/OS, for support
+  last_seen_at            datetime NULL,
+  created_at              datetime NOT NULL,
+  created_by_user_id      int NOT NULL,
+  PRIMARY KEY (runner_id),
+  UNIQUE KEY uk_runner_credential (credential_hash),
+  UNIQUE KEY uk_runner_pairing (pairing_code_hash)
+  -- FKs to organization, user
+);
+
+CREATE TABLE runner_assignment (
+  runner_assignment_id   int NOT NULL AUTO_INCREMENT,
+  runner_id              int NOT NULL,
+  revision               int NOT NULL,
+  name                   varchar(150) NOT NULL,
+  configuration_id       int NOT NULL,             -- seed configuration
+  match_set_id           int NOT NULL,             -- live Test Set; snapshotted at start
+  population_size        int NOT NULL,
+  scoring_profile_id     int NOT NULL,             -- a specific profile version
+  created_at             datetime NOT NULL,
+  created_by_user_id     int NOT NULL,
+  PRIMARY KEY (runner_assignment_id),
+  UNIQUE KEY uk_runner_assignment_rev (runner_id, revision)
+);
+
+-- See optimization-objectives-and-scoring-profiles.md. Rows are never updated:
+-- an edit inserts version + 1 with the same root id.
+CREATE TABLE scoring_profile (
+  scoring_profile_id     int NOT NULL AUTO_INCREMENT,
+  root_scoring_profile_id int NOT NULL,            -- version family, like match_set
+  version                int NOT NULL,
+  name                   varchar(150) NOT NULL,
+  purpose                varchar(30) NOT NULL,     -- MEASUREMENT / PRODUCTION_CALIBRATION / EXPERIMENTAL
+  description            text NOT NULL,            -- required statement of intent
+  scoring_weights_json   varchar(500) NOT NULL,
+  organization_id        int NOT NULL,
+  is_template            tinyint(1) NOT NULL DEFAULT 0,
+  created_at             datetime NOT NULL,
+  created_by_user_id     int NULL,                 -- NULL for the seeded row
+  PRIMARY KEY (scoring_profile_id),
+  UNIQUE KEY uk_scoring_profile_version (root_scoring_profile_id, version)
+);
+-- Seed: "National measurement (potential match)", MEASUREMENT, canonical weights,
+-- owned by the template org, is_template = 1.
+
+CREATE TABLE test_set_snapshot (
+  test_set_snapshot_id   int NOT NULL AUTO_INCREMENT,
+  match_set_id           int NOT NULL,
+  content_sha256         char(64) NOT NULL,
+  case_count             int NOT NULL,
+  lifecycle_status       varchar(20) NOT NULL,     -- status at snapshot time
+  content_json           longtext NOT NULL,
+  created_at             datetime NOT NULL,
+  PRIMARY KEY (test_set_snapshot_id),
+  UNIQUE KEY uk_snapshot_content (match_set_id, content_sha256)
+);
+
+CREATE TABLE optimization_run (
+  optimization_run_id    int NOT NULL AUTO_INCREMENT,
+  runner_id              int NOT NULL,
+  runner_assignment_id   int NOT NULL,             -- implies revision
+  seed_configuration_id  int NOT NULL,
+  seed_configuration_sha256 char(64) NOT NULL,
+  test_set_snapshot_id   int NOT NULL,
+  population_size        int NOT NULL,
+  scoring_profile_id     int NOT NULL,
+  scoring_weights_json   varchar(500) NOT NULL,  -- frozen copy of the profile's weights
+  client_version         varchar(30) NOT NULL,
+  protocol_version       varchar(10) NOT NULL,
+  status                 varchar(20) NOT NULL,     -- RUNNING/STOPPED/FAILED/ABANDONED
+  stop_reason            varchar(255) NULL,
+  started_at             datetime NOT NULL,
+  stopped_at             datetime NULL,
+  last_reported_at       datetime NULL,
+  last_generation        int NULL,
+  candidate_rate         double NULL,
+  best_score             double NULL,
+  best_configuration_id  int NULL,
+  PRIMARY KEY (optimization_run_id),
+  KEY idx_run_runner_status (runner_id, status)
+);
+
+ALTER TABLE configuration
+  ADD COLUMN content_sha256 char(64) NULL,
+  ADD COLUMN optimization_run_id int NULL,
+  ADD UNIQUE KEY uk_configuration_run_content (optimization_run_id, content_sha256);
+UPDATE configuration SET content_sha256 = SHA2(configuration_script, 256);
+-- then: drop fk_configuration_island_credential, drop column island_credential_id,
+--       DROP TABLE island_credential
+```
+
+Progress history is **not** stored per report. The run row keeps the latest values, and candidates (which carry generation and score) provide the history. A `run_progress` table can be added later if charts are wanted.
+
+New Hibernate mappings (`.hbm.xml`, matching the existing style): `Runner`, `RunnerAssignment`, `ScoringProfile`, `TestSetSnapshot`, `OptimizationRun`.
+
+The assignment API response carries the profile as `scoringProfile: {id, version, name, purpose, weights}` in place of the architecture doc's bare `scoringSettings`.
+
+---
+
+## 4. API surface
+
+Routes as in the architecture doc §10. Below are only the implementation specifics:
+
+| Route | Auth | Notes |
+|---|---|---|
+| `POST /api/v1/runner-pairings` | pairing code | Returns `runnerId`, `runnerName`, `organizationName`, `credential` |
+| `GET /api/v1/runners/me` | bearer | Also updates `last_seen_at`/versions |
+| `POST /api/v1/runners/me/heartbeats` | bearer | Sent while idle at the prompt (every 5 min); running reports already count as contact |
+| `GET /api/v1/runners/me/assignment` | bearer | Creates or reuses the Test Set snapshot. `409 RUN_ACTIVE` if the runner has a `RUNNING` run (it should stop first) |
+| `GET /api/v1/configurations/{id}/content` | bearer | `text/yaml`; org/template scoped |
+| `GET /api/v1/test-set-snapshots/{id}/content` | bearer | `application/json`; served by **snapshot id** (replaces the doc's `/test-sets/{id}/versions/{v}`) |
+| `POST /api/v1/runs` | bearer | Body: assignment id + revision, both hashes. `409 ASSIGNMENT_CHANGED` if the revision is no longer current; the runner re-fetches and shows the summary again |
+| `GET /api/v1/runs/{id}` | bearer | Own runs only |
+| `POST /api/v1/runs/{id}/progress` | bearer | `RUN_NOT_ACTIVE` if the run is no longer `RUNNING` (e.g. abandoned on the website); the runner shows the message and keeps going locally |
+| `POST /api/v1/runs/{id}/candidates` | bearer | Idempotent on content hash |
+| `POST /api/v1/runs/{id}/stop`, `/fail` | bearer | Final best candidate is sent first as a normal candidate |
+
+Request bodies are capped at 2 MB (candidates are the largest at roughly 30 KB).
+
+---
+
+## 5. Runner application structure (`mismo-runner`)
+
+```text
+RunnerMain          entry point; idle prompt loop and running prompt loop
+ApiClient           HttpClient + Gson; bearer header; maps error JSON to ApiError
+IdentityStore       %LOCALAPPDATA%\Mismo Runner\identity.json (server URL, runnerId, credential)
+InputCache          cache\<sha256>.yaml / .json; verified on write and read
+RunSession          builds World from cached inputs; owns the optimization thread
+Reporter            background thread; latest-only pending progress/candidate; backoff
+Checkpoint          checkpoints\run-<id>.json (best script, score, generation, hashes)
+Dashboard           roll-and-scroll status rendering (ported from Island's loop)
+```
+
+- **Credential storage:** a plain file under `%LOCALAPPDATA%`, which Windows already restricts to the user. Windows DPAPI isn't reachable from pure Java without JNA, so it's out of scope for now. The credential never appears in console output or logs.
+- **Server URL:** entered at `pair`. A plain `http://` URL is refused unless the host is `localhost`/`127.0.0.1`.
+- **Logging:** `java.util.logging` to `logs\runner-YYYYMMDD.log`, kept for 14 days. The console shows one-line messages only.
+- **Crash recovery:** at startup, if a checkpoint exists for a run that the server still reports as `RUNNING`, offer to upload its best candidate and mark the run `FAILED` (`stop_reason = 'runner restarted'`). Restoring the whole population is out of scope.
+- **Ctrl+C:** a shutdown hook makes a best-effort final upload and stop (5 s limit). Otherwise the checkpoint covers it.
+
+---
+
+## 6. Website (`mismo-trainer-web`)
+
+Added under the planned **Optimization** navigation area, using `aira-web-components` like the existing pages:
+
+- `RunnersServlet`: list (Runner, State, Active/last run, Generation, Best score, Last seen) and **Create Runner**.
+- `ScoringProfileServlet`: list profiles (name, purpose, version, matrix) and create or edit them (an edit makes a new version). The description is required, and the page links to `optimization-objectives-and-scoring-profiles.md`.
+- `RunnerServlet`: identity and versions; pairing code (shown once) and pairing instructions with download link; replace/revoke credential; assignment form (name, seed configuration, Test Set, population size, scoring profile defaulting to national measurement, with a seed-mismatch warning per D6); a "changes will apply to the next run" banner when the current revision differs from the active run's; assignment history; run history.
+- `OptimizationRunServlet`: the run's frozen inputs (configuration, Test Set snapshot with case count and lifecycle status, scoring profile name/purpose/weights, client version), progress, the candidate list, and the 3×3 table with its 2×2 potential-match collapse. Each candidate links to the existing configuration pages so it can be loaded or evaluated with the tools that already exist.
+- **Abandon run** action (website-side only; doesn't stop a local process).
+
+---
+
+## 7. Delivery slices
+
+The work is ordered to get end-to-end feedback early. Each slice ends in a working, committed state.
+
+**Slice 0: Restructure (no new features).** Parent pom with three modules. Move the engine into `mismo-optimizer`. Fix the static `Scorer` weights, `scoreRate`, and `registerMatch`. Add Gson. Delete the legacy Island stack (D4) except the schema drop. Update deploy docs for the new WAR path. Point `Scorer`'s javadoc at `optimization-objectives-and-scoring-profiles.md`, and add a matching comment above the `scoringWeights` block in `mismo-match`'s `mismo-matcher.yml` (separate repo), so anyone who finds the matrix in code finds the reason.
+*Done when:* the WAR builds and deploys, existing pages (including evaluation scoring) behave as before, and optimizer unit tests pass.
+
+**Slice 1: Walking skeleton.** Full schema (§3), including the seeded measurement profile. API: pairing, `me`, assignment, both content routes, runs create/progress/candidates/stop. Minimal website: create runner and show pairing code, a single assignment form (profile is a dropdown; profile editing waits for Slice 3), a run list showing the profile name with each score. Runner: `pair`, `start` (fetch, verify, summary, create run), dashboard, `sync`, `stop`, `exit`, using the shaded JAR.
+*Done when:* acceptance criteria 1 and 3–10 of the architecture doc work against localhost Tomcat using the dev JAR, with an AIRA review Test Set loaded in the database (upload it through the existing Test Set upload page if needed).
+
+**Slice 2: Hardening.** Retry/backoff and a "Disconnected" display; crash-recovery checkpoints; `fail` and heartbeats; version check; logs; all §15 startup refusals with clear messages; credential replace/revoke; pairing rate limit; org-isolation tests (runner A cannot read org B's configuration, Test Set, or runs) and idempotency tests.
+
+**Slice 3: Website completion.** Derived runner state, run detail page with the 2×2 measurement view, assignment history, "next run differs" banner, candidate links to configuration pages, Scoring Profile management page, seed-mismatch and field-scope warnings, abandon action.
+
+**Slice 4: Distribution.** `jpackage` app-image zip, `README.txt`/`VERSION.txt`, SHA-256, GitHub Release, download link on the pairing page. Test on a clean Windows machine with no Java installed (acceptance criterion 2).
+
+**Slice 5 (optional): Throughput.** Cached creature hashes / `HashSet` dedup check, then parallel scoring if `PatientCompare` proves safe for it. Benchmark generations/minute before and after on the AIRA set.
+
+---
+
+## 8. Testing
+
+- **`mismo-optimizer` unit tests:** scoring with instance weights (two `Scorer`s with different weights don't interfere); a fixed creature scores identically on repeated runs; Test Set JSON round trip; hash helper; World generation replacement count (guards against regression of the XOR fix).
+- **API handler tests** against the local MySQL dev database: pairing (expired code, reused code), auth (missing, revoked credential), org isolation, assignment snapshot reuse versus new snapshot after a case edit, `ASSIGNMENT_CHANGED`, idempotent candidate upload.
+- **End-to-end smoke test** (manual, scripted in the doc): create runner, pair, assign, start, let it run 2 minutes, edit the assignment, confirm the run is unaffected, stop, start again, confirm the new revision is used.
+
+---
+
+## 9. Open items for Nathan
+
+None currently.
+
+**Resolved (2026-10-24):** the canonical matrix is intentional (national measurement objective). It is documented in `optimization-objectives-and-scoring-profiles.md` and implemented as Scoring Profiles (D6). Twins landing in Possible Match is an accepted consequence of the narrow field scope and inclusive lean, not a target; field scope is made visible (D6 item 9).
+
+**Resolved (2026-10-24):**
+
+- The `jpackage` app-image `.exe` is wanted (D7, Slice 4).
+- GitHub Releases on `immregistries/mismo-trainer` is the download location.
+- Runs may use `DRAFT` Test Sets, with a warning (D3).
