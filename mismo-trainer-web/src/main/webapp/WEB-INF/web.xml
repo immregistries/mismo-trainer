@@ -17,6 +17,14 @@
 	</filter-mapping>
 
 	<servlet>
+		<servlet-name>OptimizationRunServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.OptimizationRunServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>ScoringProfileServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.ScoringProfileServlet</servlet-class>
+	</servlet>
+	<servlet>
 		<servlet-name>RunnersServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.RunnersServlet</servlet-class>
 	</servlet>
@@ -32,6 +40,14 @@
 		<servlet-name>LogoutServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.LogoutServlet</servlet-class>
 	</servlet>
+	<servlet-mapping>
+		<servlet-name>OptimizationRunServlet</servlet-name>
+		<url-pattern>/OptimizationRunServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>ScoringProfileServlet</servlet-name>
+		<url-pattern>/ScoringProfileServlet</url-pattern>
+	</servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>RunnersServlet</servlet-name>
 		<url-pattern>/RunnersServlet</url-pattern>

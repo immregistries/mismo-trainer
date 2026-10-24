@@ -27,6 +27,52 @@ import org.immregistries.mismo.trainer.model.User;
 public final class RunnerScope {
 
   public static final String PURPOSE_MEASUREMENT = "MEASUREMENT";
+  public static final String PURPOSE_PRODUCTION_CALIBRATION = "PRODUCTION_CALIBRATION";
+  public static final String PURPOSE_EXPERIMENTAL = "EXPERIMENTAL";
+  public static final List<String> PURPOSES = List.of(PURPOSE_MEASUREMENT, PURPOSE_PRODUCTION_CALIBRATION,
+      PURPOSE_EXPERIMENTAL);
+
+  /**
+   * A runner counts as connected if it was heard from this recently. Running runners report every
+   * minute and idle ones send a heartbeat every two (island-runner-implementation-plan.md §2).
+   */
+  public static final long SEEN_WINDOW_MILLIS = 3L * 60L * 1000L;
+
+  /** Derived, never stored (island-runner-implementation-plan.md §2). */
+  public enum State {
+    NOT_PAIRED("Not paired"), REVOKED("Revoked"), RUNNING("Running"), IDLE("Idle"), OFFLINE("Offline");
+
+    private final String label;
+
+    State(String label) {
+      this.label = label;
+    }
+
+    public String label() {
+      return label;
+    }
+  }
+
+  /**
+   * Running = has a RUNNING run and was seen within {@link #SEEN_WINDOW_MILLIS}; Idle = seen within
+   * that window with no running run; Offline = otherwise.
+   *
+   * @param active the runner's RUNNING run, or {@code null}
+   */
+  public static State state(Runner runner, OptimizationRun active, long nowMillis) {
+    if (runner.getCredentialHash() == null) {
+      return State.NOT_PAIRED;
+    }
+    if (runner.getCredentialRevokedAt() != null) {
+      return State.REVOKED;
+    }
+    boolean seen = runner.getLastSeenAt() != null
+        && nowMillis - runner.getLastSeenAt().getTime() <= SEEN_WINDOW_MILLIS;
+    if (!seen) {
+      return State.OFFLINE;
+    }
+    return active != null ? State.RUNNING : State.IDLE;
+  }
 
   private RunnerScope() {
   }
@@ -159,6 +205,34 @@ public final class RunnerScope {
     return latest;
   }
 
+  /** Loads a run only if its runner belongs to {@code user}'s organization. */
+  public static OptimizationRun loadRun(Session dataSession, int runId, User user) {
+    OptimizationRun run = (OptimizationRun) dataSession.get(OptimizationRun.class, runId);
+    if (run == null || !sameOrganization(run.getRunner().getOrganization(), user.getOrganization())) {
+      return null;
+    }
+    return run;
+  }
+
+  /**
+   * Marks a RUNNING run ABANDONED from the website, e.g. for a computer that went away. This only
+   * changes the record: a runner that is actually still going learns of it on its next report
+   * ({@code RUN_NOT_ACTIVE}) and keeps optimizing locally.
+   *
+   * @return {@code false} if the run wasn't running
+   */
+  public static boolean abandonRun(OptimizationRun run, User user) {
+    if (!Protocol.RUN_RUNNING.equals(run.getStatus())) {
+      return false;
+    }
+    String who = user.getDisplayName() != null ? user.getDisplayName() : user.getEmail();
+    String reason = "abandoned on the website by " + who;
+    run.setStatus(Protocol.RUN_ABANDONED);
+    run.setStopReason(reason.length() > 255 ? reason.substring(0, 255) : reason);
+    run.setStoppedAt(new Date());
+    return true;
+  }
+
   /** Candidates a run uploaded, newest first. */
   @SuppressWarnings("unchecked")
   public static List<Configuration> listCandidates(Session dataSession, OptimizationRun run) {
@@ -194,6 +268,56 @@ public final class RunnerScope {
     ScoringProfile profile = (ScoringProfile) dataSession.get(ScoringProfile.class, scoringProfileId);
     if (profile == null || !(profile.isTemplate() || sameOrganization(profile.getOrganization(), organization))) {
       return null;
+    }
+    return profile;
+  }
+
+  /** Every version of one profile family, newest first, if readable by {@code organization}. */
+  @SuppressWarnings("unchecked")
+  public static List<ScoringProfile> listProfileVersions(Session dataSession, int rootScoringProfileId,
+      Organization organization) {
+    Query query = dataSession.createQuery(
+        "from ScoringProfile where rootScoringProfileId = ? and (organization = ? or template = true) order by version desc");
+    query.setParameter(0, rootScoringProfileId);
+    query.setParameter(1, organization);
+    return query.list();
+  }
+
+  /** Only the owning organization may add versions, template or not. */
+  public static boolean isEditable(ScoringProfile profile, User user) {
+    return profile != null && sameOrganization(profile.getOrganization(), user.getOrganization());
+  }
+
+  /**
+   * Saves a Scoring Profile. With {@code previous == null} it starts a new family owned by
+   * {@code user}'s organization; otherwise it adds version {@code latest + 1} to {@code previous}'s
+   * family, keeping its owner and template flag. Existing rows are never changed, so runs and
+   * assignments keep the version they used.
+   */
+  public static ScoringProfile saveProfile(Session dataSession, ScoringProfile previous, String name, String purpose,
+      String description, int[][] weights, User user) {
+    ScoringProfile profile = new ScoringProfile();
+    profile.setName(name);
+    profile.setPurpose(purpose);
+    profile.setDescription(description);
+    profile.setScoringWeightsJson(org.immregistries.mismo.optimizer.protocol.ScoringWeights.toJson(weights));
+    profile.setCreatedAt(new Date());
+    profile.setCreatedByUser(user);
+    if (previous == null) {
+      profile.setOrganization(user.getOrganization());
+      profile.setTemplate(false);
+      profile.setVersion(1);
+      profile.setRootScoringProfileId(0);
+      dataSession.save(profile);
+      profile.setRootScoringProfileId(profile.getScoringProfileId());
+    } else {
+      List<ScoringProfile> versions = listProfileVersions(dataSession, previous.getRootScoringProfileId(),
+          user.getOrganization());
+      profile.setOrganization(previous.getOrganization());
+      profile.setTemplate(previous.isTemplate());
+      profile.setRootScoringProfileId(previous.getRootScoringProfileId());
+      profile.setVersion(versions.get(0).getVersion() + 1);
+      dataSession.save(profile);
     }
     return profile;
   }

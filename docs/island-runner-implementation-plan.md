@@ -255,7 +255,7 @@ Routes as in the architecture doc §10. Below are only the implementation specif
 |---|---|---|
 | `POST /api/v1/runner-pairings` | pairing code | Returns `runnerId`, `runnerName`, `organizationName`, `credential` |
 | `GET /api/v1/runners/me` | bearer | Also updates `last_seen_at`/versions |
-| `POST /api/v1/runners/me/heartbeats` | bearer | Sent while idle at the prompt (every 5 min); running reports already count as contact |
+| `POST /api/v1/runners/me/heartbeats` | bearer | Sent while idle at the prompt (every 2 min, inside the 3-minute "seen" window of §2; originally 5 min, which would have shown idle runners as Offline); running reports already count as contact |
 | `GET /api/v1/runners/me/assignment` | bearer | Creates or reuses the Test Set snapshot. Not refused while a run is marked `RUNNING`: the next `POST /runs` marks that run `ABANDONED` (see Slice 1 notes) |
 | `GET /api/v1/configurations/{id}/content` | bearer | `text/yaml`; org/template scoped |
 | `GET /api/v1/test-set-snapshots/{id}/content` | bearer | `application/json`; served by **snapshot id** (replaces the doc's `/test-sets/{id}/versions/{v}`) |
@@ -340,7 +340,8 @@ The work is ordered to get end-to-end feedback early. Each slice ends in a worki
 - **Pairing rate limit:** the 11th failed pairing from one address gets `429 TOO_MANY_ATTEMPTS`.
 - **Heartbeats** move `last_seen_at`.
 - **Revoke and re-pair:** a revoked runner is refused with a clear message; a new code re-pairs it.
-- **Logs** go to `logsunner-YYYYMMDD.log` in local time, and the credential never appears in them.
+- **Logs** go to `logs
+unner-YYYYMMDD.log` in local time, and the credential never appears in them.
 
 `RunnerApiDatabaseTest` covers the plan §8 handler cases (12 tests, each rolled back). Notes:
 
@@ -353,6 +354,26 @@ The work is ordered to get end-to-end feedback early. Each slice ends in a worki
 - **Behind a reverse proxy,** the rate limiter sees the proxy's address unless Tomcat is configured with `RemoteIpValve`. Check this before production.
 
 **Slice 3: Website completion.** Derived runner state, run detail page with the 2×2 measurement view, assignment history, "next run differs" banner, candidate links to configuration pages, Scoring Profile management page, seed-mismatch and field-scope warnings, abandon action.
+
+*Slice 3 notes (done 2026-10-24).* Everything listed is in:
+- **Derived Running / Idle / Offline state.** An Offline runner whose run is still marked running says so.
+- **Run page** (`OptimizationRunServlet`): the frozen inputs, progress, the candidate list with Evaluate / Select links, and the abandon action. For the best candidate, or any chosen one, it shows the 3x3 table recomputed against the run's own snapshot and weights, plus the 2x2 potential-match collapse.
+- **Assignment history.**
+- **Runs grouped by profile version and snapshot,** so scores are only shown side by side when they are comparable (D6 item 6).
+- **Scoring Profile management** (`ScoringProfileServlet`): list, view with version history, create, and edit as a new version. A description is required, the diagonal weights must be positive, and only the owner may edit.
+- **`FieldScope`** in mismo-optimizer, with the measurement field-scope warning on the runner page, the run page and the runner's start summary. The seed-weights warning was already in place from Slice 1.
+
+Verified against localhost Tomcat:
+- The run page's recomputed score matched the runner's reported best (86.01%).
+- A profile was created and then given a second version.
+- An assignment using that profile showed the seed-weights warning on the website and in the runner.
+- A live run was abandoned from the website. The runner's next report got `RUN_NOT_ACTIVE`, it kept optimizing locally, and on `exit` it said Mismo Trainer had already ended the run.
+
+Findings:
+- **The shipped configuration doesn't match the documented measurement field set.** `optimization-objectives-and-scoring-profiles.md` §1.1 and `matching-engine.md` §10a say mother's maiden name is used in the Not a Match network and gender in Not a Match and Missing. In `mismo-matcher.yml` (and in `legacy-test-data/Configuration.yml`), every gender detector is `enabled: false`, and the only enabled mother's maiden name detectors (`MM-not-match`, `MM-not-similar`) sit inside the disabled `Guardian` group. So neither field is used at all, and because the optimizer can't re-enable detectors, no run from these seeds will ever use them. Either the documents or the configuration should change; that is Nathan's call (known-issues.md).
+- **`FieldScope` lists detector fields** (`fieldName`, `fieldName2/3`, `fieldNameOther` of enabled detectors). The address detector also reads city and zip internally, which don't appear. The warning is unaffected, because the seed and the core are measured the same way.
+- **The heartbeat interval is now 2 minutes** (see §4), to fit §2's 3-minute "seen" window.
+- **AIRA users can add versions of the national measurement template profile.** That follows the plan's owner rule, and old versions are kept, but a stricter rule (for example admin-only) may be wanted.
 
 **Slice 4: Distribution.** `jpackage` app-image zip, `README.txt`/`VERSION.txt`, SHA-256, GitHub Release, download link on the pairing page. Test on a clean Windows machine with no Java installed (acceptance criterion 2).
 

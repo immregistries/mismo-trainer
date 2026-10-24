@@ -231,7 +231,8 @@ public class HomeServlet extends HttpServlet {
             new NavPage("Batch Signature Analysis", "/SignatureBatchServlet"))),
     OPTIMIZATION("Optimization", "Pair local Mismo Runners, assign their next run, and follow their results.",
         List.of(
-            new NavPage("Runners", "/RunnersServlet"))),
+            new NavPage("Runners", "/RunnersServlet"),
+            new NavPage("Scoring Profiles", "/ScoringProfileServlet"))),
     TOOLS("Tools", "Dev and diagnostic utilities for addresses, data conversion, and example data.",
         List.of(
             new NavPage("Address Test", "/AddressTestServlet"),
@@ -275,6 +276,8 @@ public class HomeServlet extends HttpServlet {
     map.put("/SignatureServlet", NavArea.SIGNATURES);
     map.put("/SignatureBatchServlet", NavArea.SIGNATURES);
     map.put("/RunnersServlet", NavArea.OPTIMIZATION);
+    map.put("/OptimizationRunServlet", NavArea.OPTIMIZATION);
+    map.put("/ScoringProfileServlet", NavArea.OPTIMIZATION);
     map.put("/AddressTestServlet", NavArea.TOOLS);
     map.put("/ExampleServlet", NavArea.TOOLS);
     map.put("/ConvertDataServlet", NavArea.TOOLS);

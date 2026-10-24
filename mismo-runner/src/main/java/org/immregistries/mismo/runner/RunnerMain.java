@@ -8,11 +8,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.immregistries.mismo.match.model.MatchItem;
+import org.immregistries.mismo.optimizer.engine.FieldScope;
 import org.immregistries.mismo.optimizer.engine.TestCaseLoader;
 import org.immregistries.mismo.optimizer.protocol.Messages;
 import org.immregistries.mismo.optimizer.protocol.Protocol;
@@ -45,7 +47,8 @@ public class RunnerMain {
       "  exit        Stop this run cleanly and exit",
       "  help        Show available commands");
 
-  static final long HEARTBEAT_MINUTES = 5;
+  /** Inside the website's three-minute "seen" window (RunnerScope.SEEN_WINDOW_MILLIS). */
+  static final long HEARTBEAT_MINUTES = 2;
   /** How long Ctrl+C waits for the final upload and stop before the process ends. */
   private static final long SHUTDOWN_LIMIT_MILLIS = 5_000L;
 
@@ -303,7 +306,7 @@ public class RunnerMain {
       return;
     }
     try {
-      printSummary(api().assignment(), null);
+      printSummary(api().assignment(), null, null);
     } catch (ApiClient.ApiError e) {
       out.println(e.getMessage());
     }
@@ -338,7 +341,7 @@ public class RunnerMain {
       int[][] weights = ScoringWeights.fromMap(assignment.scoringProfile().weights());
       int[][] seedWeights = ScoringWeights.readFrom(seedScript);
 
-      printSummary(assignment, ScoringWeights.same(weights, seedWeights) ? null
+      printSummary(assignment, seedScript, ScoringWeights.same(weights, seedWeights) ? null
           : "The seed configuration was trained under different weights; this run re-steers it with the profile.");
       String answer = prompt("Start this run? [Y/n] ");
       if (answer == null || !(answer.isEmpty() || answer.toLowerCase(Locale.ROOT).startsWith("y"))) {
@@ -382,7 +385,8 @@ public class RunnerMain {
     return null;
   }
 
-  private void printSummary(Messages.Assignment assignment, String warning) {
+  /** @param seedScript the downloaded seed, to show its field scope; {@code null} if not downloaded yet */
+  private void printSummary(Messages.Assignment assignment, String seedScript, String warning) {
     Messages.TestSetRef testSet = assignment.testSet();
     Messages.ScoringProfileInfo profile = assignment.scoringProfile();
     out.println();
@@ -398,6 +402,14 @@ public class RunnerMain {
     out.println("Population:    " + String.format("%,d", assignment.populationSize()));
     out.println("Scoring:       " + profile.name() + " (" + profile.purpose() + ", version " + profile.version() + ")");
     out.print(indent(ScoringWeights.format(ScoringWeights.fromMap(profile.weights()))));
+    if (seedScript != null) {
+      out.println("Fields:        " + String.join(", ", FieldScope.of(seedScript)));
+      Set<String> outside = FieldScope.outsideMeasurementCore(seedScript);
+      if ("MEASUREMENT".equals(profile.purpose()) && !outside.isEmpty()) {
+        out.println("Warning:       The seed uses fields outside the measurement core (" + String.join(", ", outside)
+            + ") under a measurement profile.");
+      }
+    }
     if (warning != null) {
       out.println("Note:          " + warning);
     }

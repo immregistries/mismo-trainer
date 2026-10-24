@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import jakarta.servlet.RequestDispatcher;
@@ -172,9 +174,9 @@ public class RunnersServlet extends HomeServlet {
         out.println("      <tr>");
         out.println("        <td><a href=\"RunnersServlet?" + PARAM_RUNNER_ID + "=" + runner.getRunnerId() + "\">"
             + escapeHtml(runner.getDisplayName()) + "</a></td>");
-        out.println("        <td>" + state(runner, run) + "</td>");
-        out.println("        <td>" + (run == null ? "&nbsp;" : "Run " + run.getOptimizationRunId() + " ("
-            + escapeHtml(run.getStatus()) + ")") + "</td>");
+        out.println("        <td>" + stateHtml(runner, run) + "</td>");
+        out.println("        <td>" + (run == null ? "&nbsp;" : runLink(run) + " (" + escapeHtml(run.getStatus()) + ")")
+            + "</td>");
         out.println("        <td>" + (run == null || run.getLastGeneration() == null ? "&nbsp;"
             : String.format("%,d", run.getLastGeneration())) + "</td>");
         out.println("        <td>" + (run == null ? "&nbsp;" : percent(run.getBestScore())) + "</td>");
@@ -198,7 +200,8 @@ public class RunnersServlet extends HomeServlet {
 
   private void printRunner(PrintWriter out, Session dataSession, User user, Runner runner, String pairingCode) {
     SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm");
-    String runnerParam = PARAM_RUNNER_ID + "=" + runner.getRunnerId();
+    RunnerAssignment current = RunnerScope.currentAssignment(dataSession, runner);
+    OptimizationRun active = RunnerScope.activeRun(dataSession, runner);
     out.println("    <p><a href=\"RunnersServlet\">All runners</a></p>");
     out.println("    <h1 class=\"aira-page-title\">" + escapeHtml(runner.getDisplayName()) + "</h1>");
 
@@ -225,6 +228,7 @@ public class RunnersServlet extends HomeServlet {
     String paired = runner.getCredentialHash() == null ? "Not yet"
         : runner.getCredentialRevokedAt() != null ? "Revoked " + sdf.format(runner.getCredentialRevokedAt())
             : "Yes, " + sdf.format(runner.getCredentialCreatedAt());
+    out.println("        <tr><th align=\"left\">State</th><td>" + stateHtml(runner, active) + "</td></tr>");
     out.println("        <tr><th align=\"left\">Paired</th><td>" + paired + "</td></tr>");
     out.println("        <tr><th align=\"left\">Last seen</th><td>"
         + (runner.getLastSeenAt() == null ? "never" : sdf.format(runner.getLastSeenAt())) + "</td></tr>");
@@ -245,8 +249,6 @@ public class RunnersServlet extends HomeServlet {
     out.println("      </form>");
     out.println("    </section>");
 
-    RunnerAssignment current = RunnerScope.currentAssignment(dataSession, runner);
-    OptimizationRun active = RunnerScope.activeRun(dataSession, runner);
     printAssignment(out, dataSession, user, runner, current, active);
     printRuns(out, dataSession, runner);
   }
@@ -279,10 +281,17 @@ public class RunnersServlet extends HomeServlet {
           + "<br/><small>Snapshotted when the runner starts, so later edits don't affect that run.</small></td></tr>");
       out.println("        <tr><th align=\"left\">Population</th><td>" + String.format("%,d", current.getPopulationSize())
           + "</td></tr>");
-      out.println("        <tr><th align=\"left\">Scoring profile</th><td>" + escapeHtml(profile.getName()) + " ("
-          + escapeHtml(profile.getPurpose()) + ", version " + profile.getVersion() + ")<pre>"
-          + escapeHtml(ScoringWeights.format(ScoringWeights.fromJson(profile.getScoringWeightsJson())))
+      ScoringProfile latest = latestVersion(dataSession, profile, user);
+      out.println("        <tr><th align=\"left\">Scoring profile</th><td><a href=\"ScoringProfileServlet?"
+          + ScoringProfileServlet.PARAM_SCORING_PROFILE_ID + "=" + profile.getScoringProfileId() + "\">"
+          + escapeHtml(profile.getName()) + "</a> (" + escapeHtml(profile.getPurpose()) + ", version "
+          + profile.getVersion() + ")"
+          + (latest.getScoringProfileId() == profile.getScoringProfileId() ? ""
+              : " <strong>Version " + latest.getVersion() + " is newer;</strong> choose it below to use it.")
+          + "<pre>" + escapeHtml(ScoringWeights.format(ScoringWeights.fromJson(profile.getScoringWeightsJson())))
           + "</pre></td></tr>");
+      out.println("        <tr><th align=\"left\" valign=\"top\">Fields the seed uses</th><td>"
+          + OptimizationRunServlet.fieldScope(current.getConfiguration(), profile) + "</td></tr>");
       int[][] seedWeights = ScoringWeights.readFrom(current.getConfiguration().getConfigurationScript());
       if (!ScoringWeights.same(seedWeights, ScoringWeights.fromJson(profile.getScoringWeightsJson()))) {
         out.println("        <tr><th></th><td><strong>The seed configuration was trained under different weights."
@@ -324,22 +333,57 @@ public class RunnersServlet extends HomeServlet {
         + "\" max=\"" + MAX_POPULATION_SIZE + "\" name=\"" + PARAM_POPULATION_SIZE + "\" value=\""
         + (current == null ? DEFAULT_POPULATION_SIZE : current.getPopulationSize()) + "\"/></td></tr>");
     out.println("          <tr><td>Scoring profile</td><td><select name=\"" + PARAM_SCORING_PROFILE_ID + "\">");
-    for (ScoringProfile profile : RunnerScope.listScoringProfiles(dataSession, user.getOrganization())) {
+    List<ScoringProfile> profiles = new ArrayList<ScoringProfile>(
+        RunnerScope.listScoringProfiles(dataSession, user.getOrganization()));
+    if (selectedProfile != null && profiles.stream()
+        .noneMatch(p -> p.getScoringProfileId() == selectedProfile.getScoringProfileId())) {
+      profiles.add(0, selectedProfile); // an older version the current assignment still uses
+    }
+    for (ScoringProfile profile : profiles) {
       boolean selected = selectedProfile != null
           && selectedProfile.getScoringProfileId() == profile.getScoringProfileId();
       out.println("            <option value=\"" + profile.getScoringProfileId() + "\"" + (selected ? " selected=\"true\"" : "")
           + ">" + escapeHtml(profile.getName()) + " (" + escapeHtml(profile.getPurpose()) + ", v" + profile.getVersion()
           + ")</option>");
     }
-    out.println("          </select> <small>See docs/optimization-objectives-and-scoring-profiles.md.</small></td></tr>");
+    out.println("          </select> <small><a href=\"ScoringProfileServlet\">Scoring profiles</a>; see"
+        + " docs/optimization-objectives-and-scoring-profiles.md.</small></td></tr>");
     out.println("          <tr><td></td><td><input type=\"submit\" name=\"" + PARAM_ACTION + "\" value=\""
         + ACTION_SAVE_ASSIGNMENT + "\"/>" + (active == null ? ""
             : " <small>A run is active; it keeps its inputs. This applies to the next run.</small>") + "</td></tr>");
     out.println("        </table>");
     out.println("      </form>");
+
+    List<RunnerAssignment> history = RunnerScope.listAssignments(dataSession, runner);
+    if (history.size() > 1) {
+      SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm");
+      out.println("      <h3>Assignment history</h3>");
+      out.println("      <table border=\"1\" cellspacing=\"0\">");
+      out.println("        <tr><th>Revision</th><th>Name</th><th>Seed configuration</th><th>Test Set</th>"
+          + "<th>Population</th><th>Profile</th><th>Saved</th></tr>");
+      for (RunnerAssignment assignment : history) {
+        out.println("        <tr>");
+        out.println("          <td>" + assignment.getRevision() + "</td>");
+        out.println("          <td>" + escapeHtml(assignment.getName()) + "</td>");
+        out.println("          <td>" + escapeHtml(RunnerApi.configurationLabel(assignment.getConfiguration())) + "</td>");
+        out.println("          <td>" + escapeHtml(assignment.getMatchSet().getLabel()) + "</td>");
+        out.println("          <td>" + String.format("%,d", assignment.getPopulationSize()) + "</td>");
+        out.println("          <td>" + escapeHtml(assignment.getScoringProfile().getName()) + " v"
+            + assignment.getScoringProfile().getVersion() + "</td>");
+        out.println("          <td>" + sdf.format(assignment.getCreatedAt()) + " by "
+            + escapeHtml(who(assignment.getCreatedByUser())) + "</td>");
+        out.println("        </tr>");
+      }
+      out.println("      </table>");
+    }
     out.println("    </section>");
   }
 
+  /**
+   * Runs grouped by scoring profile version and Test Set snapshot: scores are only comparable
+   * within a group (docs/island-runner-implementation-plan.md D6, item 6). Groups are ordered by
+   * their most recent run.
+   */
   private void printRuns(PrintWriter out, Session dataSession, Runner runner) {
     List<OptimizationRun> runs = RunnerScope.listRuns(dataSession, runner);
     out.println("    <h2>Runs</h2>");
@@ -347,54 +391,72 @@ public class RunnersServlet extends HomeServlet {
       out.println("    <p>No runs yet. Type <code>start</code> in the runner to start one.</p>");
       return;
     }
+    Map<String, List<OptimizationRun>> groups = new LinkedHashMap<String, List<OptimizationRun>>();
+    for (OptimizationRun run : runs) {
+      String key = run.getScoringProfile().getScoringProfileId() + ":" + run.getTestSetSnapshot().getTestSetSnapshotId();
+      groups.computeIfAbsent(key, k -> new ArrayList<OptimizationRun>()).add(run);
+    }
     SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm");
     DecimalFormat rateFormat = new DecimalFormat("#,##0.0");
+    out.println("    <p>Scores are comparable only within one group: the same scoring profile version and the same"
+        + " Test Set snapshot.</p>");
     out.println("    <table border=\"1\" cellspacing=\"0\">");
-    out.println("      <tr><th>Run</th><th>Status</th><th>Revision</th><th>Test Set snapshot</th><th>Profile</th>"
-        + "<th>Started</th><th>Last report</th><th>Generation</th><th>Rate</th><th>Best score</th>"
-        + "<th>Candidates</th><th>Best candidate</th></tr>");
-    for (OptimizationRun run : runs) {
-      List<Configuration> candidates = RunnerScope.listCandidates(dataSession, run);
-      out.println("      <tr" + (Protocol.RUN_RUNNING.equals(run.getStatus()) ? " class=\"pass\"" : "") + ">");
-      out.println("        <td>" + run.getOptimizationRunId() + "</td>");
-      out.println("        <td>" + escapeHtml(run.getStatus())
-          + (run.getStopReason() == null ? "" : "<br/><small>" + escapeHtml(run.getStopReason()) + "</small>") + "</td>");
-      out.println("        <td>" + run.getRunnerAssignment().getRevision() + "</td>");
-      out.println("        <td>" + escapeHtml(run.getTestSetSnapshot().getMatchSet().getLabel()) + " #"
-          + run.getTestSetSnapshot().getTestSetSnapshotId() + ", " + run.getTestSetSnapshot().getCaseCount()
-          + " cases</td>");
-      out.println("        <td>" + escapeHtml(run.getScoringProfile().getName()) + " v"
-          + run.getScoringProfile().getVersion() + "</td>");
-      out.println("        <td>" + sdf.format(run.getStartedAt()) + "</td>");
-      out.println("        <td>" + (run.getLastReportedAt() == null ? "&nbsp;" : sdf.format(run.getLastReportedAt()))
-          + "</td>");
-      out.println("        <td>" + (run.getLastGeneration() == null ? "&nbsp;"
-          : String.format("%,d", run.getLastGeneration())) + "</td>");
-      out.println("        <td>" + (run.getCandidateRate() == null ? "&nbsp;"
-          : rateFormat.format(run.getCandidateRate()) + "/s") + "</td>");
-      out.println("        <td>" + percent(run.getBestScore()) + "</td>");
-      out.println("        <td>" + candidates.size() + "</td>");
-      Configuration best = run.getBestConfiguration();
-      out.println("        <td>" + (best == null ? "&nbsp;"
-          : "gen " + best.getGeneration() + " <a href=\"EvaluationServlet?" + PARAM_CONFIGURATION_ID + "="
-              + best.getConfigurationId() + "\">Evaluate</a> <a href=\"WeightSetServlet?" + PARAM_CONFIGURATION_ID
-              + "=" + best.getConfigurationId() + "\">Select</a>") + "</td>");
-      out.println("      </tr>");
+    for (List<OptimizationRun> group : groups.values()) {
+      OptimizationRun first = group.get(0);
+      out.println("      <tr><th colspan=\"9\" align=\"left\">" + escapeHtml(first.getScoringProfile().getName()) + " v"
+          + first.getScoringProfile().getVersion() + " (" + escapeHtml(first.getScoringProfile().getPurpose())
+          + ") &middot; " + escapeHtml(first.getTestSetSnapshot().getMatchSet().getLabel()) + " snapshot "
+          + first.getTestSetSnapshot().getTestSetSnapshotId() + ", "
+          + String.format("%,d", first.getTestSetSnapshot().getCaseCount()) + " cases</th></tr>");
+      out.println("      <tr><th>Run</th><th>Status</th><th>Revision</th><th>Started</th><th>Last report</th>"
+          + "<th>Generation</th><th>Rate</th><th>Best score</th><th>Candidates</th></tr>");
+      for (OptimizationRun run : group) {
+        List<Configuration> candidates = RunnerScope.listCandidates(dataSession, run);
+        out.println("      <tr" + (Protocol.RUN_RUNNING.equals(run.getStatus()) ? " class=\"pass\"" : "") + ">");
+        out.println("        <td>" + runLink(run) + "</td>");
+        out.println("        <td>" + escapeHtml(run.getStatus())
+            + (run.getStopReason() == null ? "" : "<br/><small>" + escapeHtml(run.getStopReason()) + "</small>")
+            + "</td>");
+        out.println("        <td>" + run.getRunnerAssignment().getRevision() + "</td>");
+        out.println("        <td>" + sdf.format(run.getStartedAt()) + "</td>");
+        out.println("        <td>" + (run.getLastReportedAt() == null ? "&nbsp;" : sdf.format(run.getLastReportedAt()))
+            + "</td>");
+        out.println("        <td>" + (run.getLastGeneration() == null ? "&nbsp;"
+            : String.format("%,d", run.getLastGeneration())) + "</td>");
+        out.println("        <td>" + (run.getCandidateRate() == null ? "&nbsp;"
+            : rateFormat.format(run.getCandidateRate()) + "/s") + "</td>");
+        out.println("        <td>" + percent(run.getBestScore()) + "</td>");
+        out.println("        <td>" + candidates.size() + "</td>");
+        out.println("      </tr>");
+      }
     }
     out.println("    </table>");
   }
 
-  private static String state(Runner runner, OptimizationRun latest) {
-    if (runner.getCredentialHash() == null) {
-      return "Not paired";
+  private static String runLink(OptimizationRun run) {
+    return "<a href=\"OptimizationRunServlet?" + OptimizationRunServlet.PARAM_RUN_ID + "=" + run.getOptimizationRunId()
+        + "\">Run " + run.getOptimizationRunId() + "</a>";
+  }
+
+  /** Derived state; an offline runner whose run is still marked running says so. */
+  private static String stateHtml(Runner runner, OptimizationRun latest) {
+    OptimizationRun active = latest != null && Protocol.RUN_RUNNING.equals(latest.getStatus()) ? latest : null;
+    RunnerScope.State state = RunnerScope.state(runner, active, System.currentTimeMillis());
+    String text = state.label();
+    if (state == RunnerScope.State.OFFLINE && active != null) {
+      text += " <small>(" + runLink(active) + " is still marked running)</small>";
     }
-    if (runner.getCredentialRevokedAt() != null) {
-      return "Revoked";
-    }
-    if (latest != null && Protocol.RUN_RUNNING.equals(latest.getStatus())) {
-      return "Running";
-    }
-    return "Paired";
+    return text;
+  }
+
+  private static ScoringProfile latestVersion(Session dataSession, ScoringProfile profile, User user) {
+    List<ScoringProfile> versions = RunnerScope.listProfileVersions(dataSession, profile.getRootScoringProfileId(),
+        user.getOrganization());
+    return versions.isEmpty() ? profile : versions.get(0);
+  }
+
+  private static String who(User user) {
+    return user.getDisplayName() != null ? user.getDisplayName() : user.getEmail();
   }
 
   private static String percent(Double score) {

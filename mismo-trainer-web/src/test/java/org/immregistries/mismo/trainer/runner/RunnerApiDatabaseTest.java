@@ -312,6 +312,78 @@ public class RunnerApiDatabaseTest {
     expect(ErrorCode.CLIENT_UNSUPPORTED, () -> RunnerApi.checkClientVersion(new RunnerApi.ClientInfo("2.0", "2"), null));
   }
 
+  // --- Slice 3: profiles, abandon, results ----------------------------------------------------
+
+  @Test
+  public void profileEditsAddVersionsOnlyForTheOwner() {
+    ScoringProfile v2 = RunnerScope.saveProfile(session, profileA, "Test profile", RunnerScope.PURPOSE_EXPERIMENTAL,
+        "Leans harder against false matches", new int[][] { { 12, 4, -10 }, { 4, 10, -8 }, { -20, -10, 10 } }, userA);
+    assertEquals(2, v2.getVersion());
+    assertEquals(profileA.getRootScoringProfileId(), v2.getRootScoringProfileId());
+    assertEquals(2, RunnerScope.listProfileVersions(session, profileA.getRootScoringProfileId(), orgA).size());
+    // The old version is untouched, so a run that used it keeps its weights.
+    assertEquals(ScoringWeights.toJson(Scorer.defaultWeights()), profileA.getScoringWeightsJson());
+
+    assertTrue(RunnerScope.isEditable(profileA, userA));
+    assertFalse(RunnerScope.isEditable(profileA, userB));
+    assertEquals(null, RunnerScope.loadScoringProfile(session, profileA.getScoringProfileId(), orgB));
+    assertTrue(RunnerScope.listProfileVersions(session, profileA.getRootScoringProfileId(), orgB).isEmpty());
+  }
+
+  @Test
+  public void abandonedRunRejectsReportsAndIsScopedToItsOrganization() {
+    Runner runner = pairedRunner(userA);
+    RunnerScope.saveAssignment(session, runner, "A", configuration(orgA, false), matchSet(orgA, false), 100,
+        profileA, userA);
+    int runId = RunnerApi.createRun(session, runner, createRequest(RunnerApi.assignment(session, runner)), CLIENT)
+        .runId();
+    assertEquals(null, RunnerScope.loadRun(session, runId, userB));
+    OptimizationRun run = RunnerScope.loadRun(session, runId, userA);
+    assertTrue(RunnerScope.abandonRun(run, userA));
+    assertFalse("only a running run can be abandoned", RunnerScope.abandonRun(run, userA));
+    session.flush();
+    expect(ErrorCode.RUN_NOT_ACTIVE, () -> RunnerApi.progress(session, runner, runId,
+        new Messages.ProgressReport(1, 1.0, 0.5)));
+  }
+
+  @Test
+  public void candidateResultsCollapseToPotentialMatch() {
+    Runner runner = pairedRunner(userA);
+    Configuration seed = configuration(orgA, false);
+    RunnerScope.saveAssignment(session, runner, "A", seed, matchSet(orgA, false), 100, profileA, userA);
+    int runId = RunnerApi.createRun(session, runner, createRequest(RunnerApi.assignment(session, runner)), CLIENT)
+        .runId();
+    OptimizationRun run = (OptimizationRun) session.get(OptimizationRun.class, runId);
+
+    CandidateScoring.Result result = CandidateScoring.score(run, seed);
+    int total = 0;
+    for (int[] row : result.counts()) {
+      for (int count : row) {
+        total += count;
+      }
+    }
+    assertEquals("the Research case is not scored", 3, total);
+    int[][] potential = result.potentialMatchTable();
+    assertEquals(result.counts()[0][0] + result.counts()[0][1] + result.counts()[1][0] + result.counts()[1][1],
+        potential[0][0]);
+    assertEquals(result.counts()[2][2], potential[1][1]);
+  }
+
+  @Test
+  public void derivedRunnerState() {
+    RunnerScope.CreatedRunner created = RunnerScope.createRunner(session, "Laptop", userA);
+    Runner runner = created.runner();
+    long now = System.currentTimeMillis();
+    assertEquals(RunnerScope.State.NOT_PAIRED, RunnerScope.state(runner, null, now));
+    RunnerApi.pair(session, pairing(created.pairingCode()));
+    assertEquals(RunnerScope.State.IDLE, RunnerScope.state(runner, null, now));
+    assertEquals(RunnerScope.State.RUNNING, RunnerScope.state(runner, new OptimizationRun(), now));
+    assertEquals(RunnerScope.State.OFFLINE,
+        RunnerScope.state(runner, null, now + RunnerScope.SEEN_WINDOW_MILLIS + 1000));
+    RunnerScope.revokeCredential(runner);
+    assertEquals(RunnerScope.State.REVOKED, RunnerScope.state(runner, null, now));
+  }
+
   // --- fixtures -----------------------------------------------------------------------------
 
   private interface Call {
