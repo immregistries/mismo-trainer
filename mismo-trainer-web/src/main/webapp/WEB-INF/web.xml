@@ -17,6 +17,14 @@
 	</filter-mapping>
 
 	<servlet>
+		<servlet-name>RunnersServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.servlet.RunnersServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>RunnerApiServlet</servlet-name>
+		<servlet-class>org.immregistries.mismo.trainer.runner.RunnerApiServlet</servlet-class>
+	</servlet>
+	<servlet>
 		<servlet-name>LoginServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.LoginServlet</servlet-class>
 	</servlet>
@@ -24,6 +32,14 @@
 		<servlet-name>LogoutServlet</servlet-name>
 		<servlet-class>org.immregistries.mismo.trainer.servlet.LogoutServlet</servlet-class>
 	</servlet>
+	<servlet-mapping>
+		<servlet-name>RunnersServlet</servlet-name>
+		<url-pattern>/RunnersServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>RunnerApiServlet</servlet-name>
+		<url-pattern>/api/v1/*</url-pattern>
+	</servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>LoginServlet</servlet-name>
 		<url-pattern>/login</url-pattern>

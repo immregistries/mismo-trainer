@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
+  <class name="TestSetSnapshot" table="test_set_snapshot">
+    <id name="testSetSnapshotId" column="test_set_snapshot_id">
+      <generator class="native"/>
+    </id>
+    <many-to-one name="matchSet" column="match_set_id" class="MatchSet" not-null="true"/>
+    <property name="contentSha256" column="content_sha256" type="string" not-null="true"/>
+    <property name="caseCount" column="case_count" type="int" not-null="true"/>
+    <property name="lifecycleStatus" column="lifecycle_status" type="string" not-null="true"/>
+    <property name="contentJson" column="content_json" type="text" not-null="true"/>
+    <property name="createdAt" column="created_at" type="timestamp" not-null="true"/>
+  </class>
+</hibernate-mapping>

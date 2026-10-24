@@ -10,6 +10,7 @@ import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
+import org.immregistries.mismo.optimizer.protocol.Hashes;
 import org.immregistries.mismo.trainer.model.MatchItem;
 import org.immregistries.mismo.trainer.model.MatchSet;
 import org.immregistries.mismo.trainer.model.Organization;
@@ -162,6 +163,7 @@ public class TemplateDataBootstrap {
     configuration.setGeneratedDate(new Date());
     configuration.setCreatedAt(new Date());
     configuration.setConfigurationScript(matchConfiguration.getConfigurationScript());
+    configuration.setContentSha256(Hashes.sha256Hex(configuration.getConfigurationScript()));
     configuration.setHashForSignature(matchConfiguration.getHashForSignature());
     configuration.setOrganization(aira);
     configuration.setTemplate(true);

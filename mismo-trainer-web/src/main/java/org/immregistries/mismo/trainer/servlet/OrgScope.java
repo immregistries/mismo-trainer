@@ -9,6 +9,7 @@ import java.util.Map;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.immregistries.mismo.match.PatientCompare;
+import org.immregistries.mismo.optimizer.protocol.Hashes;
 import org.immregistries.mismo.trainer.RuntimeMatchItems;
 import org.immregistries.mismo.trainer.model.Configuration;
 import org.immregistries.mismo.trainer.model.Evaluation;
@@ -43,13 +44,24 @@ public final class OrgScope {
   }
 
   private static boolean sameOrganization(Organization organization, User user) {
-    return organization != null && user != null && user.getOrganization() != null
-        && organization.getOrganizationId() == user.getOrganization().getOrganizationId();
+    return user != null && sameOrganization(organization, user.getOrganization());
+  }
+
+  private static boolean sameOrganization(Organization organization, Organization other) {
+    return organization != null && other != null && organization.getOrganizationId() == other.getOrganizationId();
   }
 
   /** True if {@code organization} or a template row is visible to {@code user} (read access). */
   private static boolean readable(Organization organization, boolean isTemplate, User user) {
     return isTemplate || sameOrganization(organization, user);
+  }
+
+  /**
+   * Same read rule as {@link #readable(Organization, boolean, User)}, for a reader that is an
+   * organization rather than a logged-in user -- a paired Runner (island-runner-implementation-plan.md D1).
+   */
+  private static boolean readable(Organization owner, boolean isTemplate, Organization reader) {
+    return isTemplate || sameOrganization(owner, reader);
   }
 
   /**
@@ -130,6 +142,24 @@ public final class OrgScope {
   public static Configuration loadConfiguration(Session dataSession, int configurationId, User user) {
     Configuration configuration = (Configuration) dataSession.get(Configuration.class, configurationId);
     if (configuration == null || !readable(configuration.getOrganization(), configuration.isTemplate(), user)) {
+      return null;
+    }
+    return configuration;
+  }
+
+  /** {@link #loadMatchSet(Session, int, User)} for a Runner's organization. */
+  public static MatchSet loadMatchSet(Session dataSession, int matchSetId, Organization reader) {
+    MatchSet matchSet = (MatchSet) dataSession.get(MatchSet.class, matchSetId);
+    if (matchSet == null || !readable(matchSet.getOrganization(), matchSet.isTemplate(), reader)) {
+      return null;
+    }
+    return matchSet;
+  }
+
+  /** {@link #loadConfiguration(Session, int, User)} for a Runner's organization. */
+  public static Configuration loadConfiguration(Session dataSession, int configurationId, Organization reader) {
+    Configuration configuration = (Configuration) dataSession.get(Configuration.class, configurationId);
+    if (configuration == null || !readable(configuration.getOrganization(), configuration.isTemplate(), reader)) {
       return null;
     }
     return configuration;
@@ -312,6 +342,7 @@ public final class OrgScope {
     copy.setGeneratedDate(source.getGeneratedDate());
     copy.setHashForSignature(source.getHashForSignature());
     copy.setConfigurationScript(source.getConfigurationScript());
+    copy.setContentSha256(Hashes.sha256Hex(copy.getConfigurationScript()));
     copy.setOrganization(user.getOrganization());
     copy.setTemplate(false);
     copy.setCreatedByUser(user);
@@ -844,6 +875,7 @@ public final class OrgScope {
         matchConfiguration.getGeneratedDate() == null ? new Date() : matchConfiguration.getGeneratedDate());
     configuration.setHashForSignature(matchConfiguration.getHashForSignature());
     configuration.setConfigurationScript(matchConfiguration.getConfigurationScript());
+    configuration.setContentSha256(Hashes.sha256Hex(configuration.getConfigurationScript()));
     configuration.setOrganization(user.getOrganization());
     configuration.setTemplate(false);
     configuration.setCreatedByUser(user);

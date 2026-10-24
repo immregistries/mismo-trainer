@@ -16,5 +16,7 @@
     <property name="template" column="is_template" type="boolean" not-null="true"/>
     <many-to-one name="createdByUser" column="created_by_user_id" class="User"/>
     <property name="createdAt" column="created_at" type="timestamp"/>
+    <property name="contentSha256" column="content_sha256" type="string"/>
+    <many-to-one name="optimizationRun" column="optimization_run_id" class="OptimizationRun"/>
   </class>
 </hibernate-mapping>

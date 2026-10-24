@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
+  <class name="Runner" table="runner">
+    <id name="runnerId" column="runner_id">
+      <generator class="native"/>
+    </id>
+    <many-to-one name="organization" column="organization_id" class="Organization" not-null="true"/>
+    <property name="displayName" column="display_name" type="string" not-null="true"/>
+    <property name="pairingCodeHash" column="pairing_code_hash" type="string"/>
+    <property name="pairingExpiresAt" column="pairing_expires_at" type="timestamp"/>
+    <property name="credentialHash" column="credential_hash" type="string"/>
+    <property name="credentialCreatedAt" column="credential_created_at" type="timestamp"/>
+    <property name="credentialLastUsedAt" column="credential_last_used_at" type="timestamp"/>
+    <property name="credentialRevokedAt" column="credential_revoked_at" type="timestamp"/>
+    <property name="clientVersion" column="client_version" type="string"/>
+    <property name="protocolVersion" column="protocol_version" type="string"/>
+    <property name="runtimeInfo" column="runtime_info" type="string"/>
+    <property name="lastSeenAt" column="last_seen_at" type="timestamp"/>
+    <property name="createdAt" column="created_at" type="timestamp" not-null="true"/>
+    <many-to-one name="createdByUser" column="created_by_user_id" class="User" not-null="true"/>
+  </class>
+</hibernate-mapping>

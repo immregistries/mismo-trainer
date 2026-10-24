@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
+  <class name="OptimizationRun" table="optimization_run">
+    <id name="optimizationRunId" column="optimization_run_id">
+      <generator class="native"/>
+    </id>
+    <many-to-one name="runner" column="runner_id" class="Runner" not-null="true"/>
+    <many-to-one name="runnerAssignment" column="runner_assignment_id" class="RunnerAssignment" not-null="true"/>
+    <many-to-one name="seedConfiguration" column="seed_configuration_id" class="Configuration" not-null="true"/>
+    <property name="seedConfigurationSha256" column="seed_configuration_sha256" type="string" not-null="true"/>
+    <many-to-one name="testSetSnapshot" column="test_set_snapshot_id" class="TestSetSnapshot" not-null="true"/>
+    <property name="populationSize" column="population_size" type="int" not-null="true"/>
+    <many-to-one name="scoringProfile" column="scoring_profile_id" class="ScoringProfile" not-null="true"/>
+    <property name="scoringWeightsJson" column="scoring_weights_json" type="string" not-null="true"/>
+    <property name="clientVersion" column="client_version" type="string" not-null="true"/>
+    <property name="protocolVersion" column="protocol_version" type="string" not-null="true"/>
+    <property name="status" column="status" type="string" not-null="true"/>
+    <property name="stopReason" column="stop_reason" type="string"/>
+    <property name="startedAt" column="started_at" type="timestamp" not-null="true"/>
+    <property name="stoppedAt" column="stopped_at" type="timestamp"/>
+    <property name="lastReportedAt" column="last_reported_at" type="timestamp"/>
+    <property name="lastGeneration" column="last_generation" type="java.lang.Integer"/>
+    <property name="candidateRate" column="candidate_rate" type="java.lang.Double"/>
+    <property name="bestScore" column="best_score" type="java.lang.Double"/>
+    <many-to-one name="bestConfiguration" column="best_configuration_id" class="Configuration"/>
+  </class>
+</hibernate-mapping>

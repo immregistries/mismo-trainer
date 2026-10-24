@@ -905,3 +905,162 @@ Missing:
    AND NOT EXISTS (SELECT 1 FROM configuration WHERE hash_for_signature = 'Qds4KpMKC78aDNQ')
  ORDER BY o.organization_id
  LIMIT 1;
+
+-- ---------------------------------------------------------------------------
+-- Island Runner, Slice 1 (docs/island-runner-implementation-plan.md §3).
+-- Centrally managed local runners: pairing, assignments, Scoring Profiles,
+-- immutable Test Set snapshots, and optimization runs. Replaces the legacy
+-- Island / CentralServlet / island_credential stack removed in Slice 0.
+-- ---------------------------------------------------------------------------
+
+-- One installed copy of the Mismo Runner on one computer. Only hashes of the
+-- pairing code and the durable credential are stored.
+CREATE TABLE runner (
+    runner_id int NOT NULL AUTO_INCREMENT,
+    organization_id int NOT NULL,
+    display_name varchar(100) NOT NULL,
+    pairing_code_hash varchar(64) NULL,
+    pairing_expires_at datetime NULL,
+    credential_hash varchar(64) NULL,
+    credential_created_at datetime NULL,
+    credential_last_used_at datetime NULL,
+    credential_revoked_at datetime NULL,
+    client_version varchar(30) NULL,
+    protocol_version varchar(10) NULL,
+    runtime_info varchar(255) NULL,
+    last_seen_at datetime NULL,
+    created_at datetime NOT NULL,
+    created_by_user_id int NOT NULL,
+    PRIMARY KEY (runner_id),
+    UNIQUE KEY uk_runner_credential (credential_hash),
+    UNIQUE KEY uk_runner_pairing (pairing_code_hash),
+    KEY idx_runner_organization (organization_id),
+    CONSTRAINT fk_runner_organization FOREIGN KEY (organization_id) REFERENCES organization (organization_id),
+    CONSTRAINT fk_runner_created_by_user FOREIGN KEY (created_by_user_id) REFERENCES user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- A named, versioned fitness function (see
+-- docs/optimization-objectives-and-scoring-profiles.md). Rows are never
+-- updated: an edit inserts version + 1 with the same root id.
+CREATE TABLE scoring_profile (
+    scoring_profile_id int NOT NULL AUTO_INCREMENT,
+    root_scoring_profile_id int NOT NULL,
+    version int NOT NULL,
+    name varchar(150) NOT NULL,
+    purpose varchar(30) NOT NULL,
+    description text NOT NULL,
+    scoring_weights_json varchar(500) NOT NULL,
+    organization_id int NOT NULL,
+    is_template tinyint(1) NOT NULL DEFAULT 0,
+    created_at datetime NOT NULL,
+    created_by_user_id int NULL,
+    PRIMARY KEY (scoring_profile_id),
+    UNIQUE KEY uk_scoring_profile_version (root_scoring_profile_id, version),
+    KEY idx_scoring_profile_organization (organization_id),
+    CONSTRAINT fk_scoring_profile_organization FOREIGN KEY (organization_id) REFERENCES organization (organization_id),
+    CONSTRAINT fk_scoring_profile_created_by_user FOREIGN KEY (created_by_user_id) REFERENCES user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- What a runner should use for its next run. Rows are never updated: saving
+-- the assignment form inserts revision + 1. The current assignment is the
+-- highest revision.
+CREATE TABLE runner_assignment (
+    runner_assignment_id int NOT NULL AUTO_INCREMENT,
+    runner_id int NOT NULL,
+    revision int NOT NULL,
+    name varchar(150) NOT NULL,
+    configuration_id int NOT NULL,
+    match_set_id int NOT NULL,
+    population_size int NOT NULL,
+    scoring_profile_id int NOT NULL,
+    created_at datetime NOT NULL,
+    created_by_user_id int NOT NULL,
+    PRIMARY KEY (runner_assignment_id),
+    UNIQUE KEY uk_runner_assignment_rev (runner_id, revision),
+    CONSTRAINT fk_runner_assignment_runner FOREIGN KEY (runner_id) REFERENCES runner (runner_id),
+    CONSTRAINT fk_runner_assignment_configuration FOREIGN KEY (configuration_id) REFERENCES configuration (configuration_id),
+    CONSTRAINT fk_runner_assignment_match_set FOREIGN KEY (match_set_id) REFERENCES match_set (match_set_id),
+    CONSTRAINT fk_runner_assignment_scoring_profile FOREIGN KEY (scoring_profile_id) REFERENCES scoring_profile (scoring_profile_id),
+    CONSTRAINT fk_runner_assignment_created_by_user FOREIGN KEY (created_by_user_id) REFERENCES user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- An immutable copy of one match_set's scoreable cases, stored as the exact
+-- JSON bytes served to runners, with their SHA-256.
+CREATE TABLE test_set_snapshot (
+    test_set_snapshot_id int NOT NULL AUTO_INCREMENT,
+    match_set_id int NOT NULL,
+    content_sha256 varchar(64) NOT NULL,
+    case_count int NOT NULL,
+    lifecycle_status varchar(20) NOT NULL,
+    content_json longtext NOT NULL,
+    created_at datetime NOT NULL,
+    PRIMARY KEY (test_set_snapshot_id),
+    UNIQUE KEY uk_snapshot_content (match_set_id, content_sha256),
+    CONSTRAINT fk_test_set_snapshot_match_set FOREIGN KEY (match_set_id) REFERENCES match_set (match_set_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- One execution of one assignment revision, with every input frozen.
+CREATE TABLE optimization_run (
+    optimization_run_id int NOT NULL AUTO_INCREMENT,
+    runner_id int NOT NULL,
+    runner_assignment_id int NOT NULL,
+    seed_configuration_id int NOT NULL,
+    seed_configuration_sha256 varchar(64) NOT NULL,
+    test_set_snapshot_id int NOT NULL,
+    population_size int NOT NULL,
+    scoring_profile_id int NOT NULL,
+    scoring_weights_json varchar(500) NOT NULL,
+    client_version varchar(30) NOT NULL,
+    protocol_version varchar(10) NOT NULL,
+    status varchar(20) NOT NULL,
+    stop_reason varchar(255) NULL,
+    started_at datetime NOT NULL,
+    stopped_at datetime NULL,
+    last_reported_at datetime NULL,
+    last_generation int NULL,
+    candidate_rate double NULL,
+    best_score double NULL,
+    best_configuration_id int NULL,
+    PRIMARY KEY (optimization_run_id),
+    KEY idx_run_runner_status (runner_id, status),
+    CONSTRAINT fk_optimization_run_runner FOREIGN KEY (runner_id) REFERENCES runner (runner_id),
+    CONSTRAINT fk_optimization_run_assignment FOREIGN KEY (runner_assignment_id) REFERENCES runner_assignment (runner_assignment_id),
+    CONSTRAINT fk_optimization_run_seed_configuration FOREIGN KEY (seed_configuration_id) REFERENCES configuration (configuration_id),
+    CONSTRAINT fk_optimization_run_snapshot FOREIGN KEY (test_set_snapshot_id) REFERENCES test_set_snapshot (test_set_snapshot_id),
+    CONSTRAINT fk_optimization_run_scoring_profile FOREIGN KEY (scoring_profile_id) REFERENCES scoring_profile (scoring_profile_id),
+    CONSTRAINT fk_optimization_run_best_configuration FOREIGN KEY (best_configuration_id) REFERENCES configuration (configuration_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Candidates uploaded by a run are configuration rows tied to it.
+-- (optimization_run_id, content_sha256) makes a re-sent candidate idempotent;
+-- rows not from a run have a NULL run id, which the unique key ignores.
+ALTER TABLE configuration
+    ADD COLUMN content_sha256 varchar(64) NULL,
+    ADD COLUMN optimization_run_id int NULL,
+    ADD UNIQUE KEY uk_configuration_run_content (optimization_run_id, content_sha256),
+    ADD CONSTRAINT fk_configuration_optimization_run FOREIGN KEY (optimization_run_id)
+        REFERENCES optimization_run (optimization_run_id);
+UPDATE configuration SET content_sha256 = SHA2(configuration_script, 256);
+
+-- The legacy Island machine credential is gone (Slice 0 removed its code).
+ALTER TABLE configuration
+    DROP FOREIGN KEY fk_configuration_island_credential;
+ALTER TABLE configuration
+    DROP INDEX idx_configuration_island_credential_id,
+    DROP COLUMN island_credential_id;
+DROP TABLE island_credential;
+
+-- Seed: the one template Scoring Profile, the national measurement objective,
+-- owned by the template-eligible organization. Weights are the canonical
+-- defaults from mismo-match's mismo-matcher.yml.
+INSERT INTO scoring_profile (root_scoring_profile_id, version, name, purpose, description,
+                             scoring_weights_json, organization_id, is_template, created_at)
+SELECT 0, 1, 'National measurement (potential match)', 'MEASUREMENT',
+       'Steers toward the Patient Matching at Rest measurement objective. Match and Possible Match are treated as one "potential match" signal, and the instrument deliberately leans toward over-identifying: a missed potential match can never be recovered, while an over-count can be tuned out later. This is not a production-calibration matrix. See docs/optimization-objectives-and-scoring-profiles.md.',
+       '{"shouldMatch_Matches":12,"shouldMatch_Possible":10,"shouldMatch_NoMatch":-10,"shouldPossible_Matches":8,"shouldPossible_Possible":10,"shouldPossible_NoMatch":-8,"shouldNoMatch_Matches":-10,"shouldNoMatch_Possible":-8,"shouldNoMatch_NoMatch":10}',
+       o.organization_id, 1, NOW()
+  FROM organization o
+ WHERE o.is_template_org = 1
+ ORDER BY o.organization_id
+ LIMIT 1;
+UPDATE scoring_profile SET root_scoring_profile_id = scoring_profile_id WHERE root_scoring_profile_id = 0;

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
+  <class name="RunnerAssignment" table="runner_assignment">
+    <id name="runnerAssignmentId" column="runner_assignment_id">
+      <generator class="native"/>
+    </id>
+    <many-to-one name="runner" column="runner_id" class="Runner" not-null="true"/>
+    <property name="revision" column="revision" type="int" not-null="true"/>
+    <property name="name" column="name" type="string" not-null="true"/>
+    <many-to-one name="configuration" column="configuration_id" class="Configuration" not-null="true"/>
+    <many-to-one name="matchSet" column="match_set_id" class="MatchSet" not-null="true"/>
+    <property name="populationSize" column="population_size" type="int" not-null="true"/>
+    <many-to-one name="scoringProfile" column="scoring_profile_id" class="ScoringProfile" not-null="true"/>
+    <property name="createdAt" column="created_at" type="timestamp" not-null="true"/>
+    <many-to-one name="createdByUser" column="created_by_user_id" class="User" not-null="true"/>
+  </class>
+</hibernate-mapping>

@@ -7,6 +7,8 @@ import java.util.List;
 
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.match.model.Patient;
+import org.immregistries.mismo.optimizer.protocol.Messages;
+import org.immregistries.mismo.optimizer.protocol.Protocol;
 
 /**
  * Builds the mismo-match runtime {@code MatchItem}s that {@code PatientCompare}/{@link Scorer}
@@ -110,6 +112,24 @@ public final class TestCaseLoader {
     runtimeMatchItem.setPatientA(new Patient(patientDataA));
     runtimeMatchItem.setPatientB(new Patient(patientDataB));
     return runtimeMatchItem;
+  }
+
+  /**
+   * Converts a Test Set snapshot served by the Runner API into the runtime cases a {@link World}
+   * scores.
+   *
+   * @throws IllegalArgumentException if the snapshot uses a format this version doesn't read
+   */
+  public static List<MatchItem> fromTestSetContent(Messages.TestSetContent content) {
+    if (content.formatVersion() != Protocol.TEST_SET_FORMAT_VERSION) {
+      throw new IllegalArgumentException("Unsupported Test Set format version " + content.formatVersion());
+    }
+    List<MatchItem> matchItemList = new ArrayList<MatchItem>();
+    for (Messages.TestCase testCase : content.cases()) {
+      matchItemList.add(toRuntimeMatchItem(testCase.label(), testCase.description(), testCase.expectStatus(),
+          testCase.patientDataA(), testCase.patientDataB()));
+    }
+    return matchItemList;
   }
 
   private static String nullToEmpty(String value) {

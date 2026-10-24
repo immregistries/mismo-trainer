@@ -34,6 +34,6 @@ Some v1-snapshot documents describe bugs that have since been fixed. Check `docs
 - **Build:** a multi-module Maven build (`docs/island-runner-implementation-plan.md` D2). `mvn clean package` from the repository root builds:
   - `mismo-optimizer` (jar): the genetic-algorithm engine (`World`, `Creature`, `Scorer`, `TestCaseLoader`) and, later, the runner protocol. It must not depend on servlets or Hibernate.
   - `mismo-trainer-web` (war): the web application, producing `mismo-trainer-web/target/mismo.war`.
-  - `mismo-runner` (jar): the Island Runner console app (a stub until Slice 1).
+  - `mismo-runner` (jar): the Island Runner console app, built as the shaded `mismo-runner/target/mismo-runner.jar` (`java -jar`, Java 17+). It talks to the webapp's Runner API at `/api/v1/*` (`RunnerApiServlet`); set `MISMO_RUNNER_HOME` to keep a test runner's identity out of `%LOCALAPPDATA%\Mismo Runner`.
 
   `mismo-match` must be installed in the local Maven repository (`mvn install` in `../mismo-match`).

@@ -23,6 +23,8 @@ public class Configuration {
   private boolean isTemplate;
   private User createdByUser;
   private Date createdAt;
+  private String contentSha256;
+  private OptimizationRun optimizationRun;
 
   public int getConfigurationId() {
     return configurationId;
@@ -122,5 +124,23 @@ public class Configuration {
 
   public void setCreatedAt(Date createdAt) {
     this.createdAt = createdAt;
+  }
+
+  /** SHA-256 of {@link #getConfigurationScript()}'s UTF-8 bytes; what runners verify downloads against. */
+  public String getContentSha256() {
+    return contentSha256;
+  }
+
+  public void setContentSha256(String contentSha256) {
+    this.contentSha256 = contentSha256;
+  }
+
+  /** The run that uploaded this configuration as a candidate, or {@code null}. */
+  public OptimizationRun getOptimizationRun() {
+    return optimizationRun;
+  }
+
+  public void setOptimizationRun(OptimizationRun optimizationRun) {
+    this.optimizationRun = optimizationRun;
   }
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.immregistries.mismo.trainer.model">
+  <class name="ScoringProfile" table="scoring_profile">
+    <id name="scoringProfileId" column="scoring_profile_id">
+      <generator class="native"/>
+    </id>
+    <property name="rootScoringProfileId" column="root_scoring_profile_id" type="int" not-null="true"/>
+    <property name="version" column="version" type="int" not-null="true"/>
+    <property name="name" column="name" type="string" not-null="true"/>
+    <property name="purpose" column="purpose" type="string" not-null="true"/>
+    <property name="description" column="description" type="text" not-null="true"/>
+    <property name="scoringWeightsJson" column="scoring_weights_json" type="string" not-null="true"/>
+    <many-to-one name="organization" column="organization_id" class="Organization" not-null="true"/>
+    <property name="template" column="is_template" type="boolean" not-null="true"/>
+    <property name="createdAt" column="created_at" type="timestamp" not-null="true"/>
+    <many-to-one name="createdByUser" column="created_by_user_id" class="User"/>
+  </class>
+</hibernate-mapping>

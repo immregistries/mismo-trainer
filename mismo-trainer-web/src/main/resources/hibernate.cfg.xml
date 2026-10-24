@@ -29,6 +29,11 @@
     <mapping resource="SignatureBatchEntry.hbm.xml"/>
     <mapping resource="User.hbm.xml"/>
     <mapping resource="UserConfigurationRecent.hbm.xml"/>
+    <mapping resource="OptimizationRun.hbm.xml"/>
+    <mapping resource="Runner.hbm.xml"/>
+    <mapping resource="RunnerAssignment.hbm.xml"/>
+    <mapping resource="ScoringProfile.hbm.xml"/>
+    <mapping resource="TestSetSnapshot.hbm.xml"/>
 
   </session-factory>
 </hibernate-configuration>

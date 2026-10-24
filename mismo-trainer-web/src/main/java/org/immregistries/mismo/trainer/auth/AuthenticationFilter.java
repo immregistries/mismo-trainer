@@ -15,7 +15,9 @@ import org.immregistries.mismo.trainer.servlet.HomeServlet;
 /**
  * Requires an InteropHub-authenticated session on every request
  * (database-schema-migration-plan.md §2.8) -- there is no anonymous/guest
- * mode anywhere in v2. The only path left out is the Hub login callback itself.
+ * mode anywhere in v2. The only paths left out are the Hub login callback itself and the
+ * Runner API under {@code /api/v1/}, which authenticates each request with a runner's bearer
+ * credential in {@code RunnerApiServlet} instead of a website session.
  */
 public class AuthenticationFilter implements Filter {
 
@@ -35,7 +37,7 @@ public class AuthenticationFilter implements Filter {
     HttpServletResponse httpResponse = (HttpServletResponse) response;
     String path = resolvePath(httpRequest);
 
-    if (path.equals("/login")) {
+    if (path.equals("/login") || path.startsWith("/api/v1/")) {
       chain.doFilter(request, response);
       return;
     }

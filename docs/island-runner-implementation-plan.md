@@ -140,9 +140,9 @@ CREATE TABLE runner (
   runner_id               int NOT NULL AUTO_INCREMENT,
   organization_id         int NOT NULL,
   display_name            varchar(100) NOT NULL,
-  pairing_code_hash       char(64) NULL,
+  pairing_code_hash       varchar(64) NULL,
   pairing_expires_at      datetime NULL,
-  credential_hash         char(64) NULL,            -- NULL until paired
+  credential_hash         varchar(64) NULL,            -- NULL until paired
   credential_created_at   datetime NULL,
   credential_last_used_at datetime NULL,
   credential_revoked_at   datetime NULL,
@@ -196,7 +196,7 @@ CREATE TABLE scoring_profile (
 CREATE TABLE test_set_snapshot (
   test_set_snapshot_id   int NOT NULL AUTO_INCREMENT,
   match_set_id           int NOT NULL,
-  content_sha256         char(64) NOT NULL,
+  content_sha256         varchar(64) NOT NULL,
   case_count             int NOT NULL,
   lifecycle_status       varchar(20) NOT NULL,     -- status at snapshot time
   content_json           longtext NOT NULL,
@@ -210,7 +210,7 @@ CREATE TABLE optimization_run (
   runner_id              int NOT NULL,
   runner_assignment_id   int NOT NULL,             -- implies revision
   seed_configuration_id  int NOT NULL,
-  seed_configuration_sha256 char(64) NOT NULL,
+  seed_configuration_sha256 varchar(64) NOT NULL,
   test_set_snapshot_id   int NOT NULL,
   population_size        int NOT NULL,
   scoring_profile_id     int NOT NULL,
@@ -231,7 +231,7 @@ CREATE TABLE optimization_run (
 );
 
 ALTER TABLE configuration
-  ADD COLUMN content_sha256 char(64) NULL,
+  ADD COLUMN content_sha256 varchar(64) NULL,
   ADD COLUMN optimization_run_id int NULL,
   ADD UNIQUE KEY uk_configuration_run_content (optimization_run_id, content_sha256);
 UPDATE configuration SET content_sha256 = SHA2(configuration_script, 256);
@@ -256,7 +256,7 @@ Routes as in the architecture doc §10. Below are only the implementation specif
 | `POST /api/v1/runner-pairings` | pairing code | Returns `runnerId`, `runnerName`, `organizationName`, `credential` |
 | `GET /api/v1/runners/me` | bearer | Also updates `last_seen_at`/versions |
 | `POST /api/v1/runners/me/heartbeats` | bearer | Sent while idle at the prompt (every 5 min); running reports already count as contact |
-| `GET /api/v1/runners/me/assignment` | bearer | Creates or reuses the Test Set snapshot. `409 RUN_ACTIVE` if the runner has a `RUNNING` run (it should stop first) |
+| `GET /api/v1/runners/me/assignment` | bearer | Creates or reuses the Test Set snapshot. Not refused while a run is marked `RUNNING`: the next `POST /runs` marks that run `ABANDONED` (see Slice 1 notes) |
 | `GET /api/v1/configurations/{id}/content` | bearer | `text/yaml`; org/template scoped |
 | `GET /api/v1/test-set-snapshots/{id}/content` | bearer | `application/json`; served by **snapshot id** (replaces the doc's `/test-sets/{id}/versions/{v}`) |
 | `POST /api/v1/runs` | bearer | Body: assignment id + revision, both hashes. `409 ASSIGNMENT_CHANGED` if the revision is no longer current; the runner re-fetches and shows the summary again |
@@ -320,6 +320,17 @@ The work is ordered to get end-to-end feedback early. Each slice ends in a worki
 
 **Slice 1: Walking skeleton.** Full schema (§3), including the seeded measurement profile. API: pairing, `me`, assignment, both content routes, runs create/progress/candidates/stop. Minimal website: create runner and show pairing code, a single assignment form (profile is a dropdown; profile editing waits for Slice 3), a run list showing the profile name with each score. Runner: `pair`, `start` (fetch, verify, summary, create run), dashboard, `sync`, `stop`, `exit`, using the shaded JAR.
 *Done when:* acceptance criteria 1 and 3–10 of the architecture doc work against localhost Tomcat using the dev JAR, with an AIRA review Test Set loaded in the database (upload it through the existing Test Set upload page if needed).
+
+*Slice 1 notes (done 2026-10-24).* Verified end to end against localhost Tomcat with `mismo-runner.jar`: create runner, pair, assign (AIRA-D, 3,397 scoreable cases), start, progress and candidates on the website, change the assignment mid-run (the run kept revision 1), stop, start again (got revision 2). The run's best candidate, evaluated on the existing Evaluation page, scored exactly what the runner reported. Corrections and findings:
+
+- **`GET /assignment` no longer returns `409 RUN_ACTIVE`.** That conflicted with §2's rule that `POST /runs` supersedes a stale `RUNNING` run: after a crash, the runner could never fetch an assignment again, and the website abandon action doesn't exist until Slice 3. The runner only fetches an assignment while it has no run going, so a `RUNNING` run at that point always belongs to a dead process. `POST /runs` marks it `ABANDONED` (`stop_reason = 'superseded'`).
+- **Hash columns are `varchar(64)`, not `char(64)`.** Hibernate 3's `hbm2ddl.auto=validate` rejects a `char` column mapped as a string.
+- **The snapshot JSON is about 2 MB for AIRA-D** (3,397 cases, about 600 bytes each), consistent with D3's estimate.
+- **Candidates must carry the run's weights.** The server rejects a candidate whose `scoringWeights` differ from the run's profile (`INVALID_CANDIDATE`), which enforces D6 item 5 rather than trusting it.
+- **Throughput on this workstation is about 4–10 creatures/second** on AIRA-D, i.e. roughly 2–4 minutes per generation at population 1,000. That makes Slice 5 (parallel scoring) more valuable than the plan suggests.
+- Pulled forward from Slice 2: the reporter already backs off (10 s doubling to 5 minutes) and shows "Disconnected" on the dashboard. Still in Slice 2: crash checkpoints, `fail`, heartbeats, the version check, logs, credential revoke, the pairing rate limit, and handler tests against the database.
+- A failed authenticated request rolls back its `last_seen_at` update along with everything else. That's harmless now; Slice 3's derived Online/Offline state may want contact recorded in its own transaction.
+- `maven-shade-plugin` 3.5.1 was not in the local Maven repository, so the first build needs network access to Maven Central.
 
 **Slice 2: Hardening.** Retry/backoff and a "Disconnected" display; crash-recovery checkpoints; `fail` and heartbeats; version check; logs; all §15 startup refusals with clear messages; credential replace/revoke; pairing rate limit; org-isolation tests (runner A cannot read org B's configuration, Test Set, or runs) and idempotency tests.
 
