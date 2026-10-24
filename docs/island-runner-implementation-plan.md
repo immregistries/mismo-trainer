@@ -340,6 +340,8 @@ The work is ordered to get end-to-end feedback early. Each slice ends in a worki
 
 **Slice 5 (optional): Throughput.** Cached creature hashes / `HashSet` dedup check, then parallel scoring if `PatientCompare` proves safe for it. Benchmark generations/minute before and after on the AIRA set.
 
+*Parallel scoring and shared patients done early (2026-10-24), before Slice 2.* `PatientCompare` holds no shared mutable state during scoring: each creature has its own matcher tree (including its own `JaroWinkler` instances), and `MatchNode`'s static `Random` is used only for randomize, tweak, mate and mutate. `World` now parses each case's two patients once (`Patient.prepareForSharing()`, then `PatientCompare.setPatients`, both new in mismo-match), and `scoreAndSort` scores unscored creatures on a pool of one thread fewer than the processor count. Scores are identical to sequential scoring (unit tests compare both). One generation of AIRA-D at population 100 on a 20-processor workstation took 12.1 s before, 8.8 s with shared patients on one thread, and 1.0 s with shared patients on 19 threads (8.3 vs 101 creatures/second). The cached-hash dedup check is still open.
+
 ---
 
 ## 8. Testing

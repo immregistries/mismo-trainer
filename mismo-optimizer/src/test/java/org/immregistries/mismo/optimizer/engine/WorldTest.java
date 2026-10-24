@@ -6,8 +6,11 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.MatchItem;
 import org.junit.Test;
 
@@ -68,6 +71,44 @@ public class WorldTest {
     assertEquals(1.0, b.getScore(), 0.0);
     assertNotEquals(1.0, a.getScore(), 0.0);
     assertEquals(a.getScore(), aAgain.getScore(), 0.0);
+  }
+
+  @Test
+  public void parallelScoringGivesTheSameScoresAsSequential() throws Exception {
+    World world = world(40, null);
+    world.setScoringThreads(1);
+    world.scoreAndSort();
+    Map<Creature, Double> sequential = new IdentityHashMap<Creature, Double>();
+    for (Creature creature : world.getCreatures()) {
+      sequential.put(creature, creature.getScore());
+      creature.setScored(false);
+    }
+
+    world.setScoringThreads(8);
+    world.scoreAndSort();
+    for (Creature creature : world.getCreatures()) {
+      assertEquals(sequential.get(creature), creature.getScore(), 0.0);
+    }
+    world.shutdownScoringPool();
+  }
+
+  /** Scoring against the shared, pre-parsed patients matches parsing each case afresh. */
+  @Test
+  public void sharedPatientsScoreLikeParsingEachCase() throws Exception {
+    World world = world(4, null);
+    for (int c = 0; c < world.getCreatures().length; c++) {
+      Creature creature = world.getCreatures()[c];
+      creature.score();
+
+      Scorer expected = new Scorer(world.getScoringWeights());
+      PatientCompare fresh = new PatientCompare(creature.makeScript());
+      for (MatchItem matchItem : world.getMatchItemList()) {
+        fresh.setMatchItem(matchItem);
+        expected.registerMatch(matchItem, fresh);
+      }
+      assertArrayEquals(expected.getCountTable(), creature.getScorer().getCountTable());
+      assertEquals(expected.getScore(), creature.getScore(), 0.0);
+    }
   }
 
   /**

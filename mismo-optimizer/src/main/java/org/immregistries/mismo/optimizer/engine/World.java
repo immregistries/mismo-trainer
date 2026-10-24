@@ -1,15 +1,21 @@
 package org.immregistries.mismo.optimizer.engine;
 
-import java.io.ObjectInputFilter.Config;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.immregistries.mismo.match.model.Configuration;
 import org.immregistries.mismo.match.model.MatchItem;
+import org.immregistries.mismo.match.model.Patient;
 
 /**
  * The World is a self-contained sphere of creatures that exist and interact
@@ -37,6 +43,69 @@ public class World extends Thread
 
   public void setMatchItemList(List<MatchItem> matchTestCaseList) {
     this.matchItemList = matchTestCaseList;
+    List<ScoringCase> cases = new ArrayList<ScoringCase>();
+    for (MatchItem matchItem : matchTestCaseList) {
+      if (matchItem.isExpectedStatusSet()) {
+        cases.add(new ScoringCase(matchItem, new Patient(matchItem.getPatientDataA()).prepareForSharing(),
+            new Patient(matchItem.getPatientDataB()).prepareForSharing()));
+      }
+    }
+    this.scoringCases = Collections.unmodifiableList(cases);
+  }
+
+  /**
+   * A scoreable test case with its two patients parsed once, up front. Every creature compares the
+   * same {@code Patient} objects, read-only, so the 2 x cases parses happen once per world rather
+   * than once per creature per generation.
+   */
+  record ScoringCase(MatchItem matchItem, Patient patientA, Patient patientB) {
+  }
+
+  private List<ScoringCase> scoringCases = Collections.emptyList();
+
+  /** The scoreable cases of {@link #getMatchItemList()}, prepared for sharing across threads. */
+  List<ScoringCase> getScoringCases() {
+    return scoringCases;
+  }
+
+  private int scoringThreads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
+  private ExecutorService scoringPool = null;
+
+  /**
+   * How many creatures are scored at once. Defaults to one less than the number of processors, so
+   * the console stays responsive. Scores don't depend on this; only speed does.
+   */
+  public int getScoringThreads() {
+    return scoringThreads;
+  }
+
+  public synchronized void setScoringThreads(int scoringThreads) {
+    if (scoringThreads < 1) {
+      throw new IllegalArgumentException("At least one scoring thread is needed");
+    }
+    if (scoringThreads != this.scoringThreads) {
+      shutdownScoringPool();
+      this.scoringThreads = scoringThreads;
+    }
+  }
+
+  private ExecutorService scoringPool() {
+    if (scoringPool == null) {
+      scoringPool = Executors.newFixedThreadPool(scoringThreads, runnable -> {
+        Thread thread = new Thread(runnable, "mismo-scoring");
+        thread.setDaemon(true);
+        return thread;
+      });
+    }
+    return scoringPool;
+  }
+
+  /** Stops the scoring threads; a later {@link #scoreAndSort()} starts new ones. */
+  public synchronized void shutdownScoringPool() {
+    if (scoringPool != null) {
+      scoringPool.shutdownNow();
+      scoringPool = null;
+    }
   }
 
   /**
@@ -220,18 +289,34 @@ public class World extends Thread
 
     {
       long startTime = System.currentTimeMillis();
-      int scoreCount = 0;
-      int i = 0;
+      // Each creature's score depends only on its own configuration and the shared, read-only
+      // cases, so creatures are scored in parallel; the results are identical to scoring them
+      // one at a time.
+      List<Callable<Void>> tasks = new ArrayList<Callable<Void>>();
       for (Creature creature : creatures) {
-        if (!keepRunning) {
-          return;
-        }
-        i++;
         if (!creature.isScored()) {
-          scoreCount++;
-          lastMessage = "Scoring Creature " + i;
-          creature.score();
+          tasks.add(() -> {
+            if (keepRunning) {
+              creature.score();
+            }
+            return null;
+          });
         }
+      }
+      int scoreCount = tasks.size();
+      lastMessage = "Scoring " + scoreCount + " creatures on " + scoringThreads + " threads";
+      try {
+        for (Future<Void> future : scoringPool().invokeAll(tasks)) {
+          future.get();
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return;
+      } catch (ExecutionException e) {
+        throw new IllegalStateException("Scoring a creature failed: " + e.getCause(), e.getCause());
+      }
+      if (!keepRunning) {
+        return;
       }
       long endTime = System.currentTimeMillis();
       long elapsedMillis = endTime - startTime;
@@ -387,6 +472,8 @@ public class World extends Thread
     } catch (Exception e) {
       lastMessage = "Exception occurred: " + e.getMessage();
       e.printStackTrace();
+    } finally {
+      shutdownScoringPool();
     }
   }
 

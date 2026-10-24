@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.immregistries.mismo.match.PatientCompare;
 import org.immregistries.mismo.match.model.Configuration;
-import org.immregistries.mismo.match.model.MatchItem;
 
 /**
  * Represents a "creature" that exists within the optimization world. The creature
@@ -180,11 +179,9 @@ public class Creature {
    */
   public void score() {
     scorer = new Scorer(world.getScoringWeights());
-    for (MatchItem matchItem : world.getMatchItemList()) {
-      if (matchItem.isExpectedStatusSet()) {
-        patientCompare.setMatchItem(matchItem);
-        scorer.registerMatch(matchItem, patientCompare);
-      }
+    for (World.ScoringCase scoringCase : world.getScoringCases()) {
+      patientCompare.setPatients(scoringCase.patientA(), scoringCase.patientB());
+      scorer.registerMatch(scoringCase.matchItem(), patientCompare);
     }
     score = scorer.getScore();
     patientCompare.getConfiguration().setGenerationScore(score);
