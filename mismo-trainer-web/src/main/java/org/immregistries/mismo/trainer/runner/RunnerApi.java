@@ -306,16 +306,83 @@ public final class RunnerApi {
 
   /** {@code POST /runs/{id}/stop}. Stopping a run that is no longer running just returns it. */
   public static Messages.RunInfo stop(Session dataSession, Runner runner, int runId, Messages.StopRequest request) {
+    return end(dataSession, runner, runId, Protocol.RUN_STOPPED, request, "stopped");
+  }
+
+  /**
+   * {@code POST /runs/{id}/fail}: the local optimization failed, or the runner found a run it
+   * never stopped (a crash). Like {@link #stop}, ending a run that is no longer running just
+   * returns it.
+   */
+  public static Messages.RunInfo fail(Session dataSession, Runner runner, int runId, Messages.StopRequest request) {
+    return end(dataSession, runner, runId, Protocol.RUN_FAILED, request, "failed");
+  }
+
+  private static Messages.RunInfo end(Session dataSession, Runner runner, int runId, String status,
+      Messages.StopRequest request, String defaultReason) {
     OptimizationRun run = loadOwnRun(dataSession, runner, runId);
     if (Protocol.RUN_RUNNING.equals(run.getStatus())) {
       Date now = new Date();
-      run.setStatus(Protocol.RUN_STOPPED);
-      run.setStopReason(truncate(request == null || request.reason() == null ? "stopped" : request.reason(), 255));
+      run.setStatus(status);
+      run.setStopReason(truncate(request == null || request.reason() == null ? defaultReason : request.reason(), 255));
       run.setStoppedAt(now);
       run.setLastReportedAt(now);
       dataSession.update(run);
     }
     return runInfo(run);
+  }
+
+  // --- versions -----------------------------------------------------------------------------
+
+  /** {@code app_setting} key holding the oldest runner version the server accepts. */
+  public static final String SETTING_MIN_CLIENT_VERSION = "runner.min.client.version";
+
+  /**
+   * Refuses a client whose protocol isn't this server's, or whose version is below
+   * {@code minimumVersion} (docs/island-runner-implementation-plan.md §2).
+   *
+   * @param minimumVersion {@code null} or blank for no minimum
+   * @throws ApiException {@code CLIENT_UNSUPPORTED}
+   */
+  public static void checkClientVersion(ClientInfo clientInfo, String minimumVersion) {
+    if (clientInfo.protocolVersion() != null && !Protocol.PROTOCOL_VERSION.equals(clientInfo.protocolVersion())) {
+      throw new ApiException(ErrorCode.CLIENT_UNSUPPORTED, "This runner speaks protocol " + clientInfo.protocolVersion()
+          + ", but Mismo Trainer speaks protocol " + Protocol.PROTOCOL_VERSION
+          + ". Download the current Mismo Runner from Mismo Trainer.");
+    }
+    if (minimumVersion == null || minimumVersion.isBlank()) {
+      return;
+    }
+    if (clientInfo.clientVersion() == null || compareVersions(clientInfo.clientVersion(), minimumVersion) < 0) {
+      throw new ApiException(ErrorCode.CLIENT_UNSUPPORTED, "This Mismo Runner ("
+          + (clientInfo.clientVersion() == null ? "unknown version" : "version " + clientInfo.clientVersion())
+          + ") is too old; version " + minimumVersion.trim()
+          + " or later is required. Download the current Mismo Runner from Mismo Trainer.");
+    }
+  }
+
+  /**
+   * Compares dotted versions numerically ("2.10" is newer than "2.9"). Non-numeric parts
+   * (e.g. "dev", "-SNAPSHOT") count as 0, so a development build is treated as oldest.
+   */
+  public static int compareVersions(String a, String b) {
+    String[] partsA = a.trim().split("\\.");
+    String[] partsB = b.trim().split("\\.");
+    for (int i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+      int diff = Integer.compare(versionPart(partsA, i), versionPart(partsB, i));
+      if (diff != 0) {
+        return diff;
+      }
+    }
+    return 0;
+  }
+
+  private static int versionPart(String[] parts, int i) {
+    if (i >= parts.length) {
+      return 0;
+    }
+    String digits = parts[i].replaceAll("^(\\d*).*$", "$1");
+    return digits.isEmpty() ? 0 : Integer.parseInt(digits);
   }
 
   // --- helpers ------------------------------------------------------------------------------

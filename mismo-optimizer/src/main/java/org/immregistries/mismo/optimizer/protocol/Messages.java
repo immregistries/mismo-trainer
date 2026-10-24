@@ -21,7 +21,7 @@ public final class Messages {
   public record PairingResponse(int runnerId, String runnerName, String organizationName, String credential) {
   }
 
-  /** {@code GET /runners/me} */
+  /** {@code GET /runners/me} and {@code POST /runners/me/heartbeats} */
   public record RunnerIdentity(int runnerId, String runnerName, String organizationName) {
   }
 
@@ -74,7 +74,7 @@ public final class Messages {
   public record CandidateReceipt(int configurationId, String contentSha256, boolean created) {
   }
 
-  /** {@code POST /runs/{id}/stop} */
+  /** {@code POST /runs/{id}/stop} and {@code POST /runs/{id}/fail} */
   public record StopRequest(String reason) {
   }
 

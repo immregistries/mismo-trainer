@@ -16,6 +16,7 @@ public enum ErrorCode {
   INVALID_CANDIDATE(422),
   REQUEST_TOO_LARGE(413),
   CLIENT_UNSUPPORTED(426),
+  TOO_MANY_ATTEMPTS(429),
   SERVER_ERROR(500);
 
   private final int httpStatus;

@@ -17,6 +17,7 @@ import org.hibernate.Transaction;
 import org.immregistries.mismo.optimizer.protocol.ErrorCode;
 import org.immregistries.mismo.optimizer.protocol.Messages;
 import org.immregistries.mismo.optimizer.protocol.Protocol;
+import org.immregistries.mismo.trainer.model.AppSetting;
 import org.immregistries.mismo.trainer.model.Runner;
 import org.immregistries.mismo.trainer.servlet.HomeServlet;
 
@@ -26,8 +27,11 @@ import org.immregistries.mismo.trainer.servlet.HomeServlet;
  * {@code POST /runner-pairings} requires {@code Authorization: Bearer <credential>};
  * {@code AuthenticationFilter} lets these paths through without a website session.
  *
- * <p>One Hibernate session and transaction per request, committed only if the handler succeeds.
- * Errors are always {@code {"error": CODE, "message": text}}.
+ * <p>Every request is refused with {@code CLIENT_UNSUPPORTED} if the runner's protocol differs or
+ * its version is below {@code app_setting.runner.min.client.version}. Failed pairing attempts are
+ * rate-limited per address ({@link PairingRateLimiter}). The runner's contact is committed in its
+ * own transaction; the handler's work in a second one, committed only if it succeeds. Errors are
+ * always {@code {"error": CODE, "message": text}}.
  */
 public class RunnerApiServlet extends HttpServlet {
 
@@ -36,6 +40,8 @@ public class RunnerApiServlet extends HttpServlet {
 
   private static final String JSON = "application/json";
   private static final String YAML = "text/yaml";
+
+  private static final PairingRateLimiter PAIRING_LIMITER = new PairingRateLimiter();
 
   @Override
   protected void service(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -46,24 +52,56 @@ public class RunnerApiServlet extends HttpServlet {
         req.getHeader(Protocol.HEADER_PROTOCOL));
 
     Session dataSession = HomeServlet.getSessionFactory().openSession();
-    Transaction transaction = dataSession.beginTransaction();
+    Transaction transaction = null;
     try {
+      AppSetting minimum = (AppSetting) dataSession.get(AppSetting.class, RunnerApi.SETTING_MIN_CLIENT_VERSION);
+      RunnerApi.checkClientVersion(clientInfo, minimum == null ? null : minimum.getSettingValue());
       String body = "GET".equals(method) ? null : readBody(req);
-      Response response = route(dataSession, method, segments, body, bearer(req), clientInfo);
-      transaction.commit();
+      Response response;
+      if (segments.length == 1 && "runner-pairings".equals(segments[0]) && "POST".equals(method)) {
+        String address = req.getRemoteAddr();
+        if (PAIRING_LIMITER.isBlocked(address)) {
+          throw new ApiException(ErrorCode.TOO_MANY_ATTEMPTS,
+              "Too many failed pairing attempts from this address. Wait 15 minutes and try again.");
+        }
+        transaction = dataSession.beginTransaction();
+        try {
+          response = Response.json(RunnerApi.pair(dataSession, parse(body, Messages.PairingRequest.class)));
+        } catch (ApiException e) {
+          if (e.getCode() == ErrorCode.UNAUTHORIZED) {
+            PAIRING_LIMITER.recordFailure(address);
+          }
+          throw e;
+        }
+        transaction.commit();
+      } else {
+        // Contact is committed on its own, so "last seen" is recorded even if the request then fails.
+        transaction = dataSession.beginTransaction();
+        Runner runner = RunnerApi.authenticate(dataSession, bearer(req), clientInfo);
+        transaction.commit();
+        transaction = dataSession.beginTransaction();
+        response = route(dataSession, method, segments, body, runner, clientInfo);
+        transaction.commit();
+      }
       write(resp, 200, response.contentType(), response.body());
     } catch (ApiException e) {
-      transaction.rollback();
+      rollback(transaction);
       writeError(resp, e.getCode(), e.getMessage());
     } catch (JsonParseException e) {
-      transaction.rollback();
+      rollback(transaction);
       writeError(resp, ErrorCode.BAD_REQUEST, "The request body is not valid JSON for this route.");
     } catch (RuntimeException e) {
-      transaction.rollback();
+      rollback(transaction);
       LOGGER.log(Level.SEVERE, "Runner API " + method + " " + path + " failed", e);
       writeError(resp, ErrorCode.SERVER_ERROR, "Mismo Trainer could not complete the request.");
     } finally {
       dataSession.close();
+    }
+  }
+
+  private static void rollback(Transaction transaction) {
+    if (transaction != null && transaction.isActive()) {
+      transaction.rollback();
     }
   }
 
@@ -73,17 +111,18 @@ public class RunnerApiServlet extends HttpServlet {
     }
   }
 
-  private static Response route(Session dataSession, String method, String[] segments, String body,
-      String credential, RunnerApi.ClientInfo clientInfo) {
+  /** Every route except pairing; {@code runner} is already authenticated. */
+  private static Response route(Session dataSession, String method, String[] segments, String body, Runner runner,
+      RunnerApi.ClientInfo clientInfo) {
     String first = segments[0];
-    if ("runner-pairings".equals(first) && segments.length == 1 && "POST".equals(method)) {
-      return Response.json(RunnerApi.pair(dataSession, parse(body, Messages.PairingRequest.class)));
-    }
-
-    Runner runner = RunnerApi.authenticate(dataSession, credential, clientInfo);
     switch (first) {
     case "runners":
       if (segments.length == 2 && "me".equals(segments[1]) && "GET".equals(method)) {
+        return Response.json(RunnerApi.me(runner));
+      }
+      if (segments.length == 3 && "me".equals(segments[1]) && "heartbeats".equals(segments[2])
+          && "POST".equals(method)) {
+        // Authentication already recorded the contact.
         return Response.json(RunnerApi.me(runner));
       }
       if (segments.length == 3 && "me".equals(segments[1]) && "assignment".equals(segments[2])
@@ -120,6 +159,8 @@ public class RunnerApiServlet extends HttpServlet {
               parse(body, Messages.CandidateUpload.class)));
         case "stop":
           return Response.json(RunnerApi.stop(dataSession, runner, runId, parse(body, Messages.StopRequest.class)));
+        case "fail":
+          return Response.json(RunnerApi.fail(dataSession, runner, runId, parse(body, Messages.StopRequest.class)));
         default:
           break;
         }

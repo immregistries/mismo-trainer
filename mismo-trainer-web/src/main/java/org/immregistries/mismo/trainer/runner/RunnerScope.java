@@ -63,6 +63,16 @@ public final class RunnerScope {
     return pairingCode;
   }
 
+  /**
+   * Revokes the runner's credential, e.g. for a lost or retired computer. Its next request is
+   * refused; pairing again with a new code gives it a new credential.
+   */
+  public static void revokeCredential(Runner runner) {
+    if (runner.getCredentialHash() != null && runner.getCredentialRevokedAt() == null) {
+      runner.setCredentialRevokedAt(new Date());
+    }
+  }
+
   /** Loads a runner only if it belongs to {@code user}'s organization. */
   public static Runner loadRunner(Session dataSession, int runnerId, User user) {
     Runner runner = (Runner) dataSession.get(Runner.class, runnerId);

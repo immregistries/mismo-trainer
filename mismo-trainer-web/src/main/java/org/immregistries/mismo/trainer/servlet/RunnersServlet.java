@@ -48,6 +48,7 @@ public class RunnersServlet extends HomeServlet {
   public static final String ACTION_CREATE_RUNNER = "Create Runner";
   public static final String ACTION_NEW_PAIRING_CODE = "New Pairing Code";
   public static final String ACTION_SAVE_ASSIGNMENT = "Save Assignment";
+  public static final String ACTION_REVOKE_CREDENTIAL = "Revoke Credential";
 
   private static final int DEFAULT_POPULATION_SIZE = 1000;
   private static final int MIN_POPULATION_SIZE = 10;
@@ -97,6 +98,12 @@ public class RunnersServlet extends HomeServlet {
         dataSession.update(runner);
         transaction.commit();
         message = "New pairing code created. The runner's current credential keeps working until it pairs again.";
+      } else if (ACTION_REVOKE_CREDENTIAL.equals(action) && runner != null) {
+        Transaction transaction = dataSession.beginTransaction();
+        RunnerScope.revokeCredential(runner);
+        dataSession.update(runner);
+        transaction.commit();
+        message = "Credential revoked. This runner can't connect until it is paired again with a new code.";
       } else if (ACTION_SAVE_ASSIGNMENT.equals(action) && runner != null) {
         message = saveAssignment(req, dataSession, runner, user);
       }
@@ -215,8 +222,10 @@ public class RunnersServlet extends HomeServlet {
     out.println("    <section class=\"aira-panel\">");
     out.println("      <h2 class=\"aira-panel__title\">Installation</h2>");
     out.println("      <table>");
-    out.println("        <tr><th align=\"left\">Paired</th><td>" + (runner.getCredentialHash() == null ? "Not yet"
-        : "Yes, " + sdf.format(runner.getCredentialCreatedAt())) + "</td></tr>");
+    String paired = runner.getCredentialHash() == null ? "Not yet"
+        : runner.getCredentialRevokedAt() != null ? "Revoked " + sdf.format(runner.getCredentialRevokedAt())
+            : "Yes, " + sdf.format(runner.getCredentialCreatedAt());
+    out.println("        <tr><th align=\"left\">Paired</th><td>" + paired + "</td></tr>");
     out.println("        <tr><th align=\"left\">Last seen</th><td>"
         + (runner.getLastSeenAt() == null ? "never" : sdf.format(runner.getLastSeenAt())) + "</td></tr>");
     out.println("        <tr><th align=\"left\">Client version</th><td>" + escapeHtml(runner.getClientVersion())
@@ -229,6 +238,10 @@ public class RunnersServlet extends HomeServlet {
     out.println("        <input type=\"hidden\" name=\"" + PARAM_RUNNER_ID + "\" value=\"" + runner.getRunnerId() + "\"/>");
     out.println("        <input type=\"submit\" name=\"" + PARAM_ACTION + "\" value=\"" + ACTION_NEW_PAIRING_CODE
         + "\"/>");
+    if (runner.getCredentialHash() != null && runner.getCredentialRevokedAt() == null) {
+      out.println("        <input type=\"submit\" name=\"" + PARAM_ACTION + "\" value=\"" + ACTION_REVOKE_CREDENTIAL
+          + "\"/> <small>For a lost or retired computer. It can be paired again later.</small>");
+    }
     out.println("      </form>");
     out.println("    </section>");
 
@@ -374,6 +387,9 @@ public class RunnersServlet extends HomeServlet {
   private static String state(Runner runner, OptimizationRun latest) {
     if (runner.getCredentialHash() == null) {
       return "Not paired";
+    }
+    if (runner.getCredentialRevokedAt() != null) {
+      return "Revoked";
     }
     if (latest != null && Protocol.RUN_RUNNING.equals(latest.getStatus())) {
       return "Running";

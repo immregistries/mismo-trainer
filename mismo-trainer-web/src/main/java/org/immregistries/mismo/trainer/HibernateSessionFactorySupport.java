@@ -46,6 +46,25 @@ public final class HibernateSessionFactorySupport {
     return configuration.buildSessionFactory();
   }
 
+  /**
+   * Builds a {@code SessionFactory} with explicitly given credentials instead of
+   * {@code MISMO_DB_USER}/{@code MISMO_DB_PASSWORD}. For the database-backed tests, which take
+   * theirs from {@code MISMO_TEST_DB_USER}/{@code MISMO_TEST_DB_PASSWORD} so they only run when
+   * someone opts in.
+   */
+  public static SessionFactory build(String user, String password) {
+    AnnotationConfiguration configuration = new AnnotationConfiguration().configure();
+    configuration.setProperty("hibernate.connection.url",
+        getEnvironmentVariableOrDefault(ENV_DB_URL, null, configuration.getProperty("hibernate.connection.url")));
+    configuration.setProperty("hibernate.connection.username", user);
+    configuration.setProperty("hibernate.connection.password", password);
+    // A test account may see other databases on the same server (e.g. root); without a catalog,
+    // Hibernate 3.6's schema validator can inspect a same-named table there instead
+    // (docs/production-deployment-plan.md, the stray aart grant).
+    configuration.setProperty("hibernate.default_catalog", "mismo");
+    return configuration.buildSessionFactory();
+  }
+
   private static void applyDatabaseOverrides(AnnotationConfiguration configuration) {
     configuration.setProperty(
         "hibernate.connection.driver_class",

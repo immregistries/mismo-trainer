@@ -1064,3 +1064,11 @@ SELECT 0, 1, 'National measurement (potential match)', 'MEASUREMENT',
  ORDER BY o.organization_id
  LIMIT 1;
 UPDATE scoring_profile SET root_scoring_profile_id = scoring_profile_id WHERE root_scoring_profile_id = 0;
+
+-- Island Runner, Slice 2: the oldest Mismo Runner version the Runner API
+-- accepts (RunnerApi.SETTING_MIN_CLIENT_VERSION). Older clients get
+-- CLIENT_UNSUPPORTED (HTTP 426) and are told to download the current runner.
+-- Raise it when a release must not run alongside older runners.
+INSERT INTO app_setting (setting_key, setting_value)
+SELECT 'runner.min.client.version', '2.0'
+ WHERE NOT EXISTS (SELECT 1 FROM app_setting WHERE setting_key = 'runner.min.client.version');
