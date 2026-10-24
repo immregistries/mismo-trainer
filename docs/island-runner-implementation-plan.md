@@ -334,6 +334,24 @@ The work is ordered to get end-to-end feedback early. Each slice ends in a worki
 
 **Slice 2: Hardening.** Retry/backoff and a "Disconnected" display; crash-recovery checkpoints; `fail` and heartbeats; version check; logs; all §15 startup refusals with clear messages; credential replace/revoke; pairing rate limit; org-isolation tests (runner A cannot read org B's configuration, Test Set, or runs) and idempotency tests.
 
+*Slice 2 notes (done 2026-10-24).* All items are in. Verified against localhost Tomcat:
+- **Crash recovery:** I killed the runner process mid-run. The server still had generation 3 at 72.9% (progress goes out every minute, candidates every five). The checkpoint had generation 52 at 82.5%. On relaunch the runner offered it, uploaded it, and marked the run FAILED ("runner restarted").
+- **Version check:** old, missing and wrong-protocol clients are all refused with `426 CLIENT_UNSUPPORTED`, against `app_setting.runner.min.client.version`, which starts at 2.0.
+- **Pairing rate limit:** the 11th failed pairing from one address gets `429 TOO_MANY_ATTEMPTS`.
+- **Heartbeats** move `last_seen_at`.
+- **Revoke and re-pair:** a revoked runner is refused with a clear message; a new code re-pairs it.
+- **Logs** go to `logsunner-YYYYMMDD.log` in local time, and the credential never appears in them.
+
+`RunnerApiDatabaseTest` covers the plan §8 handler cases (12 tests, each rolled back). Notes:
+
+- **The database tests are opt-in** (`MISMO_TEST_DB_USER`/`MISMO_TEST_DB_PASSWORD`), so `mvn package` never needs a database. On this workstation, the User-scope `MISMO_DB_PASSWORD` doesn't match the `mismo_web` account (Tomcat's service environment does), so keying them off the app's variables would have broken every build. The test factory pins `hibernate.default_catalog=mismo`, because a broad account like root otherwise trips the Hibernate 3.6 validator on other databases' tables (the same problem as the stray `aart` grant).
+- **Two runner paths are implemented but not exercised end to end:**
+  - A World thread dying with an exception: upload the best, mark FAILED, tell the user. Nothing in normal data makes the engine throw.
+  - Ctrl+C: on Windows a forced kill skips shutdown hooks, and I couldn't send a real Ctrl+C from automation.
+
+  The API side of `fail` is covered by the database tests, and the checkpoint covers both cases if the final upload doesn't happen.
+- **Behind a reverse proxy,** the rate limiter sees the proxy's address unless Tomcat is configured with `RemoteIpValve`. Check this before production.
+
 **Slice 3: Website completion.** Derived runner state, run detail page with the 2×2 measurement view, assignment history, "next run differs" banner, candidate links to configuration pages, Scoring Profile management page, seed-mismatch and field-scope warnings, abandon action.
 
 **Slice 4: Distribution.** `jpackage` app-image zip, `README.txt`/`VERSION.txt`, SHA-256, GitHub Release, download link on the pairing page. Test on a clean Windows machine with no Java installed (acceptance criterion 2).

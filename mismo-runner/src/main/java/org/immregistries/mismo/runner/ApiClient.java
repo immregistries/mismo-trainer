@@ -129,6 +129,18 @@ final class ApiClient {
     return json(post("/runs/" + runId + "/stop", new Messages.StopRequest(reason)), Messages.RunInfo.class);
   }
 
+  Messages.RunInfo fail(int runId, String reason) throws ApiError {
+    return json(post("/runs/" + runId + "/fail", new Messages.StopRequest(reason)), Messages.RunInfo.class);
+  }
+
+  Messages.RunInfo run(int runId) throws ApiError {
+    return json(get("/runs/" + runId), Messages.RunInfo.class);
+  }
+
+  Messages.RunnerIdentity heartbeat() throws ApiError {
+    return json(post("/runners/me/heartbeats", null), Messages.RunnerIdentity.class);
+  }
+
   private byte[] get(String path) throws ApiError {
     return send(builder(path).GET().build());
   }
@@ -156,6 +168,7 @@ final class ApiClient {
     try {
       response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
     } catch (IOException e) {
+      RunnerLog.LOG.warning(request.method() + " " + request.uri().getPath() + " failed: " + e);
       throw new ApiError("CONNECTION", 0, "Could not reach Mismo Trainer at " + serverUrl + " ("
           + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()) + ").");
     } catch (InterruptedException e) {
@@ -165,6 +178,8 @@ final class ApiClient {
     if (response.statusCode() / 100 == 2) {
       return response.body();
     }
+    RunnerLog.LOG.warning(request.method() + " " + request.uri().getPath() + " -> HTTP " + response.statusCode()
+        + ": " + new String(response.body(), StandardCharsets.UTF_8));
     String text = new String(response.body(), StandardCharsets.UTF_8);
     try {
       Messages.ErrorResponse error = Protocol.gson().fromJson(text, Messages.ErrorResponse.class);

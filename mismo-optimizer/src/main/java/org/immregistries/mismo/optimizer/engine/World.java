@@ -471,7 +471,7 @@ public class World extends Thread
       lastMessage = "Stopping world";
     } catch (Exception e) {
       lastMessage = "Exception occurred: " + e.getMessage();
-      e.printStackTrace();
+      failure = e;
     } finally {
       shutdownScoringPool();
     }
@@ -479,5 +479,15 @@ public class World extends Thread
 
   public boolean isKeepRunning() {
     return keepRunning;
+  }
+
+  private volatile Exception failure = null;
+
+  /**
+   * @return why {@link #run()} ended early, or {@code null} if it hasn't failed. The thread has
+   *         stopped by the time this is set.
+   */
+  public Exception getFailure() {
+    return failure;
   }
 }

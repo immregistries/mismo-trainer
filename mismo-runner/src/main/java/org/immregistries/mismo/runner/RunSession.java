@@ -1,6 +1,9 @@
 package org.immregistries.mismo.runner;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.optimizer.engine.Creature;
@@ -12,8 +15,12 @@ import org.immregistries.mismo.optimizer.protocol.Messages;
  * One local optimization run: the {@link World} thread evolving the population, and a reporter
  * thread sending progress every minute and the best candidate when it changes (at most every five
  * minutes), plus immediately on {@link #sync} and {@link #stop}. Only the latest progress and
- * candidate are ever pending, so an outage doesn't build a queue. The run's inputs never change
- * after it starts (docs/centrally-managed-local-island-runner.md §5).
+ * candidate are ever pending, so an outage doesn't build a queue; failed reports back off from
+ * 10 seconds to 5 minutes. The run's inputs never change after it starts
+ * (docs/centrally-managed-local-island-runner.md §5).
+ *
+ * <p>The reporter also keeps the crash-recovery checkpoint current, and if the World thread dies
+ * with an exception it uploads the best candidate, marks the run FAILED, and says so.
  */
 final class RunSession {
 
@@ -28,32 +35,42 @@ final class RunSession {
   }
 
   private final ApiClient api;
+  private final IdentityStore.Identity identity;
   private final Messages.Assignment assignment;
   private final int runId;
   private final int[][] weights;
   private final int caseCount;
   private final World world;
   private final Thread reporter;
+  private final Checkpoints checkpoints;
+  private final Consumer<String> notify;
   private final long startedMillis = System.currentTimeMillis();
 
   private volatile boolean reporting = true;
+  private volatile boolean ended = false;
   private volatile boolean serverAcceptsReports = true;
   private volatile String connection = "Connected";
   private volatile long lastReportMillis;
+  private volatile String failure = null;
   private long lastProgressMillis;
   private long lastCandidateMillis;
   private String lastUploadedSha256;
+  private String lastCheckpointSha256;
   private long retryDelayMillis;
   private long nextAttemptMillis;
 
-  RunSession(ApiClient api, Messages.Assignment assignment, int runId, String runnerName, String seedScript,
-      int[][] weights, List<MatchItem> cases) {
+  /** @param notify prints a line on the console from the reporter thread (e.g. that the run failed) */
+  RunSession(ApiClient api, IdentityStore.Identity identity, Messages.Assignment assignment, int runId,
+      String seedScript, int[][] weights, List<MatchItem> cases, Checkpoints checkpoints, Consumer<String> notify) {
     this.api = api;
+    this.identity = identity;
     this.assignment = assignment;
     this.runId = runId;
     this.weights = weights;
     this.caseCount = cases.size();
-    this.world = new World(assignment.populationSize(), assignment.name(), runnerName, seedScript, weights);
+    this.checkpoints = checkpoints;
+    this.notify = notify;
+    this.world = new World(assignment.populationSize(), assignment.name(), identity.runnerName(), seedScript, weights);
     this.world.setMatchItemList(cases);
     this.world.setName("mismo-world-" + runId);
     this.world.setDaemon(true);
@@ -99,6 +116,15 @@ final class RunSession {
     return lastReportMillis;
   }
 
+  /** @return why the run failed, or {@code null}; once set, the run is over */
+  String failure() {
+    return failure;
+  }
+
+  boolean isEnded() {
+    return ended;
+  }
+
   /** @return the best creature from the last completed generation, or {@code null} before the first */
   Best best() {
     Creature[] copy = world.getCreaturesCopy();
@@ -116,31 +142,41 @@ final class RunSession {
   }
 
   /**
-   * Stops the World at its next safe point, uploads the final best candidate, and marks the run
-   * stopped on the server.
+   * Stops the World at its next safe point (waiting at most {@code worldWaitMillis}), uploads the
+   * final best candidate, and marks the run stopped on the server. The checkpoint is removed only
+   * once the server has recorded the stop, so a failed stop can still be recovered next launch.
    *
    * @return a line to print about the outcome
    */
-  String stop(String reason) {
+  String stop(String reason, long worldWaitMillis) {
+    if (ended) {
+      return failure != null ? "Run " + runId + " already failed: " + failure : "Run " + runId + " already ended.";
+    }
+    ended = true;
     world.setKeepRunning(false);
     reporting = false;
     reporter.interrupt();
     try {
-      world.join(30_000L);
+      world.join(worldWaitMillis);
       reporter.join(5_000L);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
     synchronized (this) {
+      writeCheckpoint();
       report(true, true);
       if (!serverAcceptsReports) {
+        deleteCheckpoint();
         return "Run " + runId + " stopped locally. Mismo Trainer had already ended it: " + connection;
       }
       try {
         api.stop(runId, reason);
+        deleteCheckpoint();
+        RunnerLog.LOG.info("Run " + runId + " stopped: " + reason);
         return "Run " + runId + " stopped. Its best candidate is saved in Mismo Trainer.";
       } catch (ApiClient.ApiError e) {
-        return "Run " + runId + " stopped locally, but Mismo Trainer could not be told: " + e.getMessage();
+        return "Run " + runId + " stopped locally, but Mismo Trainer could not be told: " + e.getMessage()
+            + " Its best candidate is kept and will be offered for upload the next time the runner starts.";
       }
     }
   }
@@ -157,6 +193,11 @@ final class RunSession {
         if (!reporting) {
           return;
         }
+        if (world.getFailure() != null) {
+          handleFailure(world.getFailure());
+          return;
+        }
+        writeCheckpoint();
         if (now < nextAttemptMillis) {
           continue;
         }
@@ -164,6 +205,26 @@ final class RunSession {
             now - lastCandidateMillis >= CANDIDATE_INTERVAL_MILLIS);
       }
     }
+  }
+
+  /** The World thread died: send what we have, mark the run FAILED, and tell the user. Holds the lock. */
+  private void handleFailure(Exception exception) {
+    RunnerLog.LOG.log(Level.SEVERE, "Run " + runId + " failed", exception);
+    ended = true;
+    reporting = false;
+    failure = exception.getClass().getSimpleName() + (exception.getMessage() == null ? "" : ": " + exception.getMessage());
+    writeCheckpoint();
+    report(true, true);
+    String outcome;
+    try {
+      api.fail(runId, truncate("optimization failed: " + failure, 255));
+      deleteCheckpoint();
+      outcome = "It is marked FAILED in Mismo Trainer, with its best candidate saved.";
+    } catch (ApiClient.ApiError e) {
+      outcome = "Mismo Trainer could not be told (" + e.getMessage()
+          + "); its best candidate will be offered for upload the next time the runner starts.";
+    }
+    notify.accept("Run " + runId + " failed: " + failure + ". " + outcome + " Press Enter to continue.");
   }
 
   /** Caller holds the lock. */
@@ -202,5 +263,33 @@ final class RunSession {
     nextAttemptMillis = 0;
     connection = "Connected";
     lastReportMillis = System.currentTimeMillis();
+  }
+
+  /** Rewrites the checkpoint if the best candidate changed. Caller holds the lock. */
+  private void writeCheckpoint() {
+    Best best = best();
+    if (best == null || best.sha256().equals(lastCheckpointSha256)) {
+      return;
+    }
+    try {
+      checkpoints.save(new Checkpoints.Checkpoint(identity.serverUrl(), identity.runnerId(), runId,
+          assignment.assignmentId(), assignment.revision(), assignment.name(), assignment.configuration().sha256(),
+          assignment.testSet().sha256(), best.generation(), best.score(), best.script(), System.currentTimeMillis()));
+      lastCheckpointSha256 = best.sha256();
+    } catch (IOException e) {
+      RunnerLog.LOG.warning("Could not write checkpoint for run " + runId + ": " + e);
+    }
+  }
+
+  private void deleteCheckpoint() {
+    try {
+      checkpoints.delete(runId);
+    } catch (IOException e) {
+      RunnerLog.LOG.warning("Could not delete checkpoint for run " + runId + ": " + e);
+    }
+  }
+
+  private static String truncate(String value, int length) {
+    return value.length() <= length ? value : value.substring(0, length);
   }
 }

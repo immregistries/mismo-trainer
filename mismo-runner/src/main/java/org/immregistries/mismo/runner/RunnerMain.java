@@ -8,6 +8,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.immregistries.mismo.match.model.MatchItem;
 import org.immregistries.mismo.optimizer.engine.TestCaseLoader;
@@ -42,22 +45,55 @@ public class RunnerMain {
       "  exit        Stop this run cleanly and exit",
       "  help        Show available commands");
 
+  static final long HEARTBEAT_MINUTES = 5;
+  /** How long Ctrl+C waits for the final upload and stop before the process ends. */
+  private static final long SHUTDOWN_LIMIT_MILLIS = 5_000L;
+
   private final BufferedReader in;
   private final PrintStream out;
+  private final Path home;
   private final IdentityStore identityStore;
   private final InputCache inputCache;
-  private IdentityStore.Identity identity;
+  private final Checkpoints checkpoints;
+  private volatile IdentityStore.Identity identity;
+  private volatile RunSession activeSession;
 
   RunnerMain(BufferedReader in, PrintStream out, Path home) {
     this.in = in;
     this.out = out;
+    this.home = home;
     this.identityStore = new IdentityStore(home);
     this.inputCache = new InputCache(home);
+    this.checkpoints = new Checkpoints(home);
   }
 
   public static void main(String[] args) throws IOException {
     BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
-    new RunnerMain(in, System.out, RunnerHome.directory()).run();
+    RunnerMain runner = new RunnerMain(in, System.out, RunnerHome.directory());
+    Runtime.getRuntime().addShutdownHook(new Thread(runner::onShutdown, "mismo-shutdown"));
+    runner.run();
+  }
+
+  /**
+   * Ctrl+C or the console window closing: a best-effort final upload and stop, limited to a few
+   * seconds. Whatever doesn't make it is covered by the checkpoint.
+   */
+  private void onShutdown() {
+    RunSession session = activeSession;
+    if (session == null || session.isEnded()) {
+      return;
+    }
+    Thread stopper = new Thread(() -> {
+      String outcome = session.stop("interrupted (Ctrl+C or window closed)", 2_000L);
+      RunnerLog.LOG.info(outcome);
+      out.println(outcome);
+    }, "mismo-shutdown-stop");
+    stopper.start();
+    try {
+      stopper.join(SHUTDOWN_LIMIT_MILLIS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   private static String version() {
@@ -66,6 +102,8 @@ public class RunnerMain {
   }
 
   void run() throws IOException {
+    RunnerLog.setUp(home);
+    RunnerLog.LOG.info("Mismo Runner " + VERSION + " starting; " + runtimeInfo());
     out.println("Mismo Runner " + VERSION);
     try {
       identity = identityStore.load();
@@ -77,9 +115,94 @@ public class RunnerMain {
     } else {
       out.println("Paired as " + identity.runnerName() + " (" + identity.organizationName() + ") with "
           + identity.serverUrl());
+      recoverCheckpoints();
     }
     out.println("Type 'help' for commands.");
+    ScheduledExecutorService heartbeat = startHeartbeat();
+    try {
+      idleLoop();
+    } finally {
+      heartbeat.shutdownNow();
+      RunnerLog.LOG.info("Mismo Runner exiting");
+    }
+  }
 
+  /** While idle at the prompt, tells Mismo Trainer every few minutes that this runner is still here. */
+  private ScheduledExecutorService startHeartbeat() {
+    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+      Thread thread = new Thread(runnable, "mismo-heartbeat");
+      thread.setDaemon(true);
+      return thread;
+    });
+    scheduler.scheduleWithFixedDelay(() -> {
+      if (identity != null && activeSession == null) {
+        try {
+          api().heartbeat();
+        } catch (ApiClient.ApiError e) {
+          RunnerLog.LOG.info("Heartbeat failed: " + e.getMessage());
+        }
+      }
+    }, HEARTBEAT_MINUTES, HEARTBEAT_MINUTES, TimeUnit.MINUTES);
+    return scheduler;
+  }
+
+  /**
+   * Runs that this runner left RUNNING (it crashed or was killed) still have a checkpoint. Offers
+   * to upload each one's best candidate and mark it FAILED.
+   */
+  private void recoverCheckpoints() throws IOException {
+    List<Checkpoints.Checkpoint> found;
+    try {
+      found = checkpoints.list(identity.serverUrl(), identity.runnerId());
+    } catch (IOException e) {
+      RunnerLog.LOG.warning("Could not read checkpoints: " + e);
+      return;
+    }
+    ApiClient api = api();
+    for (Checkpoints.Checkpoint checkpoint : found) {
+      Messages.RunInfo info;
+      try {
+        info = api.run(checkpoint.runId());
+      } catch (ApiClient.ApiError e) {
+        if ("NOT_FOUND".equals(e.code())) {
+          checkpoints.delete(checkpoint.runId());
+        } else {
+          out.println("Could not check run " + checkpoint.runId() + " (" + e.getMessage() + "). Its checkpoint is kept.");
+        }
+        continue;
+      }
+      if (!Protocol.RUN_RUNNING.equals(info.status())) {
+        out.println("Run " + checkpoint.runId() + " already ended in Mismo Trainer (" + info.status()
+            + "); removing its local checkpoint.");
+        checkpoints.delete(checkpoint.runId());
+        continue;
+      }
+      out.println();
+      out.println("Run " + checkpoint.runId() + " (" + checkpoint.assignmentName() + ", revision "
+          + checkpoint.revision() + ") did not stop cleanly.");
+      out.println("Its best candidate scored " + String.format("%.2f%%", checkpoint.bestScore() * 100.0)
+          + " at generation " + checkpoint.bestGeneration() + " (saved " + Dashboard.ago(checkpoint.savedAtMillis())
+          + ").");
+      String answer = prompt("Upload that candidate and mark the run FAILED? [Y/n] ");
+      if (answer == null || !(answer.isEmpty() || answer.toLowerCase(Locale.ROOT).startsWith("y"))) {
+        out.println("Left as it is. The run will be marked ABANDONED when this runner starts its next run.");
+        continue;
+      }
+      try {
+        api.candidate(checkpoint.runId(), new Messages.CandidateUpload(checkpoint.bestGeneration(),
+            checkpoint.bestScore(), checkpoint.bestScript()));
+        api.fail(checkpoint.runId(), "runner restarted");
+        checkpoints.delete(checkpoint.runId());
+        RunnerLog.LOG.info("Recovered run " + checkpoint.runId() + " from its checkpoint");
+        out.println("Uploaded. Run " + checkpoint.runId() + " is marked FAILED (runner restarted).");
+      } catch (ApiClient.ApiError e) {
+        out.println("Could not recover run " + checkpoint.runId() + ": " + e.getMessage()
+            + " Its checkpoint is kept for next time.");
+      }
+    }
+  }
+
+  private void idleLoop() throws IOException {
     while (true) {
       String command = prompt("mismo> ");
       if (command == null) {
@@ -150,6 +273,8 @@ public class RunnerMain {
       identity = new IdentityStore.Identity(api.serverUrl(), response.runnerId(), response.runnerName(),
           response.organizationName(), response.credential());
       identityStore.save(identity);
+      RunnerLog.LOG.info("Paired as runner " + response.runnerId() + " (" + response.runnerName() + ") with "
+          + api.serverUrl());
       out.println("Paired as " + response.runnerName() + " (" + response.organizationName() + ").");
       out.println("Set this runner's assignment in Mismo Trainer, then type 'start'.");
     } catch (ApiClient.ApiError e) {
@@ -226,9 +351,16 @@ public class RunnerMain {
           assignment.testSet().sha256()));
       // Every candidate carries the fitness function it was trained under (plan D6, item 5).
       String stampedSeed = ScoringWeights.stamp(seedScript, weights);
-      RunSession session = new RunSession(api, assignment, run.runId(), identity.runnerName(), stampedSeed, weights,
-          cases);
+      RunSession session = new RunSession(api, identity, assignment, run.runId(), stampedSeed, weights, cases,
+          checkpoints, line -> {
+            out.println();
+            out.println(line);
+          });
       session.start();
+      activeSession = session;
+      RunnerLog.LOG.info("Started run " + run.runId() + ": assignment " + assignment.assignmentId() + " revision "
+          + assignment.revision() + ", snapshot " + assignment.testSet().snapshotId() + ", population "
+          + assignment.populationSize());
       out.println("Starting run " + run.runId() + ". Press Enter for status, 'help' for commands.");
       return session;
     } catch (ApiClient.ApiError e) {
@@ -241,6 +373,7 @@ public class RunnerMain {
   }
 
   private RunSession refuse(String reason) {
+    RunnerLog.LOG.warning("Unable to start a run: " + reason);
     out.println("Unable to start a run:");
     out.println(reason);
     out.println();
@@ -275,11 +408,24 @@ public class RunnerMain {
 
   /** @return {@code true} if the user asked to exit the application */
   private boolean runLoop(RunSession session) throws IOException {
+    try {
+      return runCommands(session);
+    } finally {
+      activeSession = null;
+    }
+  }
+
+  private boolean runCommands(RunSession session) throws IOException {
     Dashboard.print(out, identity, session);
     while (true) {
       String command = prompt("run " + session.runId() + "> ");
+      if (session.failure() != null) {
+        out.println("Run " + session.runId() + " ended with a failure: " + session.failure());
+        out.println("Use 'start' to begin a new run.");
+        return false;
+      }
       if (command == null) {
-        out.println(session.stop("input closed"));
+        out.println(session.stop("input closed", 30_000L));
         return true;
       }
       switch (command.toLowerCase(Locale.ROOT)) {
@@ -300,12 +446,12 @@ public class RunnerMain {
         break;
       case "stop":
         out.println("Stopping after the current step...");
-        out.println(session.stop("stopped by user"));
+        out.println(session.stop("stopped by user", 30_000L));
         return false;
       case "exit":
       case "quit":
         out.println("Stopping after the current step...");
-        out.println(session.stop("runner exited"));
+        out.println(session.stop("runner exited", 30_000L));
         return true;
       case "help":
       case "?":

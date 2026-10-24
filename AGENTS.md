@@ -37,3 +37,4 @@ Some v1-snapshot documents describe bugs that have since been fixed. Check `docs
   - `mismo-runner` (jar): the Island Runner console app, built as the shaded `mismo-runner/target/mismo-runner.jar` (`java -jar`, Java 17+). It talks to the webapp's Runner API at `/api/v1/*` (`RunnerApiServlet`); set `MISMO_RUNNER_HOME` to keep a test runner's identity out of `%LOCALAPPDATA%\Mismo Runner`.
 
   `mismo-match` must be installed in the local Maven repository (`mvn install` in `../mismo-match`).
+- **Database-backed tests** (`RunnerApiDatabaseTest`) are opt-in: set `MISMO_TEST_DB_USER`/`MISMO_TEST_DB_PASSWORD` to an account with access to the local `mismo` database. Each test runs in a rolled-back transaction and creates its own organizations and data.
