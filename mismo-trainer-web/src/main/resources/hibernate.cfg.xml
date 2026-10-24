@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE hibernate-configuration SYSTEM "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+  <session-factory>
+    <!-- No username/password here, and none should ever be added. Both are required
+         environment variables (MISMO_DB_USER/MISMO_DB_PASSWORD), applied by
+         HibernateSessionFactorySupport, never a checked-in default. See
+         docs/production-deployment-plan.md. -->
+    <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+    <property name="hibernate.connection.url">jdbc:mysql://localhost/mismo</property>
+    <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+    <property name="hibernate.hbm2ddl.auto">validate</property>
+    <property name="show_sql">false</property>
+    <property name="hibernate.c3p0.acquire_increment">1</property>
+    <property name="hibernate.c3p0.idle_test_period">100</property><!--  seconds -->
+    <property name="hibernate.c3p0.timeout">100</property><!--  seconds -->
+    <property name="hibernate.c3p0.max_size">30</property>
+    <property name="hibernate.c3p0.min_size">5</property>
+    <property name="hibernate.c3p0.max_statements">10</property>
+    <mapping resource="AppSetting.hbm.xml"/>
+    <mapping resource="Configuration.hbm.xml"/>
+    <mapping resource="Evaluation.hbm.xml"/>
+    <mapping resource="EvaluationResult.hbm.xml"/>
+    <mapping resource="MatchItem.hbm.xml"/>
+    <mapping resource="MatchItemReview.hbm.xml"/>
+    <mapping resource="MatchSet.hbm.xml"/>
+    <mapping resource="Organization.hbm.xml"/>
+    <mapping resource="SignatureBatch.hbm.xml"/>
+    <mapping resource="SignatureBatchEntry.hbm.xml"/>
+    <mapping resource="User.hbm.xml"/>
+    <mapping resource="UserConfigurationRecent.hbm.xml"/>
+
+  </session-factory>
+</hibernate-configuration>

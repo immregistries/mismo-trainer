@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.immregistries</groupId>
+		<artifactId>mismo-trainer</artifactId>
+		<version>2.0</version>
+	</parent>
+
+	<artifactId>mismo-runner</artifactId>
+	<packaging>jar</packaging>
+
+	<name>mismo-runner</name>
+	<description>Console Island Runner (docs/centrally-managed-local-island-runner.md). Stub until
+		Slice 1 of docs/island-runner-implementation-plan.md.</description>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.immregistries</groupId>
+			<artifactId>mismo-optimizer</artifactId>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>org.immregistries.mismo.runner.RunnerMain</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>

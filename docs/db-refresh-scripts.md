@@ -30,9 +30,9 @@ Both scripts run the same steps (`mismo_db_refresh_common.run_restore_pipeline`)
 
 1. Drop and recreate the local `mismo` database.
 2. Import the backup file.
-3. Apply `src/db/local_database_refresh.sql` (production values → local equivalents, e.g. the InteropHub URL).
-4. Apply `src/db/unapplied_updates.sql`, if non-empty.
-5. Regenerate `src/db/schema.sql` (`mysqldump --no-data --routines --events --triggers`, banner-marked auto-generated, matching `docs/production-deployment-plan.md` §3).
+3. Apply `mismo-trainer-web/src/db/local_database_refresh.sql` (production values → local equivalents, e.g. the InteropHub URL).
+4. Apply `mismo-trainer-web/src/db/unapplied_updates.sql`, if non-empty.
+5. Regenerate `mismo-trainer-web/src/db/schema.sql` (`mysqldump --no-data --routines --events --triggers`, banner-marked auto-generated, matching `docs/production-deployment-plan.md` §3).
 
 `refresh_mismo_db.py` additionally checks a small local state file
 (`scripts/.refresh_mismo_db_state.json`, not tracked in git) to skip re-running the pipeline if
@@ -48,7 +48,7 @@ Everything is overridable via environment variables; sensible local-dev defaults
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `MISMO_REPO_DIR` | `C:\dev\mismo\mismo-trainer` | Where to find `src/db/*.sql` and write `schema.sql`. |
+| `MISMO_REPO_DIR` | `C:\dev\mismo\mismo-trainer` | Repository root; the scripts read `mismo-trainer-web/src/db/*.sql` and write `schema.sql`. |
 | `MISMO_BACKUP_CACHE_DIR` | `C:\dev\mismo\db` | Where dated backup files (`mismoYYYYMMDD.sql`) are looked for — matches the naming convention already in use there. |
 | `MISMO_DATABASE_NAME` | `mismo` | — |
 | `MISMO_DB_ADMIN_HOST` | `localhost` | — |
@@ -68,7 +68,7 @@ Ran `restore_mismo_db_from_latest_local.py` for real against the local database 
 
 **One expected, not-a-bug failure hit during this test:** applying `unapplied_updates.sql` failed, because at the time it still contained *every* schema change from Phases 2–11 — and the backup it was being applied on top of was dumped from this same, already-fully-migrated local database, so everything in the file already existed. Not a script defect; the expected state of a project that hadn't done its first production release yet.
 
-**Resolved:** `unapplied_updates.sql` has since been frozen into `src/db/upgrade-2.0.sql` and reset to empty (`docs/production-deployment-plan.md` §5). From here on, a production backup won't already contain whatever's newly accumulated in `unapplied_updates.sql`, so this step applies cleanly as intended.
+**Resolved:** `unapplied_updates.sql` has since been frozen into `mismo-trainer-web/src/db/upgrade-2.0.sql` and reset to empty (`docs/production-deployment-plan.md` §5). From here on, a production backup won't already contain whatever's newly accumulated in `unapplied_updates.sql`, so this step applies cleanly as intended.
 
 ---
 

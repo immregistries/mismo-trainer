@@ -56,10 +56,10 @@ Already agreed these are stale:
 
 | File | Role | Hand-edited? |
 |---|---|---|
-| `src/db/unapplied_updates.sql` | Already exists — schema/data changes for the next release, not yet applied to production. Unchanged practice. | Yes |
-| `src/db/upgrade-N.N_description.sql` | One frozen record per past release, copied from `unapplied_updates.sql` at release time, never edited after. Mismo-Trainer already has this precedent (`upgrade-1.1.sql`) — **keep that naming** rather than adopting InteropHub's `vX.Y_description.sql` verbatim; the concept is what's being copied, not the exact filename convention. | Yes, once |
-| `src/db/schema.sql` (new) | Full-schema reference snapshot (`mysqldump --no-data --routines --events --triggers`), regenerated after every local refresh. **Auto-generated — never hand-edited.** Give it the same `DO NOT HAND-EDIT` banner InteropHub uses; it exists purely as a human/agent-readable "what does the schema look like right now" reference, not something the app or build consumes. | No — generated |
-| `src/db/local_database_refresh.sql` (new) | Rewrites production-specific values to their local-dev equivalents after a production snapshot is restored locally. For Mismo-Trainer, concretely: rewrites both `app_setting.hub.external.url` and `app_setting.mismo.external.url` back to their `localhost:8080` values — without this, a freshly-refreshed local dev database would have the InteropHub client pointed at *production's* Hub and think it's reachable at production's own URL, instead of the local ones. | Yes |
+| `mismo-trainer-web/src/db/unapplied_updates.sql` | Already exists — schema/data changes for the next release, not yet applied to production. Unchanged practice. | Yes |
+| `mismo-trainer-web/src/db/upgrade-N.N_description.sql` | One frozen record per past release, copied from `unapplied_updates.sql` at release time, never edited after. Mismo-Trainer already has this precedent (`upgrade-1.1.sql`) — **keep that naming** rather than adopting InteropHub's `vX.Y_description.sql` verbatim; the concept is what's being copied, not the exact filename convention. | Yes, once |
+| `mismo-trainer-web/src/db/schema.sql` (new) | Full-schema reference snapshot (`mysqldump --no-data --routines --events --triggers`), regenerated after every local refresh. **Auto-generated — never hand-edited.** Give it the same `DO NOT HAND-EDIT` banner InteropHub uses; it exists purely as a human/agent-readable "what does the schema look like right now" reference, not something the app or build consumes. | No — generated |
+| `mismo-trainer-web/src/db/local_database_refresh.sql` (new) | Rewrites production-specific values to their local-dev equivalents after a production snapshot is restored locally. For Mismo-Trainer, concretely: rewrites both `app_setting.hub.external.url` and `app_setting.mismo.external.url` back to their `localhost:8080` values — without this, a freshly-refreshed local dev database would have the InteropHub client pointed at *production's* Hub and think it's reachable at production's own URL, instead of the local ones. | Yes |
 
 ---
 
@@ -71,8 +71,8 @@ Per the decision to dump the current dev database rather than replay old scripts
 2. From here: `mysqldump -u<user> -p --single-transaction --no-tablespaces --set-gtid-purged=OFF --default-character-set=utf8mb4 mismo > mismo.sql`.
 3. Transfer that file out-of-band (it is **not** checked into the project, per your direction) and restore it on the new server.
 4. Apply `local_database_refresh.sql`-equivalent logic in the *other* direction here — i.e. make sure `app_setting.hub.external.url` and `app_setting.mismo.external.url` on production point at production's real InteropHub instance and this app's own production URL, not local dev's. Both are plain database rows — no JVM flags, env vars, or restarts involved in setting or later changing either one.
-5. Register the app in production's InteropHub instance (app code, callback URL matching wherever this deploys) and confirm `pom.xml`'s `<finalName>mismo</finalName>` matches the intended context path.
-6. Deploy the WAR; confirm `MISMO_DB_USER`/`MISMO_DB_PASSWORD` are set in that server's environment before Tomcat starts it.
+5. Register the app in production's InteropHub instance (app code, callback URL matching wherever this deploys) and confirm `mismo-trainer-web/pom.xml`'s `<finalName>mismo</finalName>` matches the intended context path.
+6. Build with `mvn clean package` from the repository root and deploy `mismo-trainer-web/target/mismo.war`; confirm `MISMO_DB_USER`/`MISMO_DB_PASSWORD` are set in that server's environment before Tomcat starts it.
 
 No need to touch `legacy-test-data/`/`TemplateDataBootstrap` for this seed — the dump already carries the real, already-bootstrapped AIRA template rows.
 
@@ -85,9 +85,9 @@ This is the same shape as InteropHub's daily refresh, split into what lives in t
 ### Releasing a schema change to production (in this repo, manual, matches `v2-roadmap.md` §13 with the frozen-file step made explicit)
 
 1. Back up the production database first.
-2. Apply `src/db/unapplied_updates.sql` to production directly.
+2. Apply `mismo-trainer-web/src/db/unapplied_updates.sql` to production directly.
 3. Verify the application against production.
-4. Copy `unapplied_updates.sql`'s contents into a new `src/db/upgrade-N.N_description.sql` (next version number, short description) — permanent, never edited again after creation.
+4. Copy `unapplied_updates.sql`'s contents into a new `mismo-trainer-web/src/db/upgrade-N.N_description.sql` (next version number, short description) — permanent, never edited again after creation.
 5. Empty `unapplied_updates.sql` back to nothing, ready to accumulate the next round.
 6. Commit the new frozen file and the emptied `unapplied_updates.sql` together with the application code that depends on them, in one commit.
 
@@ -98,9 +98,9 @@ The sequence your daily-download tooling needs to perform, mirroring InteropHub'
 1. Download the latest production backup (skip if already downloaded today).
 2. Drop and recreate the local `mismo` database.
 3. Import the production snapshot.
-4. Apply `src/db/local_database_refresh.sql` (production URLs/secrets → local equivalents).
-5. Apply `src/db/unapplied_updates.sql`, if non-empty (so local dev reflects production *plus* whatever's pending release).
-6. Regenerate `src/db/schema.sql` via `mysqldump --no-data --routines --events --triggers`.
+4. Apply `mismo-trainer-web/src/db/local_database_refresh.sql` (production URLs/secrets → local equivalents).
+5. Apply `mismo-trainer-web/src/db/unapplied_updates.sql`, if non-empty (so local dev reflects production *plus* whatever's pending release).
+6. Regenerate `mismo-trainer-web/src/db/schema.sql` via `mysqldump --no-data --routines --events --triggers`.
 
 This repo provides everything steps 4–6 need (the two SQL files, and the `schema.sql` command); the download/orchestration itself (steps 1–3, and the scheduling) is yours to build, the same way InteropHub's is external to that repo.
 
@@ -111,7 +111,7 @@ This repo provides everything steps 4–6 need (the two SQL files, and the `sche
 - `HibernateSessionFactorySupport` (`org.immregistries.mismo.trainer`) — direct port of InteropHub's `HibernateUtil`, `MISMO_` prefix. Both `HomeServlet.getSessionFactory()` and `TemplateDataBootstrap.main()` route through it now instead of calling `AnnotationConfiguration` directly.
 - `hibernate.cfg.xml` — username/password removed entirely; `hibernate.hbm2ddl.auto=validate` added.
 - `create-user.sql` rewritten with a placeholder password and `caching_sha2_password` instead of the legacy `mysql_native_password`; `initial.sql` and `db-dump-2024-04-05.sql` deleted.
-- `src/db/local_database_refresh.sql` added (rewrites `app_setting.hub.external.url` to the local Hub).
+- `mismo-trainer-web/src/db/local_database_refresh.sql` added (rewrites `app_setting.hub.external.url` to the local Hub).
 - Verified end to end with a standalone smoke test (not just compiled): confirmed `HibernateSessionFactorySupport.build()` fails fast with `IllegalStateException` when `MISMO_DB_USER`/`MISMO_DB_PASSWORD` are unset, and succeeds — including a full `validate`-mode schema check — once they're set.
 
 **Two real bugs found and fixed along the way, surfaced by turning on `hbm2ddl.auto=validate` for the first time:**
@@ -128,4 +128,4 @@ This repo provides everything steps 4–6 need (the two SQL files, and the `sche
 ## 7. Open items
 
 - Exact production server details (hostname, how environment variables get set for that Tomcat instance, backup storage/retrieval mechanism for the dump) — not yet specified; needed before step 4 (initial seed) can actually run.
-- Whether `src/db/schema.sql` should exist yet, given local refresh automation doesn't exist yet either — fine to add once the refresh script is real; no value sitting unused before then.
+- Whether `mismo-trainer-web/src/db/schema.sql` should exist yet, given local refresh automation doesn't exist yet either — fine to add once the refresh script is real; no value sitting unused before then.

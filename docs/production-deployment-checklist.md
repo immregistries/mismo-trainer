@@ -17,13 +17,13 @@ importing).
 
 - [ ] Create the `mismo` database (`utf8mb4` / `utf8mb4_0900_ai_ci`).
 - [ ] Create the `mismo_web` MySQL account with a **freshly generated password**. Template:
-  `src/db/create-user.sql` (`caching_sha2_password`, MySQL 8's default — confirm this server isn't
+  `mismo-trainer-web/src/db/create-user.sql` (`caching_sha2_password`, MySQL 8's default — confirm this server isn't
   configured to require something else). Grants only `ALL PRIVILEGES` on `mismo.*` — nothing broader,
   no `GRANT OPTION`.
 - [ ] Import `mismo20260819.sql` into `mismo`.
-- [ ] `mvn clean package` from the repo root → `target/mismo.war` (`finalName` is already set in
-  `pom.xml`; don't override it — the InteropHub app registration below depends on it deploying at
-  `/mismo`).
+- [ ] `mvn clean package` from the repo root (the parent pom builds all three modules) →
+  `mismo-trainer-web/target/mismo.war` (`finalName` is already set in `mismo-trainer-web/pom.xml`;
+  don't override it — the InteropHub app registration below depends on it deploying at `/mismo`).
 - [ ] Before starting Tomcat, set in its environment (service-level, not just an interactive shell —
   see `docs/production-deployment-plan.md` §6 for why that distinction matters):
   - `MISMO_DB_USER=mismo_web`
@@ -58,7 +58,7 @@ importing).
 ## Nathan: after the engineer confirms it's working
 
 - [ ] Verify the app end to end against production (log in, browse a Test Set, run an Evaluation).
-- [x] Freeze the release, per `docs/production-deployment-plan.md` §5 — done: `src/db/upgrade-2.0.sql`
+- [x] Freeze the release, per `docs/production-deployment-plan.md` §5 — done: `mismo-trainer-web/src/db/upgrade-2.0.sql`
   now holds the full Phases 2-11 change history, and `unapplied_updates.sql` is reset to just its
   purpose comment, ready to accumulate whatever comes after v2.0. Still needs committing (see below).
 - [x] Rename `matching_validation` → `mismo` and `mv_web` → `mismo_web` everywhere (repo, refresh

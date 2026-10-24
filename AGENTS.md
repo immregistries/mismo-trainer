@@ -28,7 +28,12 @@ Some v1-snapshot documents describe bugs that have since been fixed. Check `docs
 
 ## Conventions
 
-- **Schema changes** go in `src/db/unapplied_updates.sql` (applied manually after the daily backup, then folded into a versioned upgrade script on release). Hibernate runs with `hbm2ddl.auto=validate`, so the SQL and the `.hbm.xml` mappings must agree.
+- **Schema changes** go in `mismo-trainer-web/src/db/unapplied_updates.sql` (applied manually after the daily backup, then folded into a versioned upgrade script on release). Hibernate runs with `hbm2ddl.auto=validate`, so the SQL and the `.hbm.xml` mappings must agree.
 - **Organization scoping:** every read and write of tenant data goes through `OrgScope` (owned-or-template read, owner-only write). Never load tenant rows by a client-supplied id alone.
 - **Web pages** use `aira-web-components` for look and feel; authentication is InteropHub SSO via `AuthenticationFilter`.
-- **Build:** `mvn package` produces `target/mismo.war`. `mismo-match` must be installed in the local Maven repository (`mvn install` in `../mismo-match`). The Island Runner plan restructures this into a multi-module build; see its Slice 0.
+- **Build:** a multi-module Maven build (`docs/island-runner-implementation-plan.md` D2). `mvn clean package` from the repository root builds:
+  - `mismo-optimizer` (jar): the genetic-algorithm engine (`World`, `Creature`, `Scorer`, `TestCaseLoader`) and, later, the runner protocol. It must not depend on servlets or Hibernate.
+  - `mismo-trainer-web` (war): the web application, producing `mismo-trainer-web/target/mismo.war`.
+  - `mismo-runner` (jar): the Island Runner console app (a stub until Slice 1).
+
+  `mismo-match` must be installed in the local Maven repository (`mvn install` in `../mismo-match`).

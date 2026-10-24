@@ -4,7 +4,7 @@
 
 **Implements:** [`centrally-managed-local-island-runner.md`](centrally-managed-local-island-runner.md) (the architecture). That document says *what* to build; this one records the implementation decisions, the module and schema layout, and the order of work.
 
-**Starting assumptions (confirmed by Nathan):** no current users of the Island stack, so everything legacy can be removed rather than migrated; schema changes go in `src/db/unapplied_updates.sql` and are applied after the daily backup; big structural changes to this repository are acceptable.
+**Starting assumptions (confirmed by Nathan):** no current users of the Island stack, so everything legacy can be removed rather than migrated; schema changes go in `unapplied_updates.sql` (now `mismo-trainer-web/src/db/`) and are applied after the daily backup; big structural changes to this repository are acceptable.
 
 ---
 
@@ -114,7 +114,7 @@ Decision:
 
 ### D8. Database migration
 
-All DDL goes in `src/db/unapplied_updates.sql`, applied after the daily backup. See §3.
+All DDL goes in `mismo-trainer-web/src/db/unapplied_updates.sql`, applied after the daily backup. See §3.
 
 ---
 
@@ -308,6 +308,15 @@ The work is ordered to get end-to-end feedback early. Each slice ends in a worki
 
 **Slice 0: Restructure (no new features).** Parent pom with three modules. Move the engine into `mismo-optimizer`. Fix the static `Scorer` weights, `scoreRate`, and `registerMatch`. Add Gson. Delete the legacy Island stack (D4) except the schema drop. Update deploy docs for the new WAR path. Point `Scorer`'s javadoc at `optimization-objectives-and-scoring-profiles.md`, and add a matching comment above the `scoringWeights` block in `mismo-match`'s `mismo-matcher.yml` (separate repo), so anyone who finds the matrix in code finds the reason.
 *Done when:* the WAR builds and deploys, existing pages (including evaluation scoring) behave as before, and optimizer unit tests pass.
+
+*Slice 0 notes (done 2026-10-24).* Corrections to the plan found while implementing it:
+
+- **`CentralServlet.doGet` was also the Configurations area's "Browse All Configurations" page**, and the only place offering **Copy to My Organization** for template configurations. Both went with the servlet (the nav link is removed). `OrgScope.copyConfiguration` is kept, unused, so the action can be put back on `WeightSetServlet` or a Slice 1 page if it is wanted.
+- **Moving `src/` also moved `src/db/`.** The schema scripts are now under `mismo-trainer-web/src/db/`. The local refresh scripts in `C:\dev\mismo\scripts` (outside git) hard-coded `src/db` and were updated.
+- **`Island.toRuntimeMatchItem` took the Hibernate entity**, so it could not move to `mismo-optimizer` as-is. It is split: `TestCaseLoader.toRuntimeMatchItem(label, description, expectStatus, patientDataA, patientDataB)` does the string conversion and null defaulting (what the runner needs for D3's case JSON), and the webapp's `RuntimeMatchItems` adds the id, update date, match set and user.
+- **`IslandCredentialSupport` is deleted, not moved** (D4 said its token and SHA-256 code would move into `RunnerCredentialSupport`, which does not exist until Slice 1). The code is short and in git history.
+- **`registerMatch` exposure (D5):** every webapp caller already filtered out Research / Not Sure before calling it, so the fix changes no page's numbers. Evaluations re-run on the new build matched earlier ones exactly.
+- `TestMatchingServlet` used `new Scorer()`, i.e. whatever the static weights last held. It now passes the loaded configuration's weights, like `TestSetServlet` and `OrgScope`.
 
 **Slice 1: Walking skeleton.** Full schema (§3), including the seeded measurement profile. API: pairing, `me`, assignment, both content routes, runs create/progress/candidates/stop. Minimal website: create runner and show pairing code, a single assignment form (profile is a dropdown; profile editing waits for Slice 3), a run list showing the profile name with each score. Runner: `pair`, `start` (fetch, verify, summary, create run), dashboard, `sync`, `stop`, `exit`, using the shaded JAR.
 *Done when:* acceptance criteria 1 and 3–10 of the architecture doc work against localhost Tomcat using the dev JAR, with an AIRA review Test Set loaded in the database (upload it through the existing Test Set upload page if needed).

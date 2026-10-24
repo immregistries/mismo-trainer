@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.immregistries</groupId>
+		<artifactId>mismo-trainer</artifactId>
+		<version>2.0</version>
+	</parent>
+
+	<artifactId>mismo-trainer-web</artifactId>
+	<packaging>war</packaging>
+
+	<name>mismo-trainer-web</name>
+
+	<properties>
+		<!-- Filtered into mismo-version.properties at build time; read at runtime by
+		     SoftwareVersion so the footer's displayed version always matches this pom,
+		     copying InteropHub's own pattern (see docs). -->
+		<software.version>${project.version}</software.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<version>6.0.0</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.immregistries</groupId>
+			<artifactId>aira-web-components</artifactId>
+			<version>0.1.10</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.immregistries</groupId>
+			<artifactId>mismo-optimizer</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.immregistries</groupId>
+			<artifactId>mismo-match</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.immregistries</groupId>
+			<artifactId>interophub-client</artifactId>
+			<version>1.1.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate</artifactId>
+			<version>3.6.0.Beta2</version>
+			<type>pom</type>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-annotations</artifactId>
+			<version>3.5.6-Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-c3p0</artifactId>
+			<version>3.3.1.GA</version>
+		</dependency>
+
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.30</version>
+		</dependency>
+
+		<dependency>
+			<groupId>c3p0</groupId>
+			<artifactId>c3p0</artifactId>
+			<version>0.9.1.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.javassist</groupId>
+			<artifactId>javassist</artifactId>
+			<version>3.29.2-GA</version>
+		</dependency>
+
+		<dependency>
+    		<groupId>org.yaml</groupId>
+    		<artifactId>snakeyaml</artifactId>
+    		<version>1.29</version>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<finalName>mismo</finalName>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+				<excludes>
+					<exclude>mismo-version.properties</exclude>
+				</excludes>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>mismo-version.properties</include>
+				</includes>
+			</resource>
+		</resources>
+	</build>
+</project>

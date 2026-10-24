@@ -1,0 +1,240 @@
+TEST: S-1:ADDRESS_CHANGED:IDEAL-IDEAL
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(906)389-8576,birthOrder=1,nameFirst=Fyodor,nameMiddle=Ridgeway,addressCity=Lansing,nameAlias=,mrns=5-V27,ssn=657680344,medicaid=730763228,addressStreet1=52 Williamson Cir,nameLastHyph=Williams,addressStreet2=,nameLast=Larssen,shotHistory=,motherMaidenName=Larssen,guardianNameLast=Larssen,gender=M,birthDate=20071225,birthType=1,guardianNameFirst=Bobbie,birthStatus=N,addressZip=48909,
+PATIENT B: addressState=MI,nameSuffix=,phone=(906)389-8576,birthOrder=1,nameFirst=Fyodor,nameMiddle=Ridgeway,addressCity=Hubbell,nameAlias=,mrns=6-O47,ssn=657680344,medicaid=730763228,addressStreet1=369 Pierce St,nameLastHyph=Williams,addressStreet2=,nameLast=Larssen,shotHistory=,motherMaidenName=Larssen,guardianNameLast=Larssen,gender=M,birthDate=20071225,birthType=1,guardianNameFirst=Bobbie,birthStatus=N,addressZip=49934,
+TEST: D-1:ADDRESS_CHANGED:IDEAL-IDEAL
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(906)389-8576,birthOrder=1,nameFirst=Fyodor,nameMiddle=Ridgeway,addressCity=Lansing,nameAlias=,mrns=5-V27,ssn=657680344,medicaid=730763228,addressStreet1=52 Williamson Cir,nameLastHyph=Williams,addressStreet2=,nameLast=Larssen,shotHistory=,motherMaidenName=Larssen,guardianNameLast=Larssen,gender=M,birthDate=20071225,birthType=1,guardianNameFirst=Bobbie,birthStatus=N,addressZip=48909,
+PATIENT B: addressState=MI,nameSuffix=,phone=(989)121-4270,birthOrder=,nameFirst=Mercer,nameMiddle=Isai,addressCity=Long Lake,nameAlias=,mrns=4-Z45,ssn=239322152,medicaid=452449693,addressStreet1=324 Wyoming St,nameLastHyph=,addressStreet2=,nameLast=Livingston,shotHistory=,motherMaidenName=Larssen,guardianNameLast=Larssen,gender=M,birthDate=20071225,birthType=,guardianNameFirst=Talfryn,birthStatus=,addressZip=48743,
+TEST: S-2:ADDRESS_CHANGED:IDEAL-GREATA
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(517)192-3427,birthOrder=1,nameFirst=Roni,nameMiddle=Irwin,addressCity=Port Sanilac,nameAlias=,mrns=1-L18,ssn=848724214,medicaid=134911736,addressStreet1=393 Werstad Ln,nameLastHyph=Lawrence,addressStreet2=,nameLast=Fremming,shotHistory=,motherMaidenName=Fremming,guardianNameLast=Fremming,gender=M,birthDate=20110624,birthType=1,guardianNameFirst=Shivani,birthStatus=N,addressZip=48469,
+PATIENT B: addressState=MI,nameSuffix=,phone=(517)192-3427,nameFirst=Roni,nameMiddle=Irwin,nameAlias=,addressCity=Eaton Rapids,mrns=3-F61,ssn=848724214,addressStreet1=194 Chickasaw St,nameLastHyph=Lawrence,nameLast=Fremming,shotHistory=,guardianNameLast=Fremming,gender=M,birthDate=20110624,guardianNameFirst=Shivani,addressZip=48827,
+TEST: D-2:ADDRESS_CHANGED:IDEAL-GREATA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(517)192-3427,birthOrder=1,nameFirst=Roni,nameMiddle=Irwin,addressCity=Port Sanilac,nameAlias=,mrns=1-L18,ssn=848724214,medicaid=134911736,addressStreet1=393 Werstad Ln,nameLastHyph=Lawrence,addressStreet2=,nameLast=Fremming,shotHistory=,motherMaidenName=Fremming,guardianNameLast=Fremming,gender=M,birthDate=20110624,birthType=1,guardianNameFirst=Shivani,birthStatus=N,addressZip=48469,
+PATIENT B: addressState=MI,nameSuffix=,phone=(313)276-3772,nameFirst=Rawson,nameMiddle=Ivan,nameAlias=,addressCity=Detroit,mrns=6-D20,ssn=281945653,addressStreet1=380 Seneca Ln,nameLastHyph=,nameLast=Fremming,shotHistory=,guardianNameLast=Fremming,gender=M,birthDate=20110624,guardianNameFirst=Samson,addressZip=48240,
+TEST: S-3:ADDRESS_CHANGED:IDEAL-GREATB
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)077-1707,birthOrder=1,nameFirst=Sakurako,nameMiddle=E,addressCity=Ypsilanti,nameAlias=,mrns=6-Y64,ssn=302498598,medicaid=509592754,addressStreet1=50 Marshall Pl,nameLastHyph=Nance,addressStreet2=,nameLast=Carter,shotHistory=,motherMaidenName=Carter,guardianNameLast=Nance,gender=F,birthDate=20110624,birthType=1,guardianNameFirst=Jirra,birthStatus=N,addressZip=48198,
+PATIENT B: addressState=MI,nameSuffix=,phone=(231)077-1707,nameFirst=Sakurako,nameMiddle=E,nameAlias=,addressCity=Merritt,mrns=4-K33,medicaid=509592754,addressStreet1=112 Santa Cruz St,nameLastHyph=Nance,nameLast=Carter,shotHistory=,motherMaidenName=Carter,gender=F,birthDate=20110624,guardianNameFirst=Jirra,addressZip=49667,
+TEST: D-3:ADDRESS_CHANGED:IDEAL-GREATB
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)077-1707,birthOrder=1,nameFirst=Sakurako,nameMiddle=E,addressCity=Ypsilanti,nameAlias=,mrns=6-Y64,ssn=302498598,medicaid=509592754,addressStreet1=50 Marshall Pl,nameLastHyph=Nance,addressStreet2=,nameLast=Carter,shotHistory=,motherMaidenName=Carter,guardianNameLast=Nance,gender=F,birthDate=20110624,birthType=1,guardianNameFirst=Jirra,birthStatus=N,addressZip=48198,
+PATIENT B: addressState=MI,nameSuffix=,phone=(248)889-0632,nameFirst=Herschell,nameMiddle=Evadine,nameAlias=,addressCity=West Bloomfield,mrns=4-H10,medicaid=057110256,addressStreet1=289 McLennan Cir,nameLastHyph=,nameLast=Carter,shotHistory=,motherMaidenName=Keyanna,gender=F,birthDate=20110624,guardianNameFirst=Jakobe,addressZip=48322,
+TEST: S-4:ADDRESS_CHANGED:IDEAL-GOODA
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(616)187-4710,birthOrder=1,nameFirst=Bathilde,nameMiddle=Brooke,addressCity=Saint Clr Shores,nameAlias=,mrns=7-B15,ssn=986268616,medicaid=785075453,addressStreet1=323 Fulton Cir,nameLastHyph=Kleberg,addressStreet2=,nameLast=Hart,shotHistory=,motherMaidenName=Hart,guardianNameLast=Hart,gender=F,birthDate=20110705,birthType=1,guardianNameFirst=Charline,birthStatus=N,addressZip=48081,
+PATIENT B: addressState=MI,nameFirst=Bathilde,nameMiddle=Brooke,addressCity=Ada,mrns=4-F89,addressStreet1=76 Lewis Pl,nameLastHyph=Kleberg,nameLast=Hart,shotHistory=,guardianNameLast=Hart,gender=F,birthDate=20110705,guardianNameFirst=Charline,addressZip=49355,
+TEST: D-4:ADDRESS_CHANGED:IDEAL-GOODA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(616)187-4710,birthOrder=1,nameFirst=Bathilde,nameMiddle=Brooke,addressCity=Saint Clr Shores,nameAlias=,mrns=7-B15,ssn=986268616,medicaid=785075453,addressStreet1=323 Fulton Cir,nameLastHyph=Kleberg,addressStreet2=,nameLast=Hart,shotHistory=,motherMaidenName=Hart,guardianNameLast=Hart,gender=F,birthDate=20110705,birthType=1,guardianNameFirst=Charline,birthStatus=N,addressZip=48081,
+PATIENT B: addressState=MI,nameFirst=Bryna,nameMiddle=Nikki,addressCity=Columbus,mrns=7-Z33,addressStreet1=312 Psconen Ln,nameLastHyph=,nameLast=Malheur,shotHistory=,guardianNameLast=Waller,gender=F,birthDate=20110705,guardianNameFirst=Charline,addressZip=48063,
+TEST: S-5:ADDRESS_CHANGED:IDEAL-GOODB
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(269)133-2874,birthOrder=1,nameFirst=Alston,nameMiddle=Z,addressCity=Portland,nameAlias=,mrns=2-O65,ssn=321036757,medicaid=553664495,addressStreet1=56 Cherokee Cir,nameLastHyph=Atascosa,addressStreet2=,nameLast=Dawson,shotHistory=,motherMaidenName=Dawson,guardianNameLast=Dawson,gender=M,birthDate=20110630,birthType=1,guardianNameFirst=Neala,birthStatus=N,addressZip=48875,
+PATIENT B: addressState=MI,nameFirst=Alston,nameMiddle=Z,addressCity=Kalamazoo,mrns=3-D66,addressStreet1=366 Brennan Ave,nameLastHyph=Atascosa,nameLast=Dawson,motherMaidenName=Dawson,shotHistory=,gender=M,birthDate=20110630,guardianNameFirst=Neala,addressZip=49009,
+TEST: D-5:ADDRESS_CHANGED:IDEAL-GOODB
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(269)133-2874,birthOrder=1,nameFirst=Alston,nameMiddle=Z,addressCity=Portland,nameAlias=,mrns=2-O65,ssn=321036757,medicaid=553664495,addressStreet1=56 Cherokee Cir,nameLastHyph=Atascosa,addressStreet2=,nameLast=Dawson,shotHistory=,motherMaidenName=Dawson,guardianNameLast=Dawson,gender=M,birthDate=20110630,birthType=1,guardianNameFirst=Neala,birthStatus=N,addressZip=48875,
+PATIENT B: addressState=MI,nameFirst=Athan,nameMiddle=Z,addressCity=Detroit,mrns=2-Z39,addressStreet1=219 McCusker St,nameLastHyph=,nameLast=Dawson,motherMaidenName=Addilyn,shotHistory=,gender=M,birthDate=20110630,guardianNameFirst=Normand,addressZip=48215,
+TEST: S-6:ADDRESS_CHANGED:IDEAL-POOR
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(616)540-3025,birthOrder=1,nameFirst=Namiko,nameMiddle=R,addressCity=Worth Township,nameAlias=,mrns=1-N17,ssn=168900512,medicaid=988668856,addressStreet1=218 Moore Ave,nameLastHyph=Buckshorn,addressStreet2=,nameLast=Sioux,shotHistory=,motherMaidenName=McKiernan,guardianNameLast=Buckshorn,gender=F,birthDate=20110625,birthType=1,guardianNameFirst=Zelma,birthStatus=N,addressZip=48032,
+PATIENT B: addressState=MI,addressStreet1=292 Solano Ave,nameLastHyph=Buckshorn,nameLast=Sioux,nameFirst=Namiko,addressCity=Grand Rapids,shotHistory=,mrns=4-P86,gender=F,birthDate=20110625,addressZip=49506,
+TEST: D-6:ADDRESS_CHANGED:IDEAL-POOR
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(616)540-3025,birthOrder=1,nameFirst=Namiko,nameMiddle=R,addressCity=Worth Township,nameAlias=,mrns=1-N17,ssn=168900512,medicaid=988668856,addressStreet1=218 Moore Ave,nameLastHyph=Buckshorn,addressStreet2=,nameLast=Sioux,shotHistory=,motherMaidenName=McKiernan,guardianNameLast=Buckshorn,gender=F,birthDate=20110625,birthType=1,guardianNameFirst=Zelma,birthStatus=N,addressZip=48032,
+PATIENT B: addressState=MI,addressStreet1=385 Hancock Cir,nameLastHyph=,nameLast=Sioux,nameFirst=Namrata,addressCity=Weston,shotHistory=,mrns=7-R95,gender=F,birthDate=20110625,addressZip=49289,
+TEST: S-7:ADDRESS_CHANGED:IDEAL-BAD
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)065-6170,birthOrder=1,nameFirst=Amal,nameMiddle=N,addressCity=Flint,nameAlias=,mrns=7-C80,ssn=766829213,medicaid=339860436,addressStreet1=354 Jolsen Pl,nameLastHyph=Alpena,addressStreet2=,nameLast=Susquehanna,shotHistory=,motherMaidenName=Susquehanna,guardianNameLast=Alpena,gender=M,birthDate=20080110,birthType=1,guardianNameFirst=Maryvonne,birthStatus=N,addressZip=48552,
+PATIENT B: nameLastHyph=Alpena,nameLast=Susquehanna,nameFirst=Amal,mrns=4-R10,gender=M,birthDate=20080110,
+TEST: D-7:ADDRESS_CHANGED:IDEAL-BAD
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)065-6170,birthOrder=1,nameFirst=Amal,nameMiddle=N,addressCity=Flint,nameAlias=,mrns=7-C80,ssn=766829213,medicaid=339860436,addressStreet1=354 Jolsen Pl,nameLastHyph=Alpena,addressStreet2=,nameLast=Susquehanna,shotHistory=,motherMaidenName=Susquehanna,guardianNameLast=Alpena,gender=M,birthDate=20080110,birthType=1,guardianNameFirst=Maryvonne,birthStatus=N,addressZip=48552,
+PATIENT B: nameLastHyph=,nameLast=Susquehanna,nameFirst=Alvin,mrns=5-B10,gender=M,birthDate=20080110,
+TEST: S-8:ADDRESS_CHANGED:GREATA-IDEAL
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(810)422-6799,nameFirst=Seraphim,nameMiddle=Ganan,nameAlias=,addressCity=Brownstown,mrns=2-E16,ssn=225712302,addressStreet1=210 Howard Cir,nameLastHyph=Fitzpatrick,nameLast=Morrey,shotHistory=,guardianNameLast=Morrey,gender=M,birthDate=20110624,guardianNameFirst=Tomiko,addressZip=48174,
+PATIENT B: addressState=MI,nameSuffix=,phone=(810)422-6799,birthOrder=1,nameFirst=Seraphim,nameMiddle=Ganan,addressCity=Burton,nameAlias=,mrns=3-P70,ssn=225712302,medicaid=894547442,addressStreet1=234 Simmingsen Ave,nameLastHyph=Fitzpatrick,addressStreet2=,nameLast=Morrey,shotHistory=,motherMaidenName=Morrey,guardianNameLast=Morrey,gender=M,birthDate=20110624,birthType=1,guardianNameFirst=Tomiko,birthStatus=N,addressZip=48509,
+TEST: D-8:ADDRESS_CHANGED:GREATA-IDEAL
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(810)422-6799,nameFirst=Seraphim,nameMiddle=Ganan,nameAlias=,addressCity=Brownstown,mrns=2-E16,ssn=225712302,addressStreet1=210 Howard Cir,nameLastHyph=Fitzpatrick,nameLast=Morrey,shotHistory=,guardianNameLast=Morrey,gender=M,birthDate=20110624,guardianNameFirst=Tomiko,addressZip=48174,
+PATIENT B: addressState=MI,nameSuffix=,phone=(734)582-3864,birthOrder=,nameFirst=Seraphim,nameMiddle=Ganan,addressCity=Garden City,nameAlias=,mrns=7-Y83,ssn=836692029,medicaid=420958928,addressStreet1=399 Burleson Pl,nameLastHyph=,addressStreet2=,nameLast=Lincoln,shotHistory=,motherMaidenName=Maya,guardianNameLast=Morrey,gender=M,birthDate=20110624,birthType=,guardianNameFirst=Tomiko,birthStatus=,addressZip=48136,
+TEST: S-9:ADDRESS_CHANGED:GREATA-GREATA
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)901-4089,nameFirst=Cairine,nameMiddle=Avel,nameAlias=,addressCity=Gaines,mrns=2-L50,ssn=679748192,addressStreet1=198 Hamilton Ave,nameLastHyph=Kane,nameLast=McErlaine,shotHistory=,guardianNameLast=McErlaine,gender=F,birthDate=20110630,guardianNameFirst=Yamura,addressZip=48436,
+PATIENT B: addressState=MI,nameSuffix=,phone=(231)901-4089,nameFirst=Cairine,nameMiddle=Avel,nameAlias=,addressCity=Hersey,mrns=4-F04,ssn=679748192,addressStreet1=289 Warren Ln,nameLastHyph=Kane,nameLast=McErlaine,shotHistory=,guardianNameLast=McErlaine,gender=F,birthDate=20110630,guardianNameFirst=Yamura,addressZip=49639,
+TEST: D-9:ADDRESS_CHANGED:GREATA-GREATA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)901-4089,nameFirst=Cairine,nameMiddle=Avel,nameAlias=,addressCity=Gaines,mrns=2-L50,ssn=679748192,addressStreet1=198 Hamilton Ave,nameLastHyph=Kane,nameLast=McErlaine,shotHistory=,guardianNameLast=McErlaine,gender=F,birthDate=20110630,guardianNameFirst=Yamura,addressZip=48436,
+PATIENT B: addressState=MI,nameSuffix=,phone=(269)651-7575,nameFirst=Darrelle,nameMiddle=Amice,nameAlias=,addressCity=Wayland,mrns=6-Q10,ssn=755016502,addressStreet1=172 Gladwin Ave,nameLastHyph=,nameLast=Mercer,shotHistory=,guardianNameLast=McErlaine,gender=F,birthDate=20110630,guardianNameFirst=Jorge,addressZip=49348,
+TEST: S-10:ADDRESS_CHANGED:GREATA-GREATB
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(586)994-3857,nameFirst=Jitender,nameMiddle=Zared,nameAlias=,addressCity=Mendon,mrns=3-Y67,ssn=882467400,addressStreet1=238 Wardle Ln,nameLastHyph=Thurston,nameLast=Jack,shotHistory=,guardianNameLast=Jack,gender=M,birthDate=20110622,guardianNameFirst=Mara,addressZip=49072,
+PATIENT B: addressState=MI,nameSuffix=,phone=(586)994-3857,nameFirst=Jitender,nameMiddle=Zared,nameAlias=,addressCity=Selfridge Angb,mrns=4-W48,medicaid=795918458,addressStreet1=99 McCusker Ln,nameLastHyph=Thurston,nameLast=Jack,shotHistory=,motherMaidenName=Jack,gender=M,birthDate=20110622,guardianNameFirst=Mara,addressZip=48045,
+TEST: D-10:ADDRESS_CHANGED:GREATA-GREATB
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(586)994-3857,nameFirst=Jitender,nameMiddle=Zared,nameAlias=,addressCity=Mendon,mrns=3-Y67,ssn=882467400,addressStreet1=238 Wardle Ln,nameLastHyph=Thurston,nameLast=Jack,shotHistory=,guardianNameLast=Jack,gender=M,birthDate=20110622,guardianNameFirst=Mara,addressZip=49072,
+PATIENT B: addressState=MI,nameSuffix=,phone=(989)552-6099,nameFirst=Jesse,nameMiddle=Zaid,nameAlias=,addressCity=Au Sable,mrns=6-U96,medicaid=373278836,addressStreet1=376 Jack Pl,nameLastHyph=,nameLast=Jasper,shotHistory=,motherMaidenName=Mora,gender=M,birthDate=20110622,guardianNameFirst=Mara,addressZip=48750,
+TEST: S-11:ADDRESS_CHANGED:GREATA-GOODA
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(906)135-8772,nameFirst=Anika,nameMiddle=Glen,nameAlias=,addressCity=Detroit,mrns=1-X62,ssn=531738232,addressStreet1=394 Bay Ln,nameLastHyph=McCulloch,nameLast=Highland,shotHistory=,guardianNameLast=Highland,gender=F,birthDate=20110627,guardianNameFirst=Kora,addressZip=48288,
+PATIENT B: addressState=MI,nameFirst=Anika,nameMiddle=Glen,addressCity=Forest Lake,mrns=4-N10,addressStreet1=222 Fremming Ave,nameLastHyph=McCulloch,nameLast=Highland,shotHistory=,guardianNameLast=Highland,gender=F,birthDate=20110627,guardianNameFirst=Kora,addressZip=49862,
+TEST: D-11:ADDRESS_CHANGED:GREATA-GOODA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(906)135-8772,nameFirst=Anika,nameMiddle=Glen,nameAlias=,addressCity=Detroit,mrns=1-X62,ssn=531738232,addressStreet1=394 Bay Ln,nameLastHyph=McCulloch,nameLast=Highland,shotHistory=,guardianNameLast=Highland,gender=F,birthDate=20110627,guardianNameFirst=Kora,addressZip=48288,
+PATIENT B: addressState=MI,nameFirst=Anika,nameMiddle=Andromache,addressCity=Algonac,mrns=7-R39,addressStreet1=369 Allen St,nameLastHyph=,nameLast=Scott,shotHistory=,guardianNameLast=Hoey,gender=F,birthDate=20110627,guardianNameFirst=Salah,addressZip=48001,
+TEST: S-12:ADDRESS_CHANGED:GREATA-GOODB
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(313)384-2349,nameFirst=Claus,nameMiddle=Goronwy,nameAlias=,addressCity=Kentwood,mrns=1-N63,ssn=638419004,addressStreet1=356 Valley Cir,nameLastHyph=Kiernan,nameLast=Magri,shotHistory=,guardianNameLast=Magri,gender=M,birthDate=20110628,guardianNameFirst=Atarah,addressZip=49588,
+PATIENT B: addressState=MI,nameFirst=Claus,nameMiddle=Goronwy,addressCity=Detroit,mrns=3-A00,addressStreet1=218 Grant Cir,nameLastHyph=Kiernan,nameLast=Magri,motherMaidenName=Magri,shotHistory=,gender=M,birthDate=20110628,guardianNameFirst=Atarah,addressZip=48217,
+TEST: D-12:ADDRESS_CHANGED:GREATA-GOODB
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(313)384-2349,nameFirst=Claus,nameMiddle=Goronwy,nameAlias=,addressCity=Kentwood,mrns=1-N63,ssn=638419004,addressStreet1=356 Valley Cir,nameLastHyph=Kiernan,nameLast=Magri,shotHistory=,guardianNameLast=Magri,gender=M,birthDate=20110628,guardianNameFirst=Atarah,addressZip=49588,
+PATIENT B: addressState=MI,nameFirst=Sayed,nameMiddle=Kerby,addressCity=Cedar Lake,mrns=4-U07,addressStreet1=114 Martin Ln,nameLastHyph=,nameLast=Magri,motherMaidenName=Malca,shotHistory=,gender=M,birthDate=20110628,guardianNameFirst=Kerecsen,addressZip=48812,
+TEST: S-13:ADDRESS_CHANGED:GREATA-POOR
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(269)060-8505,nameFirst=Kali,nameMiddle=Kelda,nameAlias=,addressCity=Fort Gratiot,mrns=7-Y19,ssn=864876736,addressStreet1=264 Wood Pl,nameLastHyph=Hobell,nameLast=Lyon,shotHistory=,guardianNameLast=Hobell,gender=F,birthDate=19990104,guardianNameFirst=Riba,addressZip=48059,
+PATIENT B: addressState=MI,addressStreet1=38 Crosby Ln,nameLastHyph=Hobell,nameLast=Lyon,nameFirst=Kali,addressCity=Saugatuck,shotHistory=,mrns=6-B49,gender=F,birthDate=19990104,addressZip=49453,
+TEST: D-13:ADDRESS_CHANGED:GREATA-POOR
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(269)060-8505,nameFirst=Kali,nameMiddle=Kelda,nameAlias=,addressCity=Fort Gratiot,mrns=7-Y19,ssn=864876736,addressStreet1=264 Wood Pl,nameLastHyph=Hobell,nameLast=Lyon,shotHistory=,guardianNameLast=Hobell,gender=F,birthDate=19990104,guardianNameFirst=Riba,addressZip=48059,
+PATIENT B: addressState=MI,addressStreet1=390 Kootenai Pl,nameLastHyph=,nameLast=Limestone,nameFirst=Alivia,addressCity=East Grand Ra,shotHistory=,mrns=4-W97,gender=F,birthDate=19990104,addressZip=49506,
+TEST: S-14:ADDRESS_CHANGED:GREATA-BAD
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)030-9304,nameFirst=Ellen,nameMiddle=A,nameAlias=Kerr,addressCity=Kentwood,mrns=6-N67,ssn=852410334,addressStreet1=77 Kitsap St,nameLastHyph=Gartenlaub,nameLast=Vistanst,shotHistory=,guardianNameLast=Vistanst,gender=F,birthDate=20110705,guardianNameFirst=Vada,addressZip=49508,
+PATIENT B: nameLastHyph=Gartenlaub,nameLast=Vistanst,nameFirst=Ellen,mrns=4-M66,gender=F,birthDate=20110705,
+TEST: D-14:ADDRESS_CHANGED:GREATA-BAD
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)030-9304,nameFirst=Ellen,nameMiddle=A,nameAlias=Kerr,addressCity=Kentwood,mrns=6-N67,ssn=852410334,addressStreet1=77 Kitsap St,nameLastHyph=Gartenlaub,nameLast=Vistanst,shotHistory=,guardianNameLast=Vistanst,gender=F,birthDate=20110705,guardianNameFirst=Vada,addressZip=49508,
+PATIENT B: nameLastHyph=,nameLast=Vistanst,nameFirst=Sachi,mrns=1-A81,gender=F,birthDate=20110705,
+TEST: S-15:ADDRESS_CHANGED:GREATB-IDEAL
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(616)123-4986,nameFirst=Nia,nameMiddle=K,nameAlias=,addressCity=South Range,mrns=2-B43,medicaid=912118581,addressStreet1=397 Brewster Ln,nameLastHyph=Silseth,nameLast=Franklin,shotHistory=,motherMaidenName=Carlisle,gender=F,birthDate=19990110,guardianNameFirst=Joesa,addressZip=49963,
+PATIENT B: addressState=MI,nameSuffix=,phone=(616)123-4986,birthOrder=1,nameFirst=Nia,nameMiddle=K,addressCity=Grand Rapids,nameAlias=,mrns=4-M67,ssn=718618610,medicaid=912118581,addressStreet1=257 Aroostook Ln,nameLastHyph=Silseth,addressStreet2=,nameLast=Franklin,shotHistory=,motherMaidenName=Carlisle,guardianNameLast=Silseth,gender=F,birthDate=19990110,birthType=1,guardianNameFirst=Joesa,birthStatus=N,addressZip=49519,
+TEST: D-15:ADDRESS_CHANGED:GREATB-IDEAL
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(616)123-4986,nameFirst=Nia,nameMiddle=K,nameAlias=,addressCity=South Range,mrns=2-B43,medicaid=912118581,addressStreet1=397 Brewster Ln,nameLastHyph=Silseth,nameLast=Franklin,shotHistory=,motherMaidenName=Carlisle,gender=F,birthDate=19990110,guardianNameFirst=Joesa,addressZip=49963,
+PATIENT B: addressState=MI,nameSuffix=,phone=(269)860-8919,birthOrder=,nameFirst=Noor,nameMiddle=Delma,addressCity=Coloma,nameAlias=,mrns=4-P49,ssn=771098179,medicaid=398459052,addressStreet1=134 Dallas Pl,nameLastHyph=,addressStreet2=,nameLast=Floyd,shotHistory=,motherMaidenName=Chloris,guardianNameLast=Smith,gender=F,birthDate=19990110,birthType=,guardianNameFirst=Sarni,birthStatus=,addressZip=49038,
+TEST: S-16:ADDRESS_CHANGED:GREATB-GREATA
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(586)365-7086,nameFirst=Lucentio,nameMiddle=D,nameAlias=Knox,addressCity=Dexter,mrns=4-V70,medicaid=056722640,addressStreet1=320 Ulseth Ln,nameLastHyph=Kent,nameLast=Ellis,shotHistory=,motherMaidenName=Ellis,gender=M,birthDate=20110628,guardianNameFirst=Selima,addressZip=48130,
+PATIENT B: addressState=MI,nameSuffix=,phone=(586)365-7086,nameFirst=Lucentio,nameMiddle=D,nameAlias=Knox,addressCity=Saint Clair Shrs,mrns=1-E73,ssn=015155717,addressStreet1=189 Hale St,nameLastHyph=Kent,nameLast=Ellis,shotHistory=,guardianNameLast=Ellis,gender=M,birthDate=20110628,guardianNameFirst=Selima,addressZip=48081,
+TEST: D-16:ADDRESS_CHANGED:GREATB-GREATA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(586)365-7086,nameFirst=Lucentio,nameMiddle=D,nameAlias=Knox,addressCity=Dexter,mrns=4-V70,medicaid=056722640,addressStreet1=320 Ulseth Ln,nameLastHyph=Kent,nameLast=Ellis,shotHistory=,motherMaidenName=Ellis,gender=M,birthDate=20110628,guardianNameFirst=Selima,addressZip=48130,
+PATIENT B: addressState=MI,nameSuffix=,phone=(810)885-3881,nameFirst=Cheyney,nameMiddle=Derward,nameAlias=Bence,addressCity=Burton,mrns=6-M10,ssn=360030831,addressStreet1=327 La Salle Ave,nameLastHyph=,nameLast=Eaton,shotHistory=,guardianNameLast=Cusack,gender=M,birthDate=20110628,guardianNameFirst=Robertson,addressZip=48509,
+TEST: S-17:ADDRESS_CHANGED:GREATB-GREATB
+EXPECT: Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(734)680-2536,nameFirst=Shunnar,nameMiddle=A,nameAlias=,addressCity=Meskegon,mrns=6-B57,medicaid=000391959,addressStreet1=154 McQuade Pl,nameLastHyph=Sagadahoc,nameLast=Coryell,shotHistory=,motherMaidenName=Coryell,gender=M,birthDate=19990102,guardianNameFirst=Keyna,addressZip=49443,
+PATIENT B: addressState=MI,nameSuffix=,phone=(734)680-2536,nameFirst=Shunnar,nameMiddle=A,nameAlias=,addressCity=Petersburg,mrns=2-H07,medicaid=000391959,addressStreet1=34 Thurston St,nameLastHyph=Sagadahoc,nameLast=Coryell,shotHistory=,motherMaidenName=Coryell,gender=M,birthDate=19990102,guardianNameFirst=Keyna,addressZip=49270,
+TEST: D-17:ADDRESS_CHANGED:GREATB-GREATB
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(734)680-2536,nameFirst=Shunnar,nameMiddle=A,nameAlias=,addressCity=Meskegon,mrns=6-B57,medicaid=000391959,addressStreet1=154 McQuade Pl,nameLastHyph=Sagadahoc,nameLast=Coryell,shotHistory=,motherMaidenName=Coryell,gender=M,birthDate=19990102,guardianNameFirst=Keyna,addressZip=49443,
+PATIENT B: addressState=MI,nameSuffix=,phone=(517)041-6605,nameFirst=Shaw,nameMiddle=Bebe,nameAlias=,addressCity=Cement City,mrns=3-G24,medicaid=610055399,addressStreet1=276 McClung Pl,nameLastHyph=,nameLast=Chase,shotHistory=,motherMaidenName=Cleva,gender=M,birthDate=19990102,guardianNameFirst=Keyna,addressZip=49281,
+TEST: S-18:ADDRESS_CHANGED:GREATB-GOODA
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)855-6434,nameFirst=Roisin,nameMiddle=Aba,nameAlias=,addressCity=Mancelona,mrns=6-K48,medicaid=356397658,addressStreet1=241 Kiernan Ave,nameLastHyph=Evans,nameLast=Hofflund,shotHistory=,motherMaidenName=Hofflund,gender=F,birthDate=20110701,guardianNameFirst=Lynnette,addressZip=49659,
+PATIENT B: addressState=MI,nameFirst=Roisin,nameMiddle=Aba,addressCity=Boon,mrns=4-A13,addressStreet1=235 Cuming Ln,nameLastHyph=Evans,nameLast=Hofflund,shotHistory=,guardianNameLast=Hofflund,gender=F,birthDate=20110701,guardianNameFirst=Lynnette,addressZip=49618,
+TEST: D-18:ADDRESS_CHANGED:GREATB-GOODA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(231)855-6434,nameFirst=Roisin,nameMiddle=Aba,nameAlias=,addressCity=Mancelona,mrns=6-K48,medicaid=356397658,addressStreet1=241 Kiernan Ave,nameLastHyph=Evans,nameLast=Hofflund,shotHistory=,motherMaidenName=Hofflund,gender=F,birthDate=20110701,guardianNameFirst=Lynnette,addressZip=49659,
+PATIENT B: addressState=MI,nameFirst=Grania,nameMiddle=Amadika,addressCity=Twining,mrns=5-B46,addressStreet1=225 Jerome Cir,nameLastHyph=,nameLast=Hughes,shotHistory=,guardianNameLast=Brooks,gender=F,birthDate=20110701,guardianNameFirst=Lynnette,addressZip=48766,
+TEST: S-19:ADDRESS_CHANGED:GREATB-GOODB
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(989)840-3396,nameFirst=Fiona,nameMiddle=B,nameAlias=,addressCity=Lakeville,mrns=6-I10,medicaid=663763414,addressStreet1=118 Pocahontas St,nameLastHyph=Byrne,nameLast=Columbiana,shotHistory=,motherMaidenName=Columbiana,gender=F,birthDate=20110704,guardianNameFirst=Aubine,addressZip=48366,
+PATIENT B: addressState=MI,nameFirst=Fiona,nameMiddle=B,addressCity=Merrill,mrns=1-G21,addressStreet1=346 Jackson St,nameLastHyph=Byrne,nameLast=Columbiana,motherMaidenName=Columbiana,shotHistory=,gender=F,birthDate=20110704,guardianNameFirst=Aubine,addressZip=48637,
+TEST: D-19:ADDRESS_CHANGED:GREATB-GOODB
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(989)840-3396,nameFirst=Fiona,nameMiddle=B,nameAlias=,addressCity=Lakeville,mrns=6-I10,medicaid=663763414,addressStreet1=118 Pocahontas St,nameLastHyph=Byrne,nameLast=Columbiana,shotHistory=,motherMaidenName=Columbiana,gender=F,birthDate=20110704,guardianNameFirst=Aubine,addressZip=48366,
+PATIENT B: addressState=MI,nameFirst=Aislinn,nameMiddle=Brygid,addressCity=Amasa,mrns=2-C01,addressStreet1=187 Mendocino Ave,nameLastHyph=,nameLast=Clearwater,motherMaidenName=Gunda,shotHistory=,gender=F,birthDate=20110704,guardianNameFirst=Philo,addressZip=49903,
+TEST: S-20:ADDRESS_CHANGED:GREATB-POOR
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(517)458-8255,nameFirst=Lynnea,nameMiddle=R,nameAlias=,addressCity=Pelkie,mrns=2-W68,medicaid=322271403,addressStreet1=295 Miami St,nameLastHyph=Marsh,nameLast=Boyle,shotHistory=,motherMaidenName=Lawrence,gender=F,birthDate=19990108,guardianNameFirst=Tivona,addressZip=49958,
+PATIENT B: addressState=MI,addressStreet1=244 Oates Ln,nameLastHyph=Marsh,nameLast=Boyle,nameFirst=Lynnea,addressCity=Napoleon,shotHistory=,mrns=7-B97,gender=F,birthDate=19990108,addressZip=49261,
+TEST: D-20:ADDRESS_CHANGED:GREATB-POOR
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(517)458-8255,nameFirst=Lynnea,nameMiddle=R,nameAlias=,addressCity=Pelkie,mrns=2-W68,medicaid=322271403,addressStreet1=295 Miami St,nameLastHyph=Marsh,nameLast=Boyle,shotHistory=,motherMaidenName=Lawrence,gender=F,birthDate=19990108,guardianNameFirst=Tivona,addressZip=49958,
+PATIENT B: addressState=MI,addressStreet1=107 Chickasaw Ln,nameLastHyph=,nameLast=Boyle,nameFirst=Aure,addressCity=Sumner,shotHistory=,mrns=6-N01,gender=F,birthDate=19990108,addressZip=48889,
+TEST: S-21:ADDRESS_CHANGED:GREATB-BAD
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(248)497-6506,nameFirst=Teresa,nameMiddle=G,nameAlias=,addressCity=Decker,mrns=2-G24,medicaid=887972976,addressStreet1=363 Garrard Ln,nameLastHyph=Jepsen,nameLast=Victoria,shotHistory=,motherMaidenName=Victoria,gender=F,birthDate=20080105,guardianNameFirst=Haleigha,addressZip=48426,
+PATIENT B: nameLastHyph=Jepsen,nameLast=Victoria,nameFirst=Teresa,mrns=7-A81,gender=F,birthDate=20080105,
+TEST: D-21:ADDRESS_CHANGED:GREATB-BAD
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameSuffix=,phone=(248)497-6506,nameFirst=Teresa,nameMiddle=G,nameAlias=,addressCity=Decker,mrns=2-G24,medicaid=887972976,addressStreet1=363 Garrard Ln,nameLastHyph=Jepsen,nameLast=Victoria,shotHistory=,motherMaidenName=Victoria,gender=F,birthDate=20080105,guardianNameFirst=Haleigha,addressZip=48426,
+PATIENT B: nameLastHyph=,nameLast=Van Wert,nameFirst=Thirza,mrns=5-Q45,gender=F,birthDate=20080105,
+TEST: S-22:ADDRESS_CHANGED:GOODA-IDEAL
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Kristie,nameMiddle=Mari,addressCity=Casco Township,mrns=4-X34,addressStreet1=249 Clark Pl,nameLastHyph=Johnson,nameLast=Sowden,shotHistory=,guardianNameLast=Sowden,gender=F,birthDate=20080119,guardianNameFirst=Anais,addressZip=48064,
+PATIENT B: addressState=MI,nameSuffix=,phone=(517)759-6022,birthOrder=1,nameFirst=Kristie,nameMiddle=Mari,addressCity=Michigan Bankard,nameAlias=,mrns=1-Z63,ssn=833689366,medicaid=099771546,addressStreet1=358 Crawford St,nameLastHyph=Johnson,addressStreet2=,nameLast=Sowden,shotHistory=,motherMaidenName=Sowden,guardianNameLast=Sowden,gender=F,birthDate=20080119,birthType=1,guardianNameFirst=Anais,birthStatus=N,addressZip=48950,
+TEST: D-22:ADDRESS_CHANGED:GOODA-IDEAL
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Kristie,nameMiddle=Mari,addressCity=Casco Township,mrns=4-X34,addressStreet1=249 Clark Pl,nameLastHyph=Johnson,nameLast=Sowden,shotHistory=,guardianNameLast=Sowden,gender=F,birthDate=20080119,guardianNameFirst=Anais,addressZip=48064,
+PATIENT B: addressState=MI,nameSuffix=,phone=(517)759-6022,birthOrder=,nameFirst=Vasanti,nameMiddle=Aloysia,addressCity=Lake Isabella,nameAlias=,mrns=5-S46,ssn=755707190,medicaid=186210318,addressStreet1=112 Cameron Pl,nameLastHyph=,addressStreet2=,nameLast=Smith,shotHistory=,motherMaidenName=Sowden,guardianNameLast=Pacific,gender=F,birthDate=20080119,birthType=,guardianNameFirst=Ashon,birthStatus=,addressZip=48893,
+TEST: S-23:ADDRESS_CHANGED:GOODA-GREATA
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Antje,nameMiddle=,addressCity=Ruby,mrns=4-Q37,addressStreet1=40 McClean Ave,nameLastHyph=Franklin,nameLast=Leknes,shotHistory=,guardianNameLast=Leknes,gender=F,birthDate=20110627,guardianNameFirst=Shobhana,addressZip=48049,
+PATIENT B: addressState=MI,nameSuffix=,phone=(231)255-4113,nameFirst=Antje,nameMiddle=,nameAlias=,addressCity=Croton,mrns=6-Q35,ssn=628411918,addressStreet1=296 Paulding Pl,nameLastHyph=Franklin,nameLast=Leknes,shotHistory=,guardianNameLast=Leknes,gender=F,birthDate=20110627,guardianNameFirst=Shobhana,addressZip=49337,
+TEST: D-23:ADDRESS_CHANGED:GOODA-GREATA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Antje,nameMiddle=,addressCity=Ruby,mrns=4-Q37,addressStreet1=40 McClean Ave,nameLastHyph=Franklin,nameLast=Leknes,shotHistory=,guardianNameLast=Leknes,gender=F,birthDate=20110627,guardianNameFirst=Shobhana,addressZip=48049,
+PATIENT B: addressState=MI,nameSuffix=,phone=(734)555-3535,nameFirst=Genesis,nameMiddle=,nameAlias=,addressCity=Newport,mrns=1-M97,ssn=592847182,addressStreet1=254 Garfield Cir,nameLastHyph=,nameLast=Leknes,shotHistory=,guardianNameLast=Leknes,gender=F,birthDate=20110627,guardianNameFirst=Samson,addressZip=48166,
+TEST: S-24:ADDRESS_CHANGED:GOODA-GREATB
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Audun,nameMiddle=Svein,addressCity=Dearborn,mrns=5-A70,addressStreet1=99 Oxford Ave,nameLastHyph=Ganes,nameLast=Los Angeles,shotHistory=,guardianNameLast=Los Angeles,gender=M,birthDate=19981226,guardianNameFirst=Kiara,addressZip=48124,
+PATIENT B: addressState=MI,nameSuffix=,phone=(313)383-2901,nameFirst=Audun,nameMiddle=Svein,nameAlias=,addressCity=Grosse Pointe Park,mrns=6-I10,medicaid=574286585,addressStreet1=92 Pocahontas Pl,nameLastHyph=Ganes,nameLast=Los Angeles,shotHistory=,motherMaidenName=Los Angeles,gender=M,birthDate=19981226,guardianNameFirst=Kiara,addressZip=48230,
+TEST: D-24:ADDRESS_CHANGED:GOODA-GREATB
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Audun,nameMiddle=Svein,addressCity=Dearborn,mrns=5-A70,addressStreet1=99 Oxford Ave,nameLastHyph=Ganes,nameLast=Los Angeles,shotHistory=,guardianNameLast=Los Angeles,gender=M,birthDate=19981226,guardianNameFirst=Kiara,addressZip=48124,
+PATIENT B: addressState=MI,nameSuffix=,phone=(734)806-0109,nameFirst=Idwal,nameMiddle=Newton,nameAlias=,addressCity=Dover,mrns=7-Q56,medicaid=398507558,addressStreet1=8 Fayette St,nameLastHyph=,nameLast=Lackawanna,shotHistory=,motherMaidenName=Aliza,gender=M,birthDate=19981226,guardianNameFirst=Kiara,addressZip=48130,
+TEST: S-25:ADDRESS_CHANGED:GOODA-GOODA
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Vevila,nameMiddle=L,addressCity=Hart,mrns=7-I53,addressStreet1=295 Solano Ln,nameLastHyph=Lincoln,nameLast=Elk,shotHistory=,guardianNameLast=Elk,gender=F,birthDate=20080101,guardianNameFirst=Breanna,addressZip=49420,
+PATIENT B: addressState=MI,nameFirst=Vevila,nameMiddle=L,addressCity=Woodhaven,mrns=3-O92,addressStreet1=117 Lucas Cir,nameLastHyph=Lincoln,nameLast=Elk,shotHistory=,guardianNameLast=Elk,gender=F,birthDate=20080101,guardianNameFirst=Breanna,addressZip=48183,
+TEST: D-25:ADDRESS_CHANGED:GOODA-GOODA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Vevila,nameMiddle=L,addressCity=Hart,mrns=7-I53,addressStreet1=295 Solano Ln,nameLastHyph=Lincoln,nameLast=Elk,shotHistory=,guardianNameLast=Elk,gender=F,birthDate=20080101,guardianNameFirst=Breanna,addressZip=49420,
+PATIENT B: addressState=MI,nameFirst=Rahel,nameMiddle=Madilynn,addressCity=Mott Park,mrns=1-E85,addressStreet1=18 Texas Ave,nameLastHyph=,nameLast=Esceibre,shotHistory=,guardianNameLast=Elk,gender=F,birthDate=20080101,guardianNameFirst=Breanna,addressZip=48504,
+TEST: S-26:ADDRESS_CHANGED:GOODA-GOODB
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Quella,nameMiddle=Joni,addressCity=Burtchville Township,mrns=2-P37,addressStreet1=288 Perman Ave,nameLastHyph=Mason,nameLast=Gartenlaub,shotHistory=,guardianNameLast=Gartenlaub,gender=F,birthDate=20080118,guardianNameFirst=Ricarda,addressZip=48059,
+PATIENT B: addressState=MI,nameFirst=Quella,nameMiddle=Joni,addressCity=Saginaw,mrns=4-R41,addressStreet1=312 Fleming Pl,nameLastHyph=Mason,nameLast=Gartenlaub,motherMaidenName=Gartenlaub,shotHistory=,gender=F,birthDate=20080118,guardianNameFirst=Ricarda,addressZip=48606,
+TEST: D-26:ADDRESS_CHANGED:GOODA-GOODB
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Quella,nameMiddle=Joni,addressCity=Burtchville Township,mrns=2-P37,addressStreet1=288 Perman Ave,nameLastHyph=Mason,nameLast=Gartenlaub,shotHistory=,guardianNameLast=Gartenlaub,gender=F,birthDate=20080118,guardianNameFirst=Ricarda,addressZip=48059,
+PATIENT B: addressState=MI,nameFirst=Baka,nameMiddle=Jael,addressCity=Imlay City,mrns=5-V80,addressStreet1=156 Clark Ln,nameLastHyph=,nameLast=Lassen,motherMaidenName=Siddhi,shotHistory=,gender=F,birthDate=20080118,guardianNameFirst=Randy,addressZip=48444,
+TEST: S-27:ADDRESS_CHANGED:GOODA-POOR
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Aubrey,nameMiddle=T,addressCity=Riley Township,mrns=3-E64,addressStreet1=274 Custer Cir,nameLastHyph=Thorne,nameLast=Polk,shotHistory=,guardianNameLast=Buchanan,gender=M,birthDate=20080107,guardianNameFirst=Lucina,addressZip=48041,
+PATIENT B: addressState=MI,addressStreet1=201 Shelby Ln,nameLastHyph=Thorne,nameLast=Polk,nameFirst=Aubrey,addressCity=Harrison,shotHistory=,mrns=1-Y97,gender=M,birthDate=20080107,addressZip=48625,
+TEST: D-27:ADDRESS_CHANGED:GOODA-POOR
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Aubrey,nameMiddle=T,addressCity=Riley Township,mrns=3-E64,addressStreet1=274 Custer Cir,nameLastHyph=Thorne,nameLast=Polk,shotHistory=,guardianNameLast=Buchanan,gender=M,birthDate=20080107,guardianNameFirst=Lucina,addressZip=48041,
+PATIENT B: addressState=MI,addressStreet1=169 Sharples Cir,nameLastHyph=,nameLast=Stark,nameFirst=Desmond,addressCity=Kalamazoo,shotHistory=,mrns=4-P70,gender=M,birthDate=20080107,addressZip=49019,
+TEST: S-28:ADDRESS_CHANGED:GOODA-BAD
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Cassius,nameMiddle=Harlow,addressCity=Rives Junction,mrns=4-R53,addressStreet1=9 Merwik Cir,nameLastHyph=Meaghan,nameLast=Nelsen,shotHistory=,guardianNameLast=Nelsen,gender=M,birthDate=20110627,guardianNameFirst=Dae,addressZip=49277,
+PATIENT B: nameLastHyph=Meaghan,nameLast=Nelsen,nameFirst=Cassius,mrns=1-V13,gender=M,birthDate=20110627,
+TEST: D-28:ADDRESS_CHANGED:GOODA-BAD
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Cassius,nameMiddle=Harlow,addressCity=Rives Junction,mrns=4-R53,addressStreet1=9 Merwik Cir,nameLastHyph=Meaghan,nameLast=Nelsen,shotHistory=,guardianNameLast=Nelsen,gender=M,birthDate=20110627,guardianNameFirst=Dae,addressZip=49277,
+PATIENT B: nameLastHyph=,nameLast=Nacogdoches,nameFirst=Camron,mrns=4-R15,gender=M,birthDate=20110627,
+TEST: S-29:ADDRESS_CHANGED:GOODB-IDEAL
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Belvia,nameMiddle=Hava,addressCity=Redford Township,mrns=6-V82,addressStreet1=99 Castro St,nameLastHyph=Fresno,nameLast=Kay,motherMaidenName=Kay,shotHistory=,gender=F,birthDate=19981227,guardianNameFirst=Seve,addressZip=48239,
+PATIENT B: addressState=MI,nameSuffix=,phone=(734)387-7419,birthOrder=1,nameFirst=Belvia,nameMiddle=Hava,addressCity=Manchester,nameAlias=,mrns=3-B58,ssn=915025635,medicaid=689208315,addressStreet1=380 Greenup Cir,nameLastHyph=Fresno,addressStreet2=,nameLast=Kay,shotHistory=,motherMaidenName=Kay,guardianNameLast=Kay,gender=F,birthDate=19981227,birthType=1,guardianNameFirst=Seve,birthStatus=N,addressZip=48158,
+TEST: D-29:ADDRESS_CHANGED:GOODB-IDEAL
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Belvia,nameMiddle=Hava,addressCity=Redford Township,mrns=6-V82,addressStreet1=99 Castro St,nameLastHyph=Fresno,nameLast=Kay,motherMaidenName=Kay,shotHistory=,gender=F,birthDate=19981227,guardianNameFirst=Seve,addressZip=48239,
+PATIENT B: addressState=MI,nameSuffix=,phone=(269)035-8248,birthOrder=,nameFirst=Chitra,nameMiddle=Hava,addressCity=Battle Creek,nameAlias=,mrns=5-W01,ssn=631960772,medicaid=967302159,addressStreet1=271 Polk Cir,nameLastHyph=,addressStreet2=,nameLast=Kay,shotHistory=,motherMaidenName=Kay,guardianNameLast=Kay,gender=F,birthDate=19981227,birthType=,guardianNameFirst=Graham,birthStatus=,addressZip=49015,
+TEST: S-30:ADDRESS_CHANGED:GOODB-GREATA
+EXPECT: Possible Match
+PATIENT A: addressState=MI,nameFirst=Cordelia,nameMiddle=Haldana,addressCity=Munith,mrns=1-O22,addressStreet1=43 Alofson Cir,nameLastHyph=Columbia,nameLast=Allott,motherMaidenName=Allott,shotHistory=,gender=F,birthDate=20110630,guardianNameFirst=Rosamond,addressZip=49259,
+PATIENT B: addressState=MI,nameSuffix=,phone=(810)135-4603,nameFirst=Cordelia,nameMiddle=Haldana,nameAlias=,addressCity=Attica,mrns=3-O46,ssn=454258071,addressStreet1=297 Linn Ave,nameLastHyph=Columbia,nameLast=Allott,shotHistory=,guardianNameLast=Allott,gender=F,birthDate=20110630,guardianNameFirst=Rosamond,addressZip=48412,
+TEST: D-30:ADDRESS_CHANGED:GOODB-GREATA
+EXPECT: Not a Match
+PATIENT A: addressState=MI,nameFirst=Cordelia,nameMiddle=Haldana,addressCity=Munith,mrns=1-O22,addressStreet1=43 Alofson Cir,nameLastHyph=Columbia,nameLast=Allott,motherMaidenName=Allott,shotHistory=,gender=F,birthDate=20110630,guardianNameFirst=Rosamond,addressZip=49259,
+PATIENT B: addressState=MI,nameSuffix=,phone=(231)443-1027,nameFirst=Cathee,nameMiddle=Kakra,nameAlias=,addressCity=Hart,mrns=2-D61,ssn=301642222,addressStreet1=45 Lamb Ln,nameLastHyph=,nameLast=Tioga,shotHistory=,guardianNameLast=Allott,gender=F,birthDate=20110630,guardianNameFirst=Ptolemy,addressZip=49420,
