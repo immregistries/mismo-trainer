@@ -113,10 +113,12 @@ allows.
   It writes `mismo-runner/target/release/Mismo-Runner-<version>-windows.zip` (about 28 MB, with
   Java 25 bundled) and its `.sha256`. Build from a clean, committed tree: `VERSION.txt` in the zip
   records the commit and says if there were uncommitted changes.
-- [ ] Publish a GitHub Release on `immregistries/mismo-trainer`, tag `runner-v<version>`, with the
-  zip attached and the SHA-256 in the notes.
-- [ ] Set `app_setting.runner.download.url` to the asset URL (the seeded value assumes tag
-  `runner-v2.0`) and `runner.download.sha256` to the zip's hash. The Runners page shows both.
+- [x] Publish a GitHub Release on `immregistries/mismo-trainer`, tag `runner-v<version>`, with the
+  zip attached and the SHA-256 in the notes. Done for 2.0 (2026-10-25):
+  https://github.com/immregistries/mismo-trainer/releases/tag/runner-v2.0, built from `ed37134`.
+- [ ] Set `app_setting.runner.download.url` to the asset URL (the seeded value already matches
+  `runner-v2.0`) and `runner.download.sha256` to the zip's hash. The Runners page shows both. For 2.0:
+  `UPDATE app_setting SET setting_value = 'a8f1b2d23390fc9d9cf954fdb6134d9cacc503a2e4cb279e705a7b5c54497e44' WHERE setting_key = 'runner.download.sha256';`
 
 **Shelby's first run** (the acceptance criteria of `docs/centrally-managed-local-island-runner.md`):
 
