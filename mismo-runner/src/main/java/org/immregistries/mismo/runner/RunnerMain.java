@@ -40,6 +40,7 @@ public class RunnerMain {
 
   private static final String RUNNING_HELP = String.join("\n",
       "  status      Redraw the optimization dashboard (or just press Enter)",
+      "  progress    Graph the best score so far and show how much it has gained",
       "  sync        Upload current progress and best candidate now",
       "  weights     Display scoring weights for this run",
       "  script      Display the current best configuration",
@@ -445,6 +446,14 @@ public class RunnerMain {
       case "status":
         Dashboard.print(out, identity, session);
         break;
+      case "progress":
+      case "graph": {
+        ScoreHistory history = session.history();
+        out.println();
+        out.print(ProgressView.render(history.samples(), history.lastImprovement()));
+        out.println();
+        break;
+      }
       case "sync":
         session.sync();
         out.println("Sync: " + session.connection());

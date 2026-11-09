@@ -304,6 +304,7 @@ Suggested running commands:
 
 ```text
 status                  Redraw the optimization dashboard
+progress                Graph the best score so far and show how much it has gained
 sync                    Upload current progress and best candidate now
 weights                 Display scoring weights for this run
 script                  Display the current best configuration
@@ -327,9 +328,13 @@ Last report: 2 minutes ago
 Generation: 14,284
 Rate: 328 candidates/second
 Best score: 97.42%
+Last gain:   41 minutes ago at generation 13,960 (+0.020 pts)
+Recent gain: +0.000 pts in the last 30 minutes
 ```
 
 Pressing Enter may continue to redraw the dashboard, preserving the existing roll-and-scroll style.
+
+The two gain lines and the `progress` command come from an in-memory history of the best score, sampled every 5 seconds by the reporter (`ScoreHistory`, rendered by `ProgressView`). It is not persisted or sent to the server, so a restarted runner starts a new history. `progress` (alias `graph`) prints a plain-ASCII area chart, with the vertical axis scaled from the lowest to the highest score seen so that small gains are visible, and a table of the best score at 1, 2, 5, 10, 15 and 30 minutes, at 1, 2, 4, 8, 12 and 24 hours, then every day, with the gain between rows. Gains that shrink to nothing mean the run has plateaued.
 
 ## 8. Local State
 

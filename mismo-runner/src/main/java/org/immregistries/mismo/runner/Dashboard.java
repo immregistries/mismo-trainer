@@ -1,6 +1,7 @@
 package org.immregistries.mismo.runner;
 
 import java.io.PrintStream;
+import java.util.List;
 
 import org.immregistries.mismo.optimizer.engine.World;
 import org.immregistries.mismo.optimizer.protocol.Messages;
@@ -34,6 +35,13 @@ final class Dashboard {
     out.println("Rate:        " + String.format("%,.1f", world.getScoreRate()) + " candidates/second");
     out.println("Best score:  " + (best == null ? "(scoring first generation)"
         : String.format("%.2f%%", best.score() * 100.0)));
+    ScoreHistory history = session.history();
+    List<ScoreHistory.Sample> samples = history.samples();
+    if (!samples.isEmpty()) {
+      out.println(ProgressView.lastGainLine(history.lastImprovement(),
+          samples.get(samples.size() - 1).elapsedMillis()));
+      out.println(ProgressView.recentGainLine(samples));
+    }
     out.println("Status:      " + world.getLastMessage());
     out.println("Running for: " + ago(session.startedMillis()).replace(" ago", ""));
     out.println();

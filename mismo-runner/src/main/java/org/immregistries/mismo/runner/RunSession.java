@@ -45,6 +45,7 @@ final class RunSession {
   private final Checkpoints checkpoints;
   private final Consumer<String> notify;
   private final long startedMillis = System.currentTimeMillis();
+  private final ScoreHistory history = new ScoreHistory();
 
   private volatile boolean reporting = true;
   private volatile boolean ended = false;
@@ -136,6 +137,20 @@ final class RunSession {
     return new Best(creature.getGeneration(), creature.getScore(), script, Hashes.sha256Hex(script));
   }
 
+  /** @return the best score so far over this run, sampled now and on every reporter tick (in memory only) */
+  ScoreHistory history() {
+    sampleScore();
+    return history;
+  }
+
+  private void sampleScore() {
+    Creature[] copy = world.getCreaturesCopy();
+    if (copy == null || copy.length == 0 || copy[0] == null) {
+      return;
+    }
+    history.record(System.currentTimeMillis() - startedMillis, world.getGeneration(), copy[0].getScore());
+  }
+
   /** Sends progress and the current best candidate now. */
   synchronized void sync() {
     report(true, true);
@@ -197,6 +212,7 @@ final class RunSession {
           handleFailure(world.getFailure());
           return;
         }
+        sampleScore();
         writeCheckpoint();
         if (now < nextAttemptMillis) {
           continue;
