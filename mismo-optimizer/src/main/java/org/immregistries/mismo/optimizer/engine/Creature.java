@@ -166,10 +166,7 @@ public class Creature {
     patientCompare = new PatientCompare(clone.getPatientCompare().getConfiguration().getConfigurationScript());
     this.getPatientCompare().getConfiguration().setGeneration(generation);
     this.getPatientCompare().getConfiguration().setGeneratedDate(new Date());
-    patientCompare.getMatch().clone(clone.patientCompare.getMatch());
-    patientCompare.getNotMatch().clone(clone.patientCompare.getNotMatch());
-    patientCompare.getTwin().clone(clone.patientCompare.getTwin());
-    patientCompare.getMissing().clone(clone.patientCompare.getMissing());
+    MatchTreeCopy.copy(clone.patientCompare, patientCompare);
     scorer = new Scorer(world.getScoringWeights());
   }
 
