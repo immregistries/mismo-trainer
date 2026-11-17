@@ -102,7 +102,8 @@ public class RunnerMain {
 
   private static String version() {
     String version = RunnerMain.class.getPackage().getImplementationVersion();
-    return version == null ? "dev" : version;
+    // Retain build identity while distinguishing runs using corrected corresponding-node copying.
+    return (version == null ? "dev" : version) + "+copy1";
   }
 
   void run() throws IOException {
