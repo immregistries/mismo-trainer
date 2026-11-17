@@ -2,6 +2,17 @@
 
 Mismo Trainer is the web application (Java 17, Tomcat 10.1, `jakarta.servlet`, Hibernate 3 `.hbm.xml` mappings, MySQL) for managing Test Sets, configurations, evaluations, signatures, and weight-set optimization for the Mismo patient-matching engine. The engine itself is the separate `mismo-match` library/repository (`../mismo-match`), consumed as a Maven dependency.
 
+## Who uses this, and how to scope changes
+
+Mismo Trainer supports **a single analyst's work**. That was true when it was built and is still true now. "Production" means the official deployed environment, used by that one person. It has no wider user base, and none is planned. Size every change to fit:
+
+- **Keep solutions simple.** Don't add machinery for scale, concurrency between users, multi-team workflows, or backward compatibility that one user doesn't need.
+- **Upgrades can be disruptive.** No one needs protecting while work is in flight during a deploy. Coordinate with the analyst, then redeploy. Rolling upgrades, long deprecation periods and compatibility shims for old clients or in-progress runs aren't needed unless asked for.
+- **Trying new ideas in production is acceptable.** Experimental features, settings and optimizer changes can ship and be evaluated in real use, then kept or reverted. Recording what changed (for example, a version marker on runs) is enough. Gating, feature flags and extended staging aren't required.
+- **`mismo-match` is in scope.** If the engine has a bug, fix it in `../mismo-match` rather than working around it here, then update the dependency version the trainer uses.
+
+This is about engineering effort, not about the measurement rules below. Those still hold: the narrow field set and the scoring defaults are deliberate design decisions.
+
 ## Read before changing scoring, weights, or what the optimizer is steered toward
 
 **[`docs/optimization-objectives-and-scoring-profiles.md`](docs/optimization-objectives-and-scoring-profiles.md)** is authoritative. In short:
